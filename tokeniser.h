@@ -1,5 +1,6 @@
 #ifndef TOKENISER_H
 #define TOKENISER_H
+
 #include "utils.h"
 
 typedef enum

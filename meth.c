@@ -11,8 +11,6 @@ void compile_c_to_str(Token *tokens, string program)
     while (tokens[token_index].type != PROGRAM_END)
     {
         Token current_token = tokens[token_index++];
-        // printf("\ntoken: ");
-        // dbg_token(current_token);
 
         if (current_token.type == OP)
         {
