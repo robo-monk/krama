@@ -129,25 +129,70 @@ void tokenise(string filename, Token *tokens)
     fclose(fptr);
 }
 
+void dbg_token(Token token)
+{
+    if (token.type == OP)
+    {
+        printf("Operand: %c \n", token.value.op_type);
+    }
+    else if (token.type == NUMBER)
+    {
+        printf("Number: %d \n", token.value.n);
+    }
+    else
+    {
+        printf("Token: %c \n", token.type);
+    }
+}
 void dbg_tokens(Token *tokens)
 {
     int i = 0;
     while (tokens[i].type != PROGRAM_END)
     {
-        Token current_token = tokens[i];
+        Token current_token = tokens[i++];
+        dbg_token(current_token);
+    }
+}
+
+// produces program that when run
+void compile_c_to_str(Token *tokens, string program)
+{
+    int token_index = 0;
+    int i = 0;
+    while (tokens[token_index].type != PROGRAM_END)
+    {
+        Token current_token = tokens[token_index++];
+        printf("\ntoken: ");
+        dbg_token(current_token);
+
         if (current_token.type == OP)
         {
-            printf("Operand: %c \n", current_token.value.op_type);
+            printf("-- OP %c\n", current_token.value.op_type);
+            program[i++] = current_token.value.op_type;
         }
         else if (current_token.type == NUMBER)
         {
-            printf("Number: %d \n", current_token.value.n);
+            char num_str[64];
+            sprintf(num_str, "%d!", current_token.value.n);
+            int _i = 0;
+            while (num_str[_i] != '!')
+            {
+                program[i++] = num_str[_i++];
+            }
+        }
+        else if (current_token.type == OPEN_PAR)
+        {
+            program[i++] = '(';
+        }
+        else if (current_token.type == CLOSE_PAR)
+        {
+            program[i++] = ')';
         }
         else
         {
-            printf("Token: %c \n", current_token.type);
+            // program[i++] = current_token.type;
+            program[i++] = '?';
         }
-        i++;
     }
 }
 
@@ -156,5 +201,16 @@ int main()
     Token *tokens = malloc(512 * sizeof(Token));
     tokenise("./expr.meth", tokens);
     dbg_tokens(tokens);
+
+    printf("\n\n");
+
+    string c_program = malloc(4096 * sizeof(char));
+    compile_c_to_str(tokens, c_program);
+
+    printf("compiled c program: \n\n");
+    printf("%s", c_program);
+
+    free(c_program);
+    free(tokens);
     return 0;
 }
