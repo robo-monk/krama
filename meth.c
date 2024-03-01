@@ -65,7 +65,7 @@ void tokenise(string filename, Token *tokens)
     FILE *fptr;
     fptr = fopen(filename, "r");
 
-    int i = -1;
+    int i = 0;
     int number;
     char c = 0;
     Token current_token;
@@ -75,7 +75,6 @@ void tokenise(string filename, Token *tokens)
     {
         if ((number = parse_number(c)) > -1)
         {
-            // 532
             if (!is_constructing_multichar_token)
             {
                 is_constructing_multichar_token = true;
