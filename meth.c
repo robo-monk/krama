@@ -8,18 +8,18 @@
 
 typedef enum
 {
-    ADD='+',
-    MIN='-',
-    DIV='/',
-    MUL='*'
+    ADD = '+',
+    MIN = '-',
+    DIV = '/',
+    MUL = '*'
 } OpType;
 
 typedef enum
 {
     NUMBER,
     OP,
-    OPEN_PAR='(',
-    CLOSE_PAR=')',
+    OPEN_PAR = '(',
+    CLOSE_PAR = ')',
     PROGRAM_END
 } TokenType;
 
@@ -51,8 +51,10 @@ Token new_token(TokenType type)
     return t;
 }
 
-int parse_number(char c) {
-    if (c >= '0' && c <= '9') {
+int parse_number(char c)
+{
+    if (c >= '0' && c <= '9')
+    {
         return c - '0';
     }
     return -1;
@@ -64,84 +66,86 @@ void tokenise(string filename, Token *tokens)
     fptr = fopen(filename, "r");
 
     int i = -1;
-    char c;
+    int number;
+    char c = 0;
     Token current_token;
-    // Token *tokens = malloc(512 * sizeof(Token));
     bool is_constructing_multichar_token = false;
 
-    while (c != -1)
+    while ((c = fgetc(fptr)) != EOF)
     {
-        i++;
-
-        c = fgetc(fptr);
-        int number = parse_number(c);
-
-        if (number > -1) {
-            if (!is_constructing_multichar_token) {
+        if ((number = parse_number(c)) > -1)
+        {
+            // 532
+            if (!is_constructing_multichar_token)
+            {
                 is_constructing_multichar_token = true;
                 current_token = new_token(NUMBER);
                 current_token.value.n = number;
-            } else {
-                int current_token_value = current_token.value.n;
-                current_token_value <<= 1;
-                current_token_value += number;
-                current_token.value.n = current_token_value;
+            }
+            else
+            {
+                current_token.value.n = (current_token.value.n * 10) + number;
             }
             continue;
         }
 
         // done with construction
-        if (is_constructing_multichar_token) {
-            tokens[i] = current_token;
-            i++;
+        if (is_constructing_multichar_token)
+        {
+            tokens[i++] = current_token;
             is_constructing_multichar_token = false;
         }
 
         switch (c)
         {
         case '+':
-            tokens[i] = new_op_token(OP, ADD);
+            tokens[i++] = new_op_token(OP, ADD);
             break;
         case '-':
-            tokens[i] = new_op_token(OP, MIN);
+            tokens[i++] = new_op_token(OP, MIN);
             break;
         case '/':
-            tokens[i] = new_op_token(OP, DIV);
+            tokens[i++] = new_op_token(OP, DIV);
             break;
         case '*':
-            tokens[i] = new_op_token(OP, MUL);
+            tokens[i++] = new_op_token(OP, MUL);
             break;
         case '(':
-            tokens[i] = new_token(OPEN_PAR);
+            tokens[i++] = new_token(OPEN_PAR);
             break;
         case ')':
-            tokens[i] = new_token(CLOSE_PAR);
+            tokens[i++] = new_token(CLOSE_PAR);
             break;
         default:
-            if (number > -1) {
-                // printf("%d ", number);
-            }
             break;
         }
     }
 
-    if (is_constructing_multichar_token) {
-        tokens[i] = current_token;
-        i++;
-        is_constructing_multichar_token = false;
+    if (is_constructing_multichar_token)
+    {
+        tokens[i++] = current_token;
     }
+
     tokens[i] = new_token(PROGRAM_END);
+    fclose(fptr);
 }
 
-void dbg_tokens(Token* tokens) {
+void dbg_tokens(Token *tokens)
+{
     int i = 0;
-    while (tokens[i].type != PROGRAM_END) {
+    while (tokens[i].type != PROGRAM_END)
+    {
         Token current_token = tokens[i];
-        if (current_token.type == OP) {
+        if (current_token.type == OP)
+        {
             printf("Operand: %c \n", current_token.value.op_type);
-        } else if (current_token.type == NUMBER) {
+        }
+        else if (current_token.type == NUMBER)
+        {
             printf("Number: %d \n", current_token.value.n);
-        } else {
+        }
+        else
+        {
             printf("Token: %c \n", current_token.type);
         }
         i++;
