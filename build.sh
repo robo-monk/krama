@@ -1,1 +1,1 @@
-clang meth.c -o main
+clang meth.c tokeniser.c utils.c -o meth
