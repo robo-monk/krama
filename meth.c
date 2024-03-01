@@ -190,10 +190,67 @@ void compile_c_to_str(Token *tokens, string program)
         }
         else
         {
-            // program[i++] = current_token.type;
             program[i++] = '?';
         }
     }
+}
+
+int perform_op(int lhs, int rhs, OpType op)
+{
+    switch (op)
+    {
+    case ADD:
+        return lhs + rhs;
+    case MIN:
+        return lhs - rhs;
+    case MUL:
+        return lhs * rhs;
+    case DIV:
+        return lhs + rhs;
+    default:
+        printf("! unreachable");
+    }
+}
+
+int _evaluate(Token *tokens, int *token_index)
+{
+    // int token_index = 0;
+    int i = 0;
+    int result = 0;
+    OpType current_op = -1;
+    while (tokens[*token_index].type != PROGRAM_END)
+    {
+        Token current_token = tokens[(*token_index)++];
+        printf("\ntoken: ");
+        dbg_token(current_token);
+
+        if (current_token.type == OP)
+        {
+            current_op = current_token.value.op_type;
+        }
+        else if (current_token.type == NUMBER)
+        {
+            if (current_op == -1) {
+                result = current_token.value.n;
+            } else {
+                result = perform_op(result, current_token.value.n, current_op);
+            }
+        }
+        else if (current_token.type == OPEN_PAR)
+        {
+            result = perform_op(result, _evaluate(tokens, token_index), current_op);
+        }
+        else if (current_token.type == CLOSE_PAR)
+        {
+            return result;
+        }
+    }
+    return result;
+}
+
+int evaluate(Token *tokens) {
+    int token_index = 0;
+    return _evaluate(tokens, &token_index);
 }
 
 int main()
@@ -205,10 +262,13 @@ int main()
     printf("\n\n");
 
     string c_program = malloc(4096 * sizeof(char));
-    compile_c_to_str(tokens, c_program);
+    // compile_c_to_str(tokens, c_program);
 
-    printf("compiled c program: \n\n");
-    printf("%s", c_program);
+    // printf("compiled c program: \n\n");
+    // printf("%s", c_program);
+
+    int r = evaluate(tokens);
+    printf("result -> %d", r);
 
     free(c_program);
     free(tokens);
