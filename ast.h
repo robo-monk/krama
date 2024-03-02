@@ -3,14 +3,19 @@
 
 #include "tokeniser.h"
 
-typedef struct {
+typedef struct AbstractNode AbstractNode;
+
+struct AbstractNode {
     AbstractNode *lhs;
     Token token; 
     AbstractNode *rhs;
-} AbstractNode;
+}; 
+
 
 typedef struct {
     AbstractNode *root;
 } AST;
+
+AbstractNode* new_abstract_node(AbstractNode* lhs, Token token, AbstractNode* rhs);
 
 #endif

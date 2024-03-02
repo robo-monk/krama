@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "utils.h"
 #include "tokeniser.h"
+#include "ast.h"
 
 // produces program that when run
 void compile_c_to_str(Token *tokens, string program)
@@ -104,6 +105,34 @@ int evaluate(Token *tokens)
     return _evaluate(tokens, &token_index);
 }
 
+void construct_ast(Token *tokens)
+{
+}
+
+AbstractNode *construct_abstract_node(Token *tokens, int token_index)
+{
+    if (tokens[token_index].type == PROGRAM_END)
+        return NULL;
+    return new_abstract_node(NULL, tokens[token_index], construct_abstract_node(tokens, token_index + 1));
+}
+
+// prints a json representing the abstract tree
+void dbg_abstract_node(AbstractNode *node, int intentation)
+{
+    if (node == NULL) {
+        printf("null");
+        return;
+    }
+
+    printf("{\"lhs\":");
+    dbg_abstract_node(node->lhs, intentation + 1);
+    printf(",\"token\":\"");
+    dbg_token(node->token);
+    printf("\",\"rhs\":");
+    dbg_abstract_node(node->rhs, intentation + 1);
+    printf("}");
+}
+
 int main()
 {
     Token *tokens = malloc(512 * sizeof(Token));
@@ -113,15 +142,21 @@ int main()
     printf("\n\n");
 
     string c_program = malloc(4096 * sizeof(char));
+
     compile_c_to_str(tokens, c_program);
 
     printf("compiled c program: \n\n");
     printf("%s", c_program);
+
+    printf("\n\n---- ast ----\n\n");
+    AbstractNode *node = construct_abstract_node(tokens, 0);
+    dbg_abstract_node(node, 0);
 
     // int r = evaluate(tokens);
     // printf("result -> %d", r);
 
     free(c_program);
     free(tokens);
+    printf("\ndone\n");
     return 0;
 }

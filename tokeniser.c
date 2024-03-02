@@ -95,17 +95,18 @@ void dbg_token(Token token)
 {
     if (token.type == OP)
     {
-        printf("Operand: %c \n", token.value.op_type);
+        printf("Operand: %c", token.value.op_type);
     }
     else if (token.type == NUMBER)
     {
-        printf("Number: %d \n", token.value.n);
+        printf("Number: %d", token.value.n);
     }
     else
     {
-        printf("Token: %c \n", token.type);
+        printf("Token: %c", token.type);
     }
 }
+
 void dbg_tokens(Token *tokens)
 {
     int i = 0;
@@ -113,5 +114,6 @@ void dbg_tokens(Token *tokens)
     {
         Token current_token = tokens[i++];
         dbg_token(current_token);
+        printf("\n");
     }
 }
