@@ -32,6 +32,8 @@ AbstractNode *parse_term(Parser *parser);
 AbstractNode *parse_expression(Parser *parser);
 AbstractNode *parse_factor(Parser *parser);
 
+int evaluate_abstract_node(AbstractNode *node);
+
 AbstractNode *parse(Parser *parser);
 
 #endif

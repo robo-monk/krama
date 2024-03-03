@@ -43,73 +43,6 @@ void compile_c_to_str(Token *tokens, string program)
     }
 }
 
-int perform_op(int lhs, int rhs, OpType op)
-{
-    switch (op)
-    {
-    case ADD:
-        return lhs + rhs;
-    case MIN:
-        return lhs - rhs;
-    case MUL:
-        return lhs * rhs;
-    case DIV:
-        return lhs + rhs;
-    default:
-        printf("urecognised OpType");
-    }
-}
-
-int _evaluate(Token *tokens, int *token_index)
-{
-    // int token_index = 0;
-    int i = 0;
-    int result = 0;
-    OpType current_op = -1;
-    while (tokens[*token_index].type != PROGRAM_END)
-    {
-        Token current_token = tokens[(*token_index)++];
-        printf("\ntoken: ");
-        dbg_token(current_token);
-
-        if (current_token.type == OP && (current_token.value.op_type == MUL || current_token.value.op_type == DIV))
-        {
-            current_op = current_token.value.op_type;
-        }
-        else if (current_token.type == NUMBER)
-        {
-            if (current_op == -1)
-            {
-                result = current_token.value.n;
-            }
-            else
-            {
-                result = perform_op(result, current_token.value.n, current_op);
-            }
-        }
-        else if (current_token.type == OPEN_PAR)
-        {
-            result = perform_op(result, _evaluate(tokens, token_index), current_op);
-        }
-        else if (current_token.type == CLOSE_PAR)
-        {
-            return result;
-        }
-    }
-    return result;
-}
-
-int evaluate(Token *tokens)
-{
-    int token_index = 0;
-    return _evaluate(tokens, &token_index);
-}
-
-void construct_ast(Token *tokens)
-{
-}
-
-
 // prints a json representing the abstract tree
 void dbg_abstract_node(AbstractNode *node, int intentation)
 {
@@ -145,6 +78,9 @@ int main()
     printf("\n\n---- ast ----\n\n");
     AbstractNode *node = construct_abstract_node(tokens, 0);
     dbg_abstract_node(node, 0);
+
+    int result = evaluate_abstract_node(node);
+    printf("\n\nresult is %d", result);
 
     // int r = evaluate(tokens);
     // printf("result -> %d", r);

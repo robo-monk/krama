@@ -12,22 +12,22 @@ AbstractNode *new_abstract_node(AbstractNode *lhs, Token token, AbstractNode *rh
     return node;
 }
 
-// int perform_op(int lhs, int rhs, OpType op)
-// {
-//     switch (op)
-//     {
-//     case ADD:
-//         return lhs + rhs;
-//     case MIN:
-//         return lhs - rhs;
-//     case MUL:
-//         return lhs * rhs;
-//     case DIV:
-//         return lhs + rhs;
-//     default:
-//         printf("urecognised OpType");
-//     }
-// }
+int perform_op(int lhs, int rhs, OpType op)
+{
+    switch (op)
+    {
+    case ADD:
+        return lhs + rhs;
+    case MIN:
+        return lhs - rhs;
+    case MUL:
+        return lhs * rhs;
+    case DIV:
+        return lhs / rhs;
+    default:
+        printf("urecognised OpType");
+    }
+}
 
 int evaluate_abstract_node(AbstractNode *node)
 {
@@ -38,16 +38,21 @@ int evaluate_abstract_node(AbstractNode *node)
 
     if (node->token.type == OP)
     {
-        // return perform_op(evaluate_abstract_node(node->lhs), evaluate_abstract_node(node->rhs), node->token.value.op_type);
+        return perform_op(evaluate_abstract_node(node->lhs), evaluate_abstract_node(node->rhs), node->token.value.op_type);
     }
 
     printf("found unexpected token while evaluate ast");
     exit(1);
 }
 
+Token look_ahead(Parser *parser) {
+
+    return parser->tokens[parser->idx + 1];
+}
+
 Token peek(Parser *parser)
 {
-    return parser->tokens[(parser->idx)];
+    return parser->tokens[parser->idx];
 }
 
 Token eat(Parser *parser)
@@ -82,10 +87,11 @@ Parser new_parser(Token *tokens)
 AbstractNode *parse_factor(Parser *parser)
 {
     Token current_token = eat(parser);
-    printf("[parse fact] next token is: ");
+    printf("[parse fact] current token is: ");
     dbg_token(current_token);
     printf("\n");
 
+    printf("[parse fact] consume \n--\n");
     // LEAF
     if (current_token.type == NUMBER)
     {
@@ -95,6 +101,7 @@ AbstractNode *parse_factor(Parser *parser)
     {
         AbstractNode *node = parse_expression(parser);
         expect(parser, CLOSE_PAR, "Expected closing paren");
+        eat(parser);
         return node;
     }
 
@@ -106,14 +113,15 @@ AbstractNode *parse_term(Parser *parser)
     AbstractNode *current_node = parse_factor(parser);
     Token current_token = peek(parser);
 
-    printf("[parse term] next token is: ");
+    printf("[parse term] current token is: ");
     dbg_token(current_token);
     printf("\n");
-
 
     while (current_token.type == OP &&
            (current_token.value.op_type == MUL || current_token.value.op_type == DIV))
     {
+        
+        printf("[parse term] consume \n--\n");
         eat(parser);
         AbstractNode *lhs = current_node;
         AbstractNode *rhs = parse_expression(parser);
@@ -128,7 +136,7 @@ AbstractNode *parse_expression(Parser *parser)
 {
     AbstractNode *current_node = parse_term(parser);
     Token current_token = peek(parser);
-    printf("[parse expr] next token is: ");
+    printf("[parse expr] current token is: ");
     dbg_token(current_token);
     printf("\n");
 
@@ -136,6 +144,8 @@ AbstractNode *parse_expression(Parser *parser)
            (current_token.value.op_type == ADD || current_token.value.op_type == MIN))
     {
         eat(parser);
+
+        printf("[parse expr] consume \n--\n");
         AbstractNode *lhs = current_node;
         AbstractNode *rhs = parse_term(parser);
         current_node = new_abstract_node(lhs, current_token, rhs);
@@ -147,7 +157,13 @@ AbstractNode *parse_expression(Parser *parser)
 
 AbstractNode *parse(Parser *parser)
 {
-    return parse_expression(parser);
+    AbstractNode *node = parse_expression(parser);
+
+    if (peek(parser).type != PROGRAM_END) {
+        throw_parser_error(parser, "premature exit.");
+    }
+
+    return node;
 }
 
 AbstractNode *construct_abstract_node(Token *tokens, int token_index)
