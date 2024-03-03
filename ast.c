@@ -124,7 +124,7 @@ AbstractNode *parse_term(Parser *parser)
         printf("[parse term] consume \n--\n");
         eat(parser);
         AbstractNode *lhs = current_node;
-        AbstractNode *rhs = parse_expression(parser);
+        AbstractNode *rhs = parse_factor(parser);
         current_node = new_abstract_node(lhs, current_token, rhs);
         current_token = peek(parser);
     }
