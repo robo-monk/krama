@@ -109,12 +109,6 @@ void construct_ast(Token *tokens)
 {
 }
 
-AbstractNode *construct_abstract_node(Token *tokens, int token_index)
-{
-    if (tokens[token_index].type == PROGRAM_END)
-        return NULL;
-    return new_abstract_node(NULL, tokens[token_index], construct_abstract_node(tokens, token_index + 1));
-}
 
 // prints a json representing the abstract tree
 void dbg_abstract_node(AbstractNode *node, int intentation)
@@ -124,11 +118,11 @@ void dbg_abstract_node(AbstractNode *node, int intentation)
         return;
     }
 
-    printf("{\"lhs\":");
-    dbg_abstract_node(node->lhs, intentation + 1);
-    printf(",\"token\":\"");
+    printf("{\"token\":\"");
     dbg_token(node->token);
-    printf("\",\"rhs\":");
+    printf("\",\"lhs\":");
+    dbg_abstract_node(node->lhs, intentation + 1);
+    printf(",\"rhs\":");
     dbg_abstract_node(node->rhs, intentation + 1);
     printf("}");
 }
