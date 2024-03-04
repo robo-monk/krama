@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "Tokeniser.h"
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -39,7 +40,9 @@ Statement *parse_factor(Parser *parser) {
     return node;
   }
 
-  throw_parser_error(parser, "Unexpected token");
+  printf("current token is : ");
+  dbg_token(current_token);
+  throw_parser_error(parser, "Unexpected token: Expected Factor");
   return NULL;
 }
 

@@ -63,14 +63,14 @@ void commit_multichar_token(Tokeniser *tokeniser) {
 
   MulticharTokenType type;
   // TODO: replace with is_number
-  printf("%s ->", tokeniser->buffer);
+  // printf("%s ->", tokeniser->buffer);
   if (is_digit(tokeniser->buffer[0])) {
     type = MULTICHAR_NUM;
-    printf("\nbuffer is [%s]: ", tokeniser->buffer);
-    dbg_tokeniser_msg("found num", tokeniser);
+    // printf("\nbuffer is [%s]: ", tokeniser->buffer);
+    // dbg_tokeniser_msg("found num", tokeniser);
   } else {
     type = MULTICHAR_STR;
-    dbg_tokeniser_msg("found str", tokeniser);
+    // dbg_tokeniser_msg("found str", tokeniser);
   }
 
   switch (type) {
@@ -87,8 +87,8 @@ void commit_multichar_token(Tokeniser *tokeniser) {
 }
 
 void construct_multichar_token(char c, Tokeniser *state) {
-  printf("[%c] ", c);
-  dbg_tokeniser_msg("constructing multichar", state);
+  // printf("[%c] ", c);
+  // dbg_tokeniser_msg("constructing multichar", state);
 
   if (!state->is_constructing_multichar_token) {
     state->is_constructing_multichar_token = true;
@@ -110,6 +110,8 @@ void tokenise_char(char c, Tokeniser *state) {
   case ')':
     push_token(new_token(c), state);
     break;
+
+  // do not use space as a seperator! 2*2  <-- this breaks
   case ' ':
   case ';':
   case '\n':
