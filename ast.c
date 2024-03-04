@@ -49,9 +49,12 @@ int evaluate_abstract_node(AbstractNode *node)
 
 
 AbstractNode *construct_abstract_node(Token *tokens, int token_index)
+
 {
     Parser parser = new_parser(tokens);
-    return parse(&parser);
+    // return parse(&parser);
+    printf("Error");
+    return NULL;
 }
 
 int evaluate_ast(AST *ast)

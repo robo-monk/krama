@@ -30,6 +30,10 @@ typedef struct
 {
     TokenType type;
     TokenValue value;
+
+    unsigned int start;
+    unsigned int end;
+    string raw_value;
 } Token;
 
 Token new_op_token(TokenType type, OpType op_type);

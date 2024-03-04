@@ -1,6 +1,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "utils.h"
+#include "statements.h"
 #include "tokeniser.h"
 #include "ast.h"
 
@@ -8,9 +9,16 @@ void test_eval(string eval_str, int expected) {
     Token *tokens = malloc(512 * sizeof(Token));
     tokenise_str(eval_str, tokens);
 
-    AbstractNode *node = construct_abstract_node(tokens, 0);
-    int result = evaluate_abstract_node(node);
+    // AbstractNode *node = construct_abstract_node(tokens, 0);
+    // int result = evaluate_abstract_node(node);
 
+    Parser parser = new_parser(tokens);
+    Program *program = new_program();
+    Statement *stmt = parse(&parser);
+    push_stmt(stmt, program);
+    ReturnValue ret_val = exec_program(program);
+
+    int result = ret_val.i32_value;
     if (result != expected) {
         printf("[x] failed %s   expected %d, got %d\n", eval_str, expected, result);
     } else {

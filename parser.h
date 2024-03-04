@@ -11,10 +11,10 @@ typedef struct
     Token *tokens;
 } Parser;
 
-AbstractNode *parse_term(Parser *parser);
-AbstractNode *parse_expression(Parser *parser);
-AbstractNode *parse_factor(Parser *parser);
-AbstractNode *parse(Parser *parser);
+Statement *parse_term(Parser *parser);
+Statement *parse_expression(Parser *parser);
+Statement *parse_factor(Parser *parser);
+Statement *parse(Parser *parser);
 
 Parser new_parser(Token *tokens);
 void expect(Parser *parser, TokenType token_type, string error_msg);

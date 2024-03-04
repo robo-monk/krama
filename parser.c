@@ -2,6 +2,7 @@
 #include "tokeniser.h"
 #include "stdlib.h"
 #include "parser.h"
+#include "statements.h"
 
 Token look_ahead(Parser *parser) {
 
@@ -42,17 +43,18 @@ Parser new_parser(Token *tokens)
     return p;
 }
 
-AbstractNode *parse_factor(Parser *parser)
+Statement *parse_factor(Parser *parser)
 {
     Token current_token = eat(parser);
 
     if (current_token.type == NUMBER)
     {
-        return new_abstract_node(NULL, current_token, NULL);
+        // return new_abstract_node(NULL, current_token, NULL);
+        return new_i32_literal_stmt(current_token.value.n, current_token);
     }
     else if (current_token.type == OPEN_PAR)
     {
-        AbstractNode *node = parse_expression(parser);
+        Statement *node = parse_expression(parser);
         expect(parser, CLOSE_PAR, "Expected closing paren");
         eat(parser);
         return node;
@@ -62,9 +64,9 @@ AbstractNode *parse_factor(Parser *parser)
     return NULL;
 }
 
-AbstractNode *parse_term(Parser *parser)
+Statement *parse_term(Parser *parser)
 {
-    AbstractNode *current_node = parse_factor(parser);
+    Statement *stmt = parse_factor(parser);
     Token current_token = peek(parser);
 
     while (current_token.type == OP &&
@@ -72,41 +74,38 @@ AbstractNode *parse_term(Parser *parser)
     {
         
         eat(parser);
-        AbstractNode *lhs = current_node;
-        AbstractNode *rhs = parse_factor(parser);
-        current_node = new_abstract_node(lhs, current_token, rhs);
+        Statement *right = parse_factor(parser);
+        stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right, current_token);
         current_token = peek(parser);
     }
 
-    return current_node;
+    return stmt;
 }
 
-AbstractNode *parse_expression(Parser *parser)
+Statement *parse_expression(Parser *parser)
 {
-    AbstractNode *current_node = parse_term(parser);
+    Statement *stmt = parse_term(parser);
     Token current_token = peek(parser);
 
     while (current_token.type == OP &&
            (current_token.value.op_type == ADD || current_token.value.op_type == MIN))
     {
         eat(parser);
-
-        AbstractNode *lhs = current_node;
-        AbstractNode *rhs = parse_term(parser);
-        current_node = new_abstract_node(lhs, current_token, rhs);
+        Statement *right = parse_term(parser);
+        stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right, current_token);
         current_token = peek(parser);
     }
 
-    return current_node;
+    return stmt;
 }
 
-AbstractNode *parse(Parser *parser)
+Statement *parse(Parser *parser)
 {
-    AbstractNode *node = parse_expression(parser);
+    Statement *stmt = parse_expression(parser);
 
     if (peek(parser).type != PROGRAM_END) {
         throw_parser_error(parser, "premature exit.");
     }
 
-    return node;
+    return stmt;
 }

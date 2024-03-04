@@ -4,32 +4,43 @@
 #include "tokeniser.h"
 #include "utils.h"
 
-typedef enum {
-    BinOp,
-    Literal
+typedef enum
+{
+    BIN_OP,
+    LITERAL
 } StatementType;
 
-typedef enum {
+typedef enum
+{
     LiteralType_i32,
-    LiteralType_f64
+    LiteralType_f64,
+    LiteralType_cha,
 } LiteralType;
 
-typedef struct {
+typedef struct
+{
     LiteralType type;
-    union {
+    union
+    {
         int i32_value;
         double f64_value;
+        char cha_value;
     };
 } LiteralStatement;
 
-typedef struct {
+typedef LiteralStatement ReturnValue;
+
+typedef struct
+{
     OpType op;
 } BinExpressionStatement;
 
 typedef struct Statement Statement;
 
-typedef struct {
-    union {
+struct Statement
+{
+    union
+    {
         LiteralStatement literal;
         BinExpressionStatement bin_op;
     };
@@ -37,14 +48,24 @@ typedef struct {
     Statement *left;
     Statement *right;
 
-    string raw_value;
-    unsigned int start;
-    unsigned int end;
-} Statement;
+    Token token;
+};
 
+typedef struct
+{
+    Statement **statements;
+    unsigned int idx;
+    unsigned int len;
+    unsigned int max_len;
+} Program;
 
-Statement new_stmt(StatementType type, Statement *left, Statement *right, unsigned int start, unsigned int end, string raw_value);
-Statement new_bin_expr_stmt(OpType op, Statement *left, Statement *right, unsigned int start, unsigned int end, string raw_value);
-Statement new_i32_literal_stmt(int value, Statement *left, Statement *right, unsigned int start, unsigned int end, string raw_value);
-Statement new_f64_literal_stmt(double value, Statement *left, Statement *right, unsigned int start, unsigned int end, string raw_value);
+Program *new_program();
+void push_stmt(Statement *stmt, Program *program);
+
+Statement *new_stmt(StatementType type, Statement *left, Statement *right, Token token);
+Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right, Token token);
+Statement *new_i32_literal_stmt(int value, Token token);
+Statement *new_f64_literal_stmt(double value, Token token);
+
+ReturnValue exec_program(Program *program);
 #endif
