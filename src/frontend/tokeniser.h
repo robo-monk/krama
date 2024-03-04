@@ -29,6 +29,23 @@ typedef struct {
   string raw_value;
 } Token;
 
+typedef enum {
+  MULTICHAR_STR,
+  MULTICHAR_NUM,
+} MulticharTokenType;
+
+#define TOKENISER_BUFFER_LEN 512
+
+typedef struct {
+  Token current_token;
+  int idx;
+  Token *tokens;
+
+  bool is_constructing_multichar_token;
+  string buffer;
+  unsigned int buffer_idx;
+} Tokeniser;
+
 Token new_op_token(TokenType type, OpType op_type);
 Token new_token(TokenType type);
 void tokenise(string filename, Token *tokens);

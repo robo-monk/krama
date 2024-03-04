@@ -2,9 +2,15 @@
 #include "../utils.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "string.h"
 
 Token new_op_token(TokenType type, OpType op_type) {
   Token t = {.type = type, .value = {.op_type = op_type}};
+  return t;
+}
+
+Token new_number_token(int num) {
+  Token t = {.type = NUMBER, .value = {.n = num}};
   return t;
 }
 
@@ -13,83 +19,127 @@ Token new_token(TokenType type) {
   return t;
 }
 
-int parse_number(char c) {
-  if (c >= '0' && c <= '9') {
-    return c - '0';
-  }
-  return -1;
+void reset_tokeniser_buffer(Tokeniser *tokeniser) {
+  free(tokeniser->buffer);
+  tokeniser->buffer = malloc(sizeof(char) * TOKENISER_BUFFER_LEN);
+  tokeniser->buffer_idx = 0;
+}
+void push_token(Token token, Tokeniser *tokeniser) {
+  tokeniser->tokens[tokeniser->idx++] = token;
 }
 
-typedef struct {
-  bool is_constructing_multichar_token;
-  Token current_token;
-  int idx;
-  Token *tokens;
-} TokeniserState;
+void throw_tokeniser_err(string msg) {
+  printf("Tokeniser error: %s", msg);
+  exit(1);
+}
 
-void tokenise_char(char c, TokeniserState *state) {
-  int number = parse_number(c);
+void push_to_tokeniser_buffer(char c, Tokeniser *tokeniser) {
+  if (tokeniser->buffer_idx >= TOKENISER_BUFFER_LEN) {
+    throw_tokeniser_err("buffer overflow");
+  }
+  tokeniser->buffer[tokeniser->buffer_idx++] = c;
+}
 
-  if (number > -1) {
-    if (!state->is_constructing_multichar_token) {
-      state->is_constructing_multichar_token = true;
-      state->current_token = new_token(NUMBER);
-      state->current_token.value.n = number;
-    } else {
-      state->current_token.value.n =
-          (state->current_token.value.n * 10) + number;
-    }
+void commit_buffer_as_number(Tokeniser *tokeniser) {
+  int n = str2int(tokeniser->buffer, tokeniser->buffer_idx);
+  push_token(new_number_token(n), tokeniser);
+}
+
+void commit_buffer_as_string(Tokeniser *tokeniser) {
+  while (strcmp("let", tokeniser->buffer) == 0) {
+    printf("found let! %s \n", tokeniser->buffer);
+    break;
+  }
+}
+
+void dbg_tokeniser_msg(string msg, Tokeniser *t) {
+  printf("Tokeniser [%d]: %s\n", t->idx, msg);
+}
+
+void commit_multichar_token(Tokeniser *tokeniser) {
+  if (!tokeniser->is_constructing_multichar_token) {
     return;
   }
 
-  // done with construction
-  if (state->is_constructing_multichar_token) {
-    state->tokens[state->idx++] = state->current_token;
-    state->is_constructing_multichar_token = false;
+  MulticharTokenType type;
+  // TODO: replace with is_number
+  printf("%s ->", tokeniser->buffer);
+  if (is_digit(tokeniser->buffer[0])) {
+    type = MULTICHAR_NUM;
+    printf("\nbuffer is [%s]: ", tokeniser->buffer);
+    dbg_tokeniser_msg("found num", tokeniser);
+  } else {
+    type = MULTICHAR_STR;
+    dbg_tokeniser_msg("found str", tokeniser);
   }
 
+  switch (type) {
+  case MULTICHAR_NUM:
+    commit_buffer_as_number(tokeniser);
+    break;
+  case MULTICHAR_STR:
+    commit_buffer_as_string(tokeniser);
+    break;
+  }
+
+  tokeniser->is_constructing_multichar_token = false;
+  reset_tokeniser_buffer(tokeniser);
+}
+
+void construct_multichar_token(char c, Tokeniser *state) {
+  printf("[%c] ", c);
+  dbg_tokeniser_msg("constructing multichar", state);
+
+  if (!state->is_constructing_multichar_token) {
+    state->is_constructing_multichar_token = true;
+  }
+
+  push_to_tokeniser_buffer(c, state);
+  return;
+}
+
+void tokenise_char(char c, Tokeniser *state) {
   switch (c) {
   case '+':
   case '-':
   case '/':
   case '*':
-    state->tokens[state->idx++] = new_op_token(OP, c);
+    push_token(new_op_token(OP, c), state);
     break;
   case '(':
   case ')':
-    state->tokens[state->idx++] = new_token(c);
-    break;
-  case '$':
-    state->tokens[state->idx++] = new_token(c);
+    push_token(new_token(c), state);
     break;
   case ' ':
+  case ';':
+  case '\n':
+    dbg_tokeniser_msg("commiting multichar", state);
+    commit_multichar_token(state);
     break;
   default:
-    printf("unrecognised char");
-    exit(1);
+    construct_multichar_token(c, state);
     break;
   }
 }
 
-TokeniserState *init_tokeniser(Token *tokens) {
-  TokeniserState *state = malloc(sizeof(TokeniserState));
+Tokeniser *init_tokeniser(Token *tokens) {
+  Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
   state->is_constructing_multichar_token = false;
   state->tokens = tokens;
+  state->buffer_idx = 0;
+  state->buffer = malloc(sizeof(char) * TOKENISER_BUFFER_LEN);
   return state;
 }
 
-void close_tokeniser(TokeniserState *state) {
-  if (state->is_constructing_multichar_token) {
-    state->tokens[state->idx++] = state->current_token;
-  }
-
-  state->tokens[state->idx] = new_token(PROGRAM_END);
-  free(state);
+void close_tokeniser(Tokeniser *tokeniser) {
+  commit_multichar_token(tokeniser);
+  tokeniser->tokens[tokeniser->idx] = new_token(PROGRAM_END);
+  free(tokeniser);
 }
 
 void tokenise_str(string str, Token *tokens) {
-  TokeniserState *state = init_tokeniser(tokens);
+  Tokeniser *state = init_tokeniser(tokens);
 
   int str_idx = 0;
   char c;
@@ -105,7 +155,7 @@ void tokenise(string filename, Token *tokens) {
   FILE *fptr;
   fptr = fopen(filename, "r");
 
-  TokeniserState *state = init_tokeniser(tokens);
+  Tokeniser *state = init_tokeniser(tokens);
 
   char c;
   while ((c = fgetc(fptr)) != EOF) {
