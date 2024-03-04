@@ -1,14 +1,12 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 
-#include "ast.h"
+#include "ast/AbstractSyntaxTree.h"
 #include "tokeniser.h"
-#include "statements.h"
 
-typedef struct
-{
-    int idx;
-    Token *tokens;
+typedef struct {
+  int idx;
+  Token *tokens;
 } Parser;
 
 Statement *parse_term(Parser *parser);

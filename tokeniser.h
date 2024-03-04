@@ -3,37 +3,28 @@
 
 #include "utils.h"
 
-typedef enum
-{
-    ADD = '+',
-    MIN = '-',
-    DIV = '/',
-    MUL = '*'
-} OpType;
+typedef enum { ADD = '+', MIN = '-', DIV = '/', MUL = '*' } OpType;
 
-typedef enum
-{
-    NUMBER,
-    OP,
-    OPEN_PAR = '(',
-    CLOSE_PAR = ')',
-    PROGRAM_END
+typedef enum {
+  NUMBER,
+  OP,
+  OPEN_PAR = '(',
+  CLOSE_PAR = ')',
+  PROGRAM_END
 } TokenType;
 
-typedef union
-{
-    int n;
-    OpType op_type;
+typedef union {
+  int n;
+  OpType op_type;
 } TokenValue;
 
-typedef struct
-{
-    TokenType type;
-    TokenValue value;
+typedef struct {
+  TokenType type;
+  TokenValue value;
 
-    unsigned int start;
-    unsigned int end;
-    string raw_value;
+  unsigned int start;
+  unsigned int end;
+  string raw_value;
 } Token;
 
 Token new_op_token(TokenType type, OpType op_type);
