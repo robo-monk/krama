@@ -34,16 +34,30 @@ Statement *new_f64_literal_stmt(double value, Token token) {
 }
 
 void _alloc_statement_array(Program *program) {
-  if (program->len < program->max_len)
+  if (program->len < program->max_len) {
     return;
-  program->statements = malloc(sizeof(Statement) * program->max_len);
+  }
+
+  printf("alloc more memory\n");
+  program->max_len = program->max_len * 2;
+
+  Statement **new_mem =
+      realloc(program->statements, sizeof(Statement) * program->max_len);
+
+  if (new_mem == NULL) {
+    printf("Error: Memory allocation failed\n");
+    return;
+  }
+  program->statements = new_mem;
 }
 
+#define DEFAULT_PROGRAM_LEN 10;
 Program *new_program() {
   Program *program = malloc(sizeof(Program));
   program->idx = 0;
   program->len = 0;
-  program->max_len = 0;
+  program->max_len = DEFAULT_PROGRAM_LEN;
+  program->statements = malloc(sizeof(Statement) * program->max_len);
   return program;
 }
 
