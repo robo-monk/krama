@@ -8,6 +8,8 @@ typedef enum { ADD = '+', MIN = '-', DIV = '/', MUL = '*' } OpType;
 typedef enum {
   NUMBER,
   OP,
+  LET,
+  VARIABLE_IDENTIFIER,
   OPEN_PAR = '(',
   CLOSE_PAR = ')',
   PROGRAM_END

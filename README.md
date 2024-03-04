@@ -1,12 +1,11 @@
 # Machine for Evaluting Textual Heaps (METH)
-```
-44 + 3 + 333 + (390 * 3)
 
-$a = 4
-44 + 3 + $a
+```
+$a = 44 + 3 + 333 + (390 * 3)
 ```
 
 # Reactive
+
 ```
 define mut string cout
 define fn printer = {
@@ -19,7 +18,7 @@ define fn await_user_input = {
 
     if $await_user_input:
         user_input << $user_input_char
-    
+
     user_input
 }
 

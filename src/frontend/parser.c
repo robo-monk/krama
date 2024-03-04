@@ -76,6 +76,22 @@ Statement *parse_expression(Parser *parser) {
   return stmt;
 }
 
+Statement *parse_decleration(Parser *parser) {
+  Statement *stmt = parse_term(parser);
+  Token current_token = peek(parser);
+
+  while (current_token.type == OP && (current_token.value.op_type == ADD ||
+                                      current_token.value.op_type == MIN)) {
+    eat(parser);
+    Statement *right = parse_term(parser);
+    stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
+                             current_token);
+    current_token = peek(parser);
+  }
+
+  return stmt;
+}
+
 Statement *parse(Parser *parser) {
   Statement *stmt = parse_expression(parser);
 

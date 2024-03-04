@@ -4,7 +4,11 @@
 #include "../frontend/Tokeniser.h"
 #include "../utils.h"
 
-typedef enum { BIN_OP, LITERAL } StatementType;
+typedef enum {
+  BIN_OP,
+  LITERAL,
+  VARIABLE_DECL,
+} StatementType;
 
 typedef enum {
   LiteralType_i32,
@@ -25,12 +29,18 @@ typedef struct {
   OpType op;
 } BinExpressionStatement;
 
+typedef struct {
+  LiteralType type;
+  string name;
+} VariableDeclStatement;
+
 typedef struct Statement Statement;
 
 struct Statement {
   union {
     LiteralStatement literal;
     BinExpressionStatement bin_op;
+    VariableDeclStatement var_decl;
   };
   StatementType type;
   Statement *left;

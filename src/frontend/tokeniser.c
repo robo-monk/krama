@@ -59,6 +59,9 @@ void tokenise_char(char c, TokeniserState *state) {
   case ')':
     state->tokens[state->idx++] = new_token(c);
     break;
+  case '$':
+    state->tokens[state->idx++] = new_token(c);
+    break;
   case ' ':
     break;
   default:

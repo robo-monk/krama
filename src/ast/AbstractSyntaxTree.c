@@ -12,6 +12,14 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
+Statement *new_var_decl_stmt(LiteralType type, string name, Statement *left,
+                             Statement *right, Token token) {
+  Statement *s = new_stmt(VARIABLE_DECL, left, right, token);
+  s->var_decl.name = name;
+  s->var_decl.type = type;
+  return s;
+}
+
 Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
                              Token token) {
   Statement *s = new_stmt(BIN_OP, left, right, token);
@@ -38,20 +46,17 @@ void _alloc_statement_array(Program *program) {
     return;
   }
 
-  printf("alloc more memory\n");
   program->max_len = program->max_len * 2;
-
   Statement **new_mem =
       realloc(program->statements, sizeof(Statement) * program->max_len);
 
   if (new_mem == NULL) {
-    printf("Error: Memory allocation failed\n");
     return;
   }
   program->statements = new_mem;
 }
 
-#define DEFAULT_PROGRAM_LEN 10;
+#define DEFAULT_PROGRAM_LEN 100;
 Program *new_program() {
   Program *program = malloc(sizeof(Program));
   program->idx = 0;
