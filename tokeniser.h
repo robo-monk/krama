@@ -35,6 +35,7 @@ typedef struct
 Token new_op_token(TokenType type, OpType op_type);
 Token new_token(TokenType type);
 void tokenise(string filename, Token *tokens);
+void tokenise_str(string filename, Token *tokens);
 void dbg_token(Token token);
 void dbg_tokens(Token *tokens);
 

@@ -63,7 +63,8 @@ void dbg_abstract_node(AbstractNode *node, int intentation)
 int main()
 {
     Token *tokens = malloc(512 * sizeof(Token));
-    tokenise("./expr.meth", tokens);
+    // tokenise("./expr.meth", tokens);
+    tokenise_str("4+390/2\n", tokens);
     dbg_tokens(tokens);
 
     printf("\n\n");

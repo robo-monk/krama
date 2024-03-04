@@ -5,35 +5,23 @@
 
 typedef struct AbstractNode AbstractNode;
 
-struct AbstractNode {
+struct AbstractNode
+{
     AbstractNode *lhs;
-    Token token; 
+    Token token;
     AbstractNode *rhs;
     AbstractNode *parent;
-}; 
-
-
-typedef struct {
-    AbstractNode *root;
-} AST;
+};
 
 typedef struct
 {
-    int idx;
-    Token *tokens;
-} Parser;
+    AbstractNode *root;
+} AST;
 
+#include "parser.h"
 
-
-AbstractNode* new_abstract_node(AbstractNode* lhs, Token token, AbstractNode* rhs);
+AbstractNode *new_abstract_node(AbstractNode *lhs, Token token, AbstractNode *rhs);
 AbstractNode *construct_abstract_node(Token *tokens, int token_index);
-
-AbstractNode *parse_term(Parser *parser);
-AbstractNode *parse_expression(Parser *parser);
-AbstractNode *parse_factor(Parser *parser);
-
 int evaluate_abstract_node(AbstractNode *node);
-
-AbstractNode *parse(Parser *parser);
 
 #endif
