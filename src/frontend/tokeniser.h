@@ -1,7 +1,7 @@
 #ifndef TOKENISER_H
 #define TOKENISER_H
 
-#include "utils.h"
+#include "../utils.h"
 
 typedef enum { ADD = '+', MIN = '-', DIV = '/', MUL = '*' } OpType;
 

@@ -1,8 +1,8 @@
 #include "ast/AbstractSyntaxTreeEvaluator.h"
-#include "parser.h"
+#include "frontend/parser.h"
+#include "frontend/tokeniser.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "tokeniser.h"
 #include "utils.h"
 
 void test_eval(string eval_str, int expected) {

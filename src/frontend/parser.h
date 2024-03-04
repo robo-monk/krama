@@ -1,7 +1,7 @@
 #ifndef _PARSER_H
 #define _PARSER_H
 
-#include "ast/AbstractSyntaxTree.h"
+#include "../ast/AbstractSyntaxTree.h"
 #include "tokeniser.h"
 
 typedef struct {

@@ -1,4 +1,4 @@
-#include "AbstractSyntaxTree.h"
+#include "./AbstractSyntaxTree.h"
 #include "stdio.h"
 #include "stdlib.h"
 
