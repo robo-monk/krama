@@ -1,7 +1,7 @@
 #ifndef H_AST
 #define H_AST
 
-#include "../frontend/tokeniser.h"
+#include "../frontend/Tokeniser.h"
 #include "../utils.h"
 
 typedef enum { BIN_OP, LITERAL } StatementType;

@@ -1,6 +1,6 @@
 #include "ast/AbstractSyntaxTreeEvaluator.h"
-#include "frontend/parser.h"
-#include "frontend/tokeniser.h"
+#include "frontend/Parser.h"
+#include "frontend/Tokeniser.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "utils.h"
