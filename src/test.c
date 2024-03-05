@@ -27,10 +27,10 @@ void test_eval(string eval_str, int expected) {
 }
 
 int main() {
-  // test_eval("let a = 5\n", 8);
+  test_eval("let a = 5\n", 5);
   // test_eval("4 + 4\n", 8);
   // test_eval("4 * 4\n", 16);
-  test_eval("4 + 2*2 + 20 / 2 \n", 18);
+  // test_eval("4 + 2*2 + 20 / 2 \n", 18);
   // test_eval("10 - 2 + 3\n", 11);
   // test_eval("8 / 4 * 2\n", 4);
   // test_eval("1 + 2 * 3\n", 7);

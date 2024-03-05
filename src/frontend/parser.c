@@ -32,7 +32,7 @@ Statement *parse_factor(Parser *parser) {
 
   if (current_token.type == NUMBER) {
     // return new_abstract_node(NULL, current_token, NULL);
-    return new_i32_literal_stmt(current_token.value.n, current_token);
+    return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == OPEN_PAR) {
     Statement *node = parse_expression(parser);
     expect(parser, CLOSE_PAR, "Expected closing paren");
@@ -40,8 +40,8 @@ Statement *parse_factor(Parser *parser) {
     return node;
   }
 
-  printf("current token is : ");
   dbg_token(current_token);
+  printf("  |   ");
   throw_parser_error(parser, "Unexpected token: Expected Factor");
   return NULL;
 }
@@ -79,24 +79,28 @@ Statement *parse_expression(Parser *parser) {
   return stmt;
 }
 
-Statement *parse_decleration(Parser *parser) {
-  Statement *stmt = parse_term(parser);
+Statement *parse_statement(Parser *parser) {
   Token current_token = peek(parser);
 
-  while (current_token.type == OP && (current_token.value.op_type == ADD ||
-                                      current_token.value.op_type == MIN)) {
+  if (current_token.type == LET) {
     eat(parser);
-    Statement *right = parse_term(parser);
-    stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
-                             current_token);
-    current_token = peek(parser);
+    expect(parser, IDENTIFIER, "expected identifier");
+    Token identifier = eat(parser);
+    dbg_token(identifier);
+    expect(parser, EQ, "expected assigment");
+    eat(parser);
+
+    Statement *decl =
+        new_var_decl_stmt(LiteralType_i32, identifier.value.str_value, NULL,
+                          parse_expression(parser), identifier);
+    return decl;
   }
 
-  return stmt;
+  return parse_expression(parser);
 }
 
 Statement *parse(Parser *parser) {
-  Statement *stmt = parse_expression(parser);
+  Statement *stmt = parse_statement(parser);
 
   if (peek(parser).type != PROGRAM_END) {
     throw_parser_error(parser, "premature exit.");

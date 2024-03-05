@@ -16,7 +16,7 @@ void compile_c_to_str(Token *tokens, string program) {
       program[i++] = current_token.value.op_type;
     } else if (current_token.type == NUMBER) {
       char num_str[64];
-      sprintf(num_str, "%d!", current_token.value.n);
+      sprintf(num_str, "%d!", current_token.value.i32_value);
       int _i = 0;
       while (num_str[_i] != '!') {
         program[i++] = num_str[_i++];

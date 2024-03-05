@@ -1,4 +1,5 @@
 #include "AbstractSyntaxTreeEvaluator.h"
+#include "AbstractSyntaxTree.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -57,6 +58,8 @@ ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   return v;
 }
 
+#define TODO printf("Not implemented!");
+
 ReturnValue evaluate_statement(Statement *stmt) {
   switch (stmt->type) {
   case LITERAL:
@@ -65,9 +68,11 @@ ReturnValue evaluate_statement(Statement *stmt) {
     return perform_bin_op(evaluate_statement(stmt->left),
                           evaluate_statement(stmt->right),
                           stmt->token.value.op_type);
+  case VARIABLE_DECL:
+    return evaluate_statement(stmt->right);
   }
 
-  throw_runtime_error("unsupported token");
+  throw_runtime_error("found unsupported token while evaluating");
 }
 
 ReturnValue exec_program(Program *program) {

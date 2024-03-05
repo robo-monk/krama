@@ -9,8 +9,17 @@ Token new_op_token(TokenType type, OpType op_type) {
   return t;
 }
 
+Token new_str_token(TokenType type, string value, int len) {
+  Token t = {.type = type};
+  t.value.str_value = malloc(len * sizeof(char));
+  for (int i = 0; i < len; i++) {
+    t.value.str_value[i] = value[i];
+  }
+  return t;
+}
+
 Token new_number_token(int num) {
-  Token t = {.type = NUMBER, .value = {.n = num}};
+  Token t = {.type = NUMBER, .value = {.i32_value = num}};
   return t;
 }
 
@@ -24,10 +33,17 @@ void reset_tokeniser_buffer(Tokeniser *tokeniser) {
   tokeniser->buffer = malloc(sizeof(char) * TOKENISER_BUFFER_LEN);
   tokeniser->buffer_idx = 0;
 }
+
 void push_token(Token token, Tokeniser *tokeniser) {
+  token.start = tokeniser->_last_char_idx_push;
+  token.end = tokeniser->char_idx;
   tokeniser->tokens[tokeniser->idx++] = token;
+  tokeniser->_last_char_idx_push = tokeniser->char_idx;
 }
 
+void dbg_tokeniser_msg(string msg, Tokeniser *t) {
+  printf("Tokeniser [%d]: %s\n", t->idx, msg);
+}
 void throw_tokeniser_err(string msg) {
   printf("Tokeniser error: %s", msg);
   exit(1);
@@ -47,13 +63,13 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
 
 void commit_buffer_as_string(Tokeniser *tokeniser) {
   while (strcmp("let", tokeniser->buffer) == 0) {
-    printf("found let! %s \n", tokeniser->buffer);
-    break;
+    push_token(new_token(LET), tokeniser);
+    return;
   }
-}
 
-void dbg_tokeniser_msg(string msg, Tokeniser *t) {
-  printf("Tokeniser [%d]: %s\n", t->idx, msg);
+  push_token(
+      new_str_token(IDENTIFIER, tokeniser->buffer, tokeniser->buffer_idx),
+      tokeniser);
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
@@ -61,25 +77,10 @@ void commit_multichar_token(Tokeniser *tokeniser) {
     return;
   }
 
-  MulticharTokenType type;
-  // TODO: replace with is_number
-  // printf("%s ->", tokeniser->buffer);
   if (is_digit(tokeniser->buffer[0])) {
-    type = MULTICHAR_NUM;
-    // printf("\nbuffer is [%s]: ", tokeniser->buffer);
-    // dbg_tokeniser_msg("found num", tokeniser);
-  } else {
-    type = MULTICHAR_STR;
-    // dbg_tokeniser_msg("found str", tokeniser);
-  }
-
-  switch (type) {
-  case MULTICHAR_NUM:
     commit_buffer_as_number(tokeniser);
-    break;
-  case MULTICHAR_STR:
+  } else {
     commit_buffer_as_string(tokeniser);
-    break;
   }
 
   tokeniser->is_constructing_multichar_token = false;
@@ -87,15 +88,11 @@ void commit_multichar_token(Tokeniser *tokeniser) {
 }
 
 void construct_multichar_token(char c, Tokeniser *state) {
-  // printf("[%c] ", c);
-  // dbg_tokeniser_msg("constructing multichar", state);
-
   if (!state->is_constructing_multichar_token) {
     state->is_constructing_multichar_token = true;
   }
 
   push_to_tokeniser_buffer(c, state);
-  return;
 }
 
 void tokenise_char(char c, Tokeniser *state) {
@@ -104,18 +101,23 @@ void tokenise_char(char c, Tokeniser *state) {
   case '-':
   case '/':
   case '*':
+    commit_multichar_token(state);
     push_token(new_op_token(OP, c), state);
+    break;
+  case '=':
+    commit_multichar_token(state);
+    push_token(new_token(EQ), state);
     break;
   case '(':
   case ')':
+    commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
-
-  // do not use space as a seperator! 2*2  <-- this breaks
+    // seperators
   case ' ':
   case ';':
   case '\n':
-    dbg_tokeniser_msg("commiting multichar", state);
+    // dbg_tokeniser_msg("commiting multichar", state);
     commit_multichar_token(state);
     break;
   default:
@@ -128,6 +130,8 @@ Tokeniser *init_tokeniser(Token *tokens) {
   Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
   state->is_constructing_multichar_token = false;
+  state->char_idx = 0;
+  state->_last_char_idx_push = 0;
   state->tokens = tokens;
   state->buffer_idx = 0;
   state->buffer = malloc(sizeof(char) * TOKENISER_BUFFER_LEN);
@@ -141,16 +145,14 @@ void close_tokeniser(Tokeniser *tokeniser) {
 }
 
 void tokenise_str(string str, Token *tokens) {
-  Tokeniser *state = init_tokeniser(tokens);
-
-  int str_idx = 0;
+  Tokeniser *tokeniser = init_tokeniser(tokens);
   char c;
 
-  while ((c = str[str_idx++]) != '\n') {
-    tokenise_char(c, state);
+  while ((c = str[tokeniser->char_idx++]) != '\n') {
+    tokenise_char(c, tokeniser);
   }
 
-  close_tokeniser(state);
+  close_tokeniser(tokeniser);
 }
 
 void tokenise(string filename, Token *tokens) {
@@ -168,12 +170,15 @@ void tokenise(string filename, Token *tokens) {
 }
 
 void dbg_token(Token token) {
+  printf("[%d:%d] ", token.start, token.end);
   if (token.type == OP) {
     printf("Operand: %c", token.value.op_type);
   } else if (token.type == NUMBER) {
-    printf("Number: %d", token.value.n);
-  } else {
-    printf("Token: %c", token.type);
+    printf("Number: %d", token.value.i32_value);
+  } else if (token.type == IDENTIFIER) {
+    printf("Identifier: %s", token.value.str_value);
+  } else if (token.type == LET) {
+    printf("let");
   }
 }
 

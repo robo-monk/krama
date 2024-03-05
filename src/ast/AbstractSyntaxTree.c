@@ -14,6 +14,7 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
 
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *left,
                              Statement *right, Token token) {
+
   Statement *s = new_stmt(VARIABLE_DECL, left, right, token);
   s->var_decl.name = name;
   s->var_decl.type = type;

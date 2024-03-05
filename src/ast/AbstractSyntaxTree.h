@@ -65,5 +65,7 @@ Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
                              Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);
+Statement *new_var_decl_stmt(LiteralType type, string name, Statement *left,
+                             Statement *right, Token token);
 
 #endif

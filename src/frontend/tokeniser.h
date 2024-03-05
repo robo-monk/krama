@@ -9,14 +9,16 @@ typedef enum {
   NUMBER,
   OP,
   LET,
-  VARIABLE_IDENTIFIER,
+  IDENTIFIER,
+  EQ = '=',
   OPEN_PAR = '(',
   CLOSE_PAR = ')',
   PROGRAM_END
 } TokenType;
 
 typedef union {
-  int n;
+  int i32_value;
+  string str_value;
   OpType op_type;
 } TokenValue;
 
@@ -44,6 +46,9 @@ typedef struct {
   bool is_constructing_multichar_token;
   string buffer;
   unsigned int buffer_idx;
+
+  unsigned int char_idx;
+  unsigned int _last_char_idx_push;
 } Tokeniser;
 
 Token new_op_token(TokenType type, OpType op_type);
