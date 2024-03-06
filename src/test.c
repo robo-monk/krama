@@ -44,7 +44,9 @@ int main() {
   test_eval("let a = 2; let b = 3; let c = 5; \n", 5);
   test_eval("let a = 2; let b = 3; let c = 5; a \n", 2);
   test_eval("let a = 3; 2 + a\n", 5);
-  test_eval("let a = 4; let b = 3; a + 3\n", 3);
-
+  test_eval("let a = 4; a + 3\n", 7);
+  test_eval("let a = 4; a = 5 + 2;\n", 7);
+  test_eval("let a = 4; a = a + 2;\n", 6);
+  test_eval("let a = 4; let b = a + 2; b + 5\n", 11);
   return 0;
 }

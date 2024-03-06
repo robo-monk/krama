@@ -46,7 +46,8 @@ Statement *parse_factor(Parser *parser) {
   printf("\n ERROR:");
   dbg_token(current_token);
   printf("  |   ");
-  throw_parser_error(parser, "Unexpected token: Expected Factor");
+  throw_parser_error(
+      parser, "Unexpected token: Expected Identifier, Number or Open Par");
   return NULL;
 }
 
@@ -105,14 +106,11 @@ Statement *parse_statement(Parser *parser) {
                           parse_expression(parser), identifier);
     return decl;
   } else if (current_token.type == IDENTIFIER) {
-    Token identifier = eat(parser);
-    if (peek(parser).type == EQ) {
+    if (look_ahead(parser).type == EQ) {
+      Token identifier = eat(parser);
       eat(parser);
       return new_var_write_stmt(LiteralType_i32, identifier.value.str_value,
                                 parse_expression(parser), identifier);
-    } else {
-      return new_var_read_stmt(LiteralType_i32, identifier.value.str_value,
-                               identifier);
     }
   }
 
@@ -124,13 +122,10 @@ Statement *parse_statement(Parser *parser) {
 
 Statement *parse(Parser *parser) {
   Statement *stmt = parse_statement(parser);
-
-  // if (peek(parser).type != PROGRAM_END) {
-  // throw_parser_error(parser, "premature exit.");
-  // }
-
   return stmt;
 }
+
+#define DEBUG false
 
 Program *parse_program(Token *tokens) {
   Parser parser = new_parser(tokens);
@@ -139,9 +134,12 @@ Program *parse_program(Token *tokens) {
   Statement *stmt = parse(&parser);
 
   do {
-    // printf("\n-> EXEC   | \n");
-    // dbg_stmt(stmt);
-    // printf("\n");
+    if (DEBUG) {
+      printf("--|STATEMENT|\n");
+      dbg_stmt(stmt);
+      printf("--|END STATEMENT|\n");
+    }
+
     push_stmt(stmt, program);
     stmt = parse(&parser);
   } while (stmt != NULL);
