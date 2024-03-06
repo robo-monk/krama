@@ -30,7 +30,10 @@ Parser new_parser(Token *tokens) {
 Statement *parse_factor(Parser *parser) {
   Token current_token = eat(parser);
 
-  if (current_token.type == NUMBER) {
+  if (current_token.type == IDENTIFIER) {
+    return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
+                             current_token);
+  } else if (current_token.type == NUMBER) {
     // return new_abstract_node(NULL, current_token, NULL);
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == OPEN_PAR) {
@@ -40,6 +43,7 @@ Statement *parse_factor(Parser *parser) {
     return node;
   }
 
+  printf("\n ERROR:");
   dbg_token(current_token);
   printf("  |   ");
   throw_parser_error(parser, "Unexpected token: Expected Factor");
@@ -64,7 +68,13 @@ Statement *parse_term(Parser *parser) {
 }
 
 Statement *parse_expression(Parser *parser) {
+
+  // printf("\nimma call parse_term being a bitch\n");
+  // dbg_token(peek(parser));
+  // printf("\n");
+
   Statement *stmt = parse_term(parser);
+
   Token current_token = peek(parser);
 
   while (current_token.type == OP && (current_token.value.op_type == ADD ||
@@ -91,10 +101,23 @@ Statement *parse_statement(Parser *parser) {
     eat(parser);
 
     Statement *decl =
-        new_var_decl_stmt(LiteralType_i32, identifier.value.str_value, NULL,
+        new_var_decl_stmt(LiteralType_i32, identifier.value.str_value,
                           parse_expression(parser), identifier);
     return decl;
+  } else if (current_token.type == IDENTIFIER) {
+    Token identifier = eat(parser);
+    if (peek(parser).type == EQ) {
+      eat(parser);
+      return new_var_write_stmt(LiteralType_i32, identifier.value.str_value,
+                                parse_expression(parser), identifier);
+    } else {
+      return new_var_read_stmt(LiteralType_i32, identifier.value.str_value,
+                               identifier);
+    }
   }
+
+  if (current_token.type == PROGRAM_END)
+    return NULL;
 
   return parse_expression(parser);
 }
@@ -102,9 +125,26 @@ Statement *parse_statement(Parser *parser) {
 Statement *parse(Parser *parser) {
   Statement *stmt = parse_statement(parser);
 
-  if (peek(parser).type != PROGRAM_END) {
-    throw_parser_error(parser, "premature exit.");
-  }
+  // if (peek(parser).type != PROGRAM_END) {
+  // throw_parser_error(parser, "premature exit.");
+  // }
 
   return stmt;
+}
+
+Program *parse_program(Token *tokens) {
+  Parser parser = new_parser(tokens);
+  Program *program = new_program();
+
+  Statement *stmt = parse(&parser);
+
+  do {
+    printf("\n-> EXEC   | \n");
+    dbg_stmt(stmt);
+    printf("\n");
+    push_stmt(stmt, program);
+    stmt = parse(&parser);
+  } while (stmt != NULL);
+
+  return program;
 }

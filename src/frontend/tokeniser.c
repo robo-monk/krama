@@ -171,14 +171,27 @@ void tokenise(string filename, Token *tokens) {
 
 void dbg_token(Token token) {
   printf("[%d:%d] ", token.start, token.end);
-  if (token.type == OP) {
+  switch (token.type) {
+  case OP:
     printf("Operand: %c", token.value.op_type);
-  } else if (token.type == NUMBER) {
+    break;
+  case NUMBER:
     printf("Number: %d", token.value.i32_value);
-  } else if (token.type == IDENTIFIER) {
+    break;
+  case IDENTIFIER:
     printf("Identifier: %s", token.value.str_value);
-  } else if (token.type == LET) {
+    break;
+  case LET:
     printf("let");
+    break;
+  case OPEN_PAR:
+  case CLOSE_PAR:
+  case EQ:
+    printf(":%c", token.type);
+    break;
+  case PROGRAM_END:
+    printf("PROGRAM_END");
+    break;
   }
 }
 

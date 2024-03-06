@@ -8,6 +8,8 @@ typedef enum {
   BIN_OP,
   LITERAL,
   VARIABLE_DECL,
+  VARIABLE_WRITE,
+  VARIABLE_READ
 } StatementType;
 
 typedef enum {
@@ -32,7 +34,7 @@ typedef struct {
 typedef struct {
   LiteralType type;
   string name;
-} VariableDeclStatement;
+} VariableStatement;
 
 typedef struct Statement Statement;
 
@@ -40,7 +42,7 @@ struct Statement {
   union {
     LiteralStatement literal;
     BinExpressionStatement bin_op;
-    VariableDeclStatement var_decl;
+    VariableStatement var_decl;
   };
   StatementType type;
   Statement *left;
@@ -65,7 +67,11 @@ Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
                              Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);
-Statement *new_var_decl_stmt(LiteralType type, string name, Statement *left,
-                             Statement *right, Token token);
+Statement *new_var_read_stmt(LiteralType type, string name, Token token);
+Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
+                              Token token);
+Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
+                             Token token);
 
+void dbg_stmt(const Statement *stmt);
 #endif

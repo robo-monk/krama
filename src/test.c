@@ -6,16 +6,12 @@
 #include "utils.h"
 
 void test_eval(string eval_str, int expected) {
+
   Token *tokens = malloc(512 * sizeof(Token));
+
   tokenise_str(eval_str, tokens);
 
-  // AbstractNode *node = construct_abstract_node(tokens, 0);
-  // int result = evaluate_abstract_node(node);
-
-  Parser parser = new_parser(tokens);
-  Program *program = new_program();
-  Statement *stmt = parse(&parser);
-  push_stmt(stmt, program);
+  Program *program = parse_program(tokens);
   ReturnValue ret_val = exec_program(program);
 
   int result = ret_val.i32_value;
@@ -27,7 +23,8 @@ void test_eval(string eval_str, int expected) {
 }
 
 int main() {
-  test_eval("let a = 5\n", 5);
+  test_eval("let a = 8; a\n", 8);
+  // test_eval("let a = 5;\n", 8);
   // test_eval("4 + 4\n", 8);
   // test_eval("4 * 4\n", 16);
   // test_eval("4 + 2*2 + 20 / 2 \n", 18);

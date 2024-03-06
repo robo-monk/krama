@@ -12,10 +12,25 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
-Statement *new_var_decl_stmt(LiteralType type, string name, Statement *left,
-                             Statement *right, Token token) {
+Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
+                             Token token) {
+  Statement *s = new_stmt(VARIABLE_DECL, NULL, expr, token);
+  s->var_decl.name = name;
+  s->var_decl.type = type;
+  return s;
+}
 
-  Statement *s = new_stmt(VARIABLE_DECL, left, right, token);
+Statement *new_var_read_stmt(LiteralType type, string name, Token token) {
+  Statement *s = new_stmt(VARIABLE_READ, NULL, NULL, token);
+  s->var_decl.name = name;
+  s->var_decl.type = type;
+  return s;
+}
+
+Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
+                              Token token) {
+
+  Statement *s = new_stmt(VARIABLE_WRITE, NULL, expr, token);
   s->var_decl.name = name;
   s->var_decl.type = type;
   return s;
@@ -73,3 +88,76 @@ void push_stmt(Statement *stmt, Program *program) {
   _alloc_statement_array(program);
   program->statements[program->len - 1] = stmt;
 }
+
+#include <stdio.h>
+#include <string.h>
+
+void dbg_op(OpType op) { printf(" X "); }
+
+void print_indented(const char *text, int indent) {
+  char indentation[256]; // Adjust size as needed, considering maximum expected
+                         // indentation depth
+  memset(indentation, '\t', indent); // Fill the indentation array with tabs
+  indentation[indent] = '\0';        // Null-terminate the string
+
+  // Print each line of the input text with indentation
+  const char *lineStart = text;
+  const char *lineEnd;
+  while ((lineEnd = strchr(lineStart, '\n')) != NULL) {
+    printf("%s", indentation);
+    fwrite(lineStart, 1, lineEnd - lineStart + 1,
+           stdout); // +1 to include the newline
+    lineStart = lineEnd + 1;
+  }
+  // Print any remaining text that doesn't end in a newline
+  if (*lineStart) {
+    printf("%s%s\n", indentation, lineStart);
+  }
+}
+
+void dbg_stmt_with_indent(const Statement *stmt, int indent) {
+  if (!stmt)
+    return;
+
+  char buffer[1024]; // Adjust size as needed, considering maximum expected
+                     // output length
+
+  switch (stmt->type) {
+  case BIN_OP:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Binary Operation\n");
+    dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
+                            // with this approach
+    break;
+  case LITERAL:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Literal with type ");
+    // Append specific literal type and value to buffer here
+    break;
+  case VARIABLE_DECL:
+    snprintf(buffer, sizeof(buffer),
+             "Statement Type: Variable Declaration: Type , Name: %s\n",
+             stmt->var_decl.name);
+    break;
+  case VARIABLE_WRITE:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Variable Write: %s\n",
+             stmt->var_decl.name);
+    break;
+  case VARIABLE_READ:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Variable Read: %s\n",
+             stmt->var_decl.name);
+    break;
+  }
+
+  print_indented(buffer, indent);
+
+  // Recursively print left and right child statements with increased
+  // indentation
+  if (stmt->left) {
+    dbg_stmt_with_indent(stmt->left, indent + 1);
+  }
+  if (stmt->right) {
+    dbg_stmt_with_indent(stmt->right, indent + 1);
+  }
+}
+
+// Wrapper function remains the same
+void dbg_stmt(const Statement *stmt) { dbg_stmt_with_indent(stmt, 0); }

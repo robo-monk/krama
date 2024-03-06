@@ -21,4 +21,6 @@ void throw_parser_error(Parser *parser, string error_msg);
 Token peek(Parser *parser);
 Token look_ahead(Parser *parser);
 Token eat(Parser *parser);
+
+Program *parse_program(Token *tokens);
 #endif

@@ -31,11 +31,6 @@ typedef struct {
   string raw_value;
 } Token;
 
-typedef enum {
-  MULTICHAR_STR,
-  MULTICHAR_NUM,
-} MulticharTokenType;
-
 #define TOKENISER_BUFFER_LEN 512
 
 typedef struct {
