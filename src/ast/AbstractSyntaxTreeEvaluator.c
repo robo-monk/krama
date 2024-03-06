@@ -143,9 +143,8 @@ ReturnValue exec_program(Program *program) {
   Interpreter ipr = new_interpreter();
   ReturnValue result = {};
 
-  printf("evaluating program with len %d\n", program->len);
+  // printf("evaluating program with len %d\n", program->len);
   for (int i = 0; i < program->len; i++) {
-    printf("eval stmt #%d\n\n", i);
     result = evaluate_statement(&ipr, program->statements[i]);
   }
 

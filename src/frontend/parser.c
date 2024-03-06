@@ -96,7 +96,7 @@ Statement *parse_statement(Parser *parser) {
     eat(parser);
     expect(parser, IDENTIFIER, "expected identifier");
     Token identifier = eat(parser);
-    dbg_token(identifier);
+    // dbg_token(identifier);
     expect(parser, EQ, "expected assigment");
     eat(parser);
 
@@ -139,9 +139,9 @@ Program *parse_program(Token *tokens) {
   Statement *stmt = parse(&parser);
 
   do {
-    printf("\n-> EXEC   | \n");
-    dbg_stmt(stmt);
-    printf("\n");
+    // printf("\n-> EXEC   | \n");
+    // dbg_stmt(stmt);
+    // printf("\n");
     push_stmt(stmt, program);
     stmt = parse(&parser);
   } while (stmt != NULL);
