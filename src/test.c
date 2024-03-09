@@ -16,7 +16,6 @@ void test_eval(string eval_str, int expected) {
 
   int result = ret_val.i32_value;
 
-  // printf("    🏎️   | running %s", eval_str);
   if (result != expected) {
     printf("    ❌   |   failed %s   expected %d, got %d\n", eval_str, expected,
            result);
@@ -48,5 +47,9 @@ int main() {
   test_eval("let a = 4; a = 5 + 2;\n", 7);
   test_eval("let a = 4; a = a + 2;\n", 6);
   test_eval("let a = 4; let b = a + 2; b + 5\n", 11);
+  test_eval("let b = 99; let c = (5 + 32 + 2 + b);\n", 138);
+
+  // impl stuff
+  test_eval("@impl add1(a) { a + 2 }; add1(2)\n", 3);
   return 0;
 }

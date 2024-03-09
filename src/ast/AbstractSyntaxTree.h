@@ -4,12 +4,19 @@
 #include "../frontend/Tokeniser.h"
 #include "../utils.h"
 
+typedef struct Program Program;
+typedef struct Statement Statement;
+
 typedef enum {
   BIN_OP,
   LITERAL,
+
   VARIABLE_DECL,
   VARIABLE_WRITE,
-  VARIABLE_READ
+  VARIABLE_READ,
+
+  IMPL_DECL,
+  IMPL_CALL
 } StatementType;
 
 typedef enum {
@@ -34,15 +41,18 @@ typedef struct {
 typedef struct {
   LiteralType type;
   string name;
-} VariableStatement;
+} SymbolStatement;
 
-typedef struct Statement Statement;
+typedef struct {
+  Program *program;
+} ImplementationStatement;
 
 struct Statement {
   union {
     LiteralStatement literal;
     BinExpressionStatement bin_op;
-    VariableStatement var_decl;
+    SymbolStatement sym_decl;
+    ImplementationStatement impl_decl;
   };
   StatementType type;
   Statement *left;
@@ -51,12 +61,12 @@ struct Statement {
   Token token;
 };
 
-typedef struct {
+struct Program {
   Statement **statements;
   unsigned int idx;
   unsigned int len;
   unsigned int max_len;
-} Program;
+};
 
 Program *new_program();
 void push_stmt(Statement *stmt, Program *program);

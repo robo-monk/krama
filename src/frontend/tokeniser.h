@@ -3,17 +3,31 @@
 
 #include "../utils.h"
 
-typedef enum { ADD = '+', MIN = '-', DIV = '/', MUL = '*' } OpType;
+typedef enum {
+  ADD = '+',
+  MIN = '-',
+  DIV = '/',
+  MUL = '*',
+  LT = '<',
+  GT = '>',
+  MODULUS = '%',
+  BIN_AND = '&',
+  BIN_OR = '|',
+  BIN_XOR = '^'
+} OpType;
 
 typedef enum {
-  NUMBER,
-  OP,
-  LET,
-  IDENTIFIER,
-  EQ = '=',
-  OPEN_PAR = '(',
-  CLOSE_PAR = ')',
-  PROGRAM_END
+  TOKEN_NUMBER,
+  TOKEN_OP,
+  TOKEN_LET,
+  TOKEN_IMPL,
+  TOKEN_IDENTIFIER,
+  TOKEN_EQ = '=',
+  TOKEN_LPAR = '(',
+  TOKEN_RPAR = ')',
+  TOKEN_LBRACKET = '{',
+  TOKEN_RBRACKET = '}',
+  TOKEN_PROGRAM_END
 } TokenType;
 
 typedef union {

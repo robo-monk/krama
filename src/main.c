@@ -7,22 +7,22 @@
 void compile_c_to_str(Token *tokens, string program) {
   int token_index = 0;
   int i = 0;
-  while (tokens[token_index].type != PROGRAM_END) {
+  while (tokens[token_index].type != TOKEN_PROGRAM_END) {
     Token current_token = tokens[token_index++];
 
-    if (current_token.type == OP) {
+    if (current_token.type == TOKEN_OP) {
       // printf("-- OP %c\n", current_token.value.op_type);
       program[i++] = current_token.value.op_type;
-    } else if (current_token.type == NUMBER) {
+    } else if (current_token.type == TOKEN_NUMBER) {
       char num_str[64];
       sprintf(num_str, "%d!", current_token.value.i32_value);
       int _i = 0;
       while (num_str[_i] != '!') {
         program[i++] = num_str[_i++];
       }
-    } else if (current_token.type == OPEN_PAR) {
+    } else if (current_token.type == TOKEN_LPAR) {
       program[i++] = '(';
-    } else if (current_token.type == CLOSE_PAR) {
+    } else if (current_token.type == TOKEN_RPAR) {
       program[i++] = ')';
     } else {
       program[i++] = '?';

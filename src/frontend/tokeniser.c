@@ -19,7 +19,7 @@ Token new_str_token(TokenType type, string value, int len) {
 }
 
 Token new_number_token(int num) {
-  Token t = {.type = NUMBER, .value = {.i32_value = num}};
+  Token t = {.type = TOKEN_NUMBER, .value = {.i32_value = num}};
   return t;
 }
 
@@ -62,14 +62,15 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
 }
 
 void commit_buffer_as_string(Tokeniser *tokeniser) {
-  while (strcmp("let", tokeniser->buffer) == 0) {
-    push_token(new_token(LET), tokeniser);
-    return;
+  if (strcmp("let", tokeniser->buffer) == 0) {
+    push_token(new_token(TOKEN_LET), tokeniser);
+  } else if (strcmp("@impl", tokeniser->buffer) == 0) {
+    push_token(new_token(TOKEN_IMPL), tokeniser);
+  } else {
+    push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
+                             tokeniser->buffer_idx),
+               tokeniser);
   }
-
-  push_token(
-      new_str_token(IDENTIFIER, tokeniser->buffer, tokeniser->buffer_idx),
-      tokeniser);
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
@@ -102,14 +103,16 @@ void tokenise_char(char c, Tokeniser *state) {
   case '/':
   case '*':
     commit_multichar_token(state);
-    push_token(new_op_token(OP, c), state);
+    push_token(new_op_token(TOKEN_OP, c), state);
     break;
   case '=':
     commit_multichar_token(state);
-    push_token(new_token(EQ), state);
+    push_token(new_token(TOKEN_EQ), state);
     break;
   case '(':
   case ')':
+  case '{':
+  case '}':
     commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
@@ -140,7 +143,7 @@ Tokeniser *init_tokeniser(Token *tokens) {
 
 void close_tokeniser(Tokeniser *tokeniser) {
   commit_multichar_token(tokeniser);
-  tokeniser->tokens[tokeniser->idx] = new_token(PROGRAM_END);
+  tokeniser->tokens[tokeniser->idx] = new_token(TOKEN_PROGRAM_END);
   free(tokeniser);
 }
 
@@ -172,24 +175,29 @@ void tokenise(string filename, Token *tokens) {
 void dbg_token(Token token) {
   printf("[%d:%d] ", token.start, token.end);
   switch (token.type) {
-  case OP:
+  case TOKEN_OP:
     printf("Operand: %c", token.value.op_type);
     break;
-  case NUMBER:
+  case TOKEN_NUMBER:
     printf("Number: %d", token.value.i32_value);
     break;
-  case IDENTIFIER:
+  case TOKEN_IDENTIFIER:
     printf("Identifier: %s", token.value.str_value);
     break;
-  case LET:
-    printf("let");
+  case TOKEN_IMPL:
+    printf("Implementation");
     break;
-  case OPEN_PAR:
-  case CLOSE_PAR:
-  case EQ:
-    printf(":%c", token.type);
+  case TOKEN_LET:
+    printf("Token: LET");
     break;
-  case PROGRAM_END:
+  case TOKEN_RBRACKET:
+  case TOKEN_LBRACKET:
+  case TOKEN_LPAR:
+  case TOKEN_RPAR:
+  case TOKEN_EQ:
+    printf("Token: '%c'", token.type);
+    break;
+  case TOKEN_PROGRAM_END:
     printf("PROGRAM_END");
     break;
   }
@@ -197,7 +205,7 @@ void dbg_token(Token token) {
 
 void dbg_tokens(Token *tokens) {
   int i = 0;
-  while (tokens[i].type != PROGRAM_END) {
+  while (tokens[i].type != TOKEN_PROGRAM_END) {
     Token current_token = tokens[i++];
     dbg_token(current_token);
     printf("\n");

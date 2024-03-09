@@ -21,6 +21,14 @@ void expect(Parser *parser, TokenType token_type, string error_msg) {
   }
 }
 
+Token expect_and_eat(Parser *parser, TokenType token_type, string error_msg) {
+  Token t = eat(parser);
+  if (t.type != token_type) {
+    throw_parser_error(parser, error_msg);
+  }
+  return t;
+}
+
 Parser new_parser(Token *tokens) {
   Parser p = {.idx = 0, .tokens = tokens};
 
@@ -30,22 +38,28 @@ Parser new_parser(Token *tokens) {
 Statement *parse_factor(Parser *parser) {
   Token current_token = eat(parser);
 
-  if (current_token.type == IDENTIFIER) {
+  if (current_token.type == TOKEN_IDENTIFIER) {
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
-  } else if (current_token.type == NUMBER) {
+  } else if (current_token.type == TOKEN_NUMBER) {
     // return new_abstract_node(NULL, current_token, NULL);
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
-  } else if (current_token.type == OPEN_PAR) {
+  } else if (current_token.type == TOKEN_LPAR) {
     Statement *node = parse_expression(parser);
-    expect(parser, CLOSE_PAR, "Expected closing paren");
+    expect(parser, TOKEN_RPAR, "Expected closing paren");
+    eat(parser);
+    return node;
+  } else if (current_token.type == TOKEN_LBRACKET) {
+    // multiple statments parser
+    Statement *node = parse_expression(parser);
+    expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
     eat(parser);
     return node;
   }
 
-  printf("\n ERROR:");
+  printf("\n");
   dbg_token(current_token);
-  printf("  |   ");
+  printf("\n");
   throw_parser_error(
       parser, "Unexpected token: Expected Identifier, Number or Open Par");
   return NULL;
@@ -55,8 +69,9 @@ Statement *parse_term(Parser *parser) {
   Statement *stmt = parse_factor(parser);
   Token current_token = peek(parser);
 
-  while (current_token.type == OP && (current_token.value.op_type == MUL ||
-                                      current_token.value.op_type == DIV)) {
+  while (current_token.type == TOKEN_OP &&
+         (current_token.value.op_type == MUL ||
+          current_token.value.op_type == DIV)) {
 
     eat(parser);
     Statement *right = parse_factor(parser);
@@ -78,8 +93,9 @@ Statement *parse_expression(Parser *parser) {
 
   Token current_token = peek(parser);
 
-  while (current_token.type == OP && (current_token.value.op_type == ADD ||
-                                      current_token.value.op_type == MIN)) {
+  while (current_token.type == TOKEN_OP &&
+         (current_token.value.op_type == ADD ||
+          current_token.value.op_type == MIN)) {
     eat(parser);
     Statement *right = parse_term(parser);
     stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
@@ -93,20 +109,40 @@ Statement *parse_expression(Parser *parser) {
 Statement *parse_statement(Parser *parser) {
   Token current_token = peek(parser);
 
-  if (current_token.type == LET) {
+  if (current_token.type == TOKEN_IMPL) {
     eat(parser);
-    expect(parser, IDENTIFIER, "expected identifier");
+    Token identifier =
+        expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
+
+    expect_and_eat(parser, TOKEN_LPAR,
+                   "expected open parenthesis to define arguments");
+
+    if (peek(parser).type == TOKEN_IDENTIFIER) {
+      Token arg_identifier = eat(parser);
+      printf("declaring arg with name %s", arg_identifier.value.str_value);
+    }
+
+    expect_and_eat(parser, TOKEN_RPAR, "expected closing parenthesis");
+    expect(parser, TOKEN_LBRACKET, "expected open bracket to define impl body");
+
+    Statement *stmt = parse_statement(parser);
+    return stmt;
+
+  } else if (current_token.type == TOKEN_LET) {
+    eat(parser);
+    expect(parser, TOKEN_IDENTIFIER, "expected identifier");
     Token identifier = eat(parser);
+
     // dbg_token(identifier);
-    expect(parser, EQ, "expected assigment");
+    expect(parser, TOKEN_EQ, "expected assigment");
     eat(parser);
 
     Statement *decl =
         new_var_decl_stmt(LiteralType_i32, identifier.value.str_value,
                           parse_expression(parser), identifier);
     return decl;
-  } else if (current_token.type == IDENTIFIER) {
-    if (look_ahead(parser).type == EQ) {
+  } else if (current_token.type == TOKEN_IDENTIFIER) {
+    if (look_ahead(parser).type == TOKEN_EQ) {
       Token identifier = eat(parser);
       eat(parser);
       return new_var_write_stmt(LiteralType_i32, identifier.value.str_value,
@@ -114,7 +150,7 @@ Statement *parse_statement(Parser *parser) {
     }
   }
 
-  if (current_token.type == PROGRAM_END)
+  if (current_token.type == TOKEN_PROGRAM_END)
     return NULL;
 
   return parse_expression(parser);

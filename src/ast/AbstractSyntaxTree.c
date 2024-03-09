@@ -12,18 +12,37 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
+Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
+                             string name, Statement *expr, Token token) {
+  Statement *s = new_stmt(stmt_type, NULL, expr, token);
+  s->sym_decl.name = name;
+  s->sym_decl.type = lit_type;
+  return s;
+}
+
+Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
+                              Token token) {
+  Statement *s = new_stmt(IMPL_DECL, NULL, expr, token);
+  return s;
+}
+
+Statement *new_impl_call_stmt(LiteralType type, string name, Statement *args,
+                              Token token) {
+  return new_stmt(IMPL_CALL, args, NULL, token);
+}
+
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
                              Token token) {
   Statement *s = new_stmt(VARIABLE_DECL, NULL, expr, token);
-  s->var_decl.name = name;
-  s->var_decl.type = type;
+  s->sym_decl.name = name;
+  s->sym_decl.type = type;
   return s;
 }
 
 Statement *new_var_read_stmt(LiteralType type, string name, Token token) {
   Statement *s = new_stmt(VARIABLE_READ, NULL, NULL, token);
-  s->var_decl.name = name;
-  s->var_decl.type = type;
+  s->sym_decl.name = name;
+  s->sym_decl.type = type;
   return s;
 }
 
@@ -31,8 +50,8 @@ Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
                               Token token) {
 
   Statement *s = new_stmt(VARIABLE_WRITE, NULL, expr, token);
-  s->var_decl.name = name;
-  s->var_decl.type = type;
+  s->sym_decl.name = name;
+  s->sym_decl.type = type;
   return s;
 }
 
@@ -135,15 +154,24 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   case VARIABLE_DECL:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Variable Declaration: Type , Name: %s\n",
-             stmt->var_decl.name);
+             stmt->sym_decl.name);
     break;
   case VARIABLE_WRITE:
     snprintf(buffer, sizeof(buffer), "Statement Type: Variable Write: %s\n",
-             stmt->var_decl.name);
+             stmt->sym_decl.name);
     break;
   case VARIABLE_READ:
     snprintf(buffer, sizeof(buffer), "Statement Type: Variable Read: %s\n",
-             stmt->var_decl.name);
+             stmt->sym_decl.name);
+
+    break;
+  case IMPL_DECL:
+    snprintf(buffer, sizeof(buffer),
+             "Statement Type: Implementation Decl: %s\n", stmt->sym_decl.name);
+    break;
+  case IMPL_CALL:
+    snprintf(buffer, sizeof(buffer),
+             "Statement Type: Implementation Call: %s\n", stmt->sym_decl.name);
     break;
   }
 

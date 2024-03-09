@@ -5,137 +5,264 @@
 Syntax Ideas
 
 ```
-let hello = 5
+@enum Type {
+  i32, f64
+}
 
-mut iterator = 0
+@def |a :atom| i32 -> {
+  |a|:set_type(Type.i32)
+}
 
-let function_test = {
-  scope {
-    mut iterator = 0
-  }
 
-  post {
-    if iterator == 0 {
-      return;
-    }
-
-    print.post(str = iterator)
-
-    function_test.post({
-      iterator = iterator - 1
-    })
+@def ops {
+  @def |a :f32| -> {
+    add(b :f32) -> ...
   }
 }
 
-function_test.post({
-  iterator = 5
+@def |a :f32| {
+  @symbol + (b :f32) -> |a|:ops:add(b);
+}
+```
+
+## Bitboard impl
+
+```css
+@type |bits: @mut u64| Bitboard {
+    @new -> {
+        |bits: 0|:Bitboard
+    }
+};
+
+@impl |board: Bitboard| {
+    mask_bits(mask: u64) -> {
+        board:bits:mutate(board:bits & mask)
+    }
+
+    set_bit(index: u64) -> {
+        @mut mask = 0x000000
+        mask_bits(mask)
+    }
+}
+
+@enum {
+    PAWN,
+    BISHOP,
+    QUEEN,
+    KING,
+    ROOK,
+    KNIGHT
+} PieceType;
+
+@type |bb: Bitboard, piece_type: PieceType| PieceBitboard {
+    @new(piece_type: PieceType) {
+        |:Bitboard, piece_type|:PieceBitboard
+    }
+}
+
+@impl |bb: PieceBitboard| {
+    get_moves() -> {
+        @match(bb.piece_type) {
+            PAWN -> bb:mask_bits(PAWN_MOVE_MASK)
+            PAWN -> bb:mask_bits(PAWN_MOVE_MASK)
+        }
+    }
+}
+
+@let pawn_bb = :PieceBitboard(PAWN);
+
+@let chessboard = |pawn_bb, ...|:Array
+
+chessboard:each
+```
+
+## Hello world
+
+```css
+"Helloworld":print();
+```
+
+## Iterate through an array
+
+```css
+@let a = |1, 2, 3, 4|:Array
+@let b = [1, 2, 3, 4]
+
+b:for_each(|element, i| -> {
+    element:println()
 });
+```
 
+## Iterate through keys of object
 
-let put = {
-  ::string  as  value -> c::printf("%s", value);
-  ::int     as  value -> c::printf("%d", value);
+```css
+@let o = | keys: |"hello", "there"|:Array, values: |0, 1|:Array |:Hashmap
+@let o = {
+  "hello":0,"there": 0;
+}
+o: for_each(|key, value| -> {});
+```
+
+## Arrays
+
+```css
+@type |...elements| Array {
+  @new -> {
+    mem: alloc(elements: type: sizeof * elements: count);
+  }
+  @del -> {
+    mem: free();
+  }
 }
 
-let echo = {
-  ::() as value -> put::int(value)
+@impl |array: Array| {
+}
+```
+
+## complex impl
+
+```css
+@type |re :f32, im :f32| complex
+@def |a :complex| {
+  magnitude       -> |a:re*a:re  + a:im*a:im|:sqrt
+  add(b :complex) -> |a:re + b:re, a:im + b:im|:complex
+  lt(b :complex)  -> a:magnitude > b:magnitude,
 }
 
-echo::({5 +  4}) // 9
-
-function_test
-  .scope({
-    mut hello = "im also there?"
-  })
-  .post({
-    put::string("hello")
-  })
-
-
-
-proc put {
-  ::string  => c::printf("%s", value);
-  ::int     =>
+@def main -> {
+    @let a = |4.2, 2.2|:complex
+    a:add(a)
 }
 
+```
 
-// everything is a statement
-let a = 5; // evaluates to 5
-let b = 3;
+-> desugar
 
-pragma while {
-  ::(@condition<bool>, { @code }) {
-    if @condition {
-      @code
+```css
+@def |re :f32, im :f32| complex -> {
+  @malloc (...);
+}
+
+-- std defined stuff
+@def |a :complex| {
+    to_str   -> f"|re: {a:re}, im: {a:im}| complex"
+    clone    -> |a.re, a.im|:complex
+}
+
+@def main -> {
+    let a = |4.2, 2.2|:complex
+    a:add(a)
+
+    @free(a)
+}
+```
+
+-> C code
+
+```c
+float f64_sqrt(float a) {
+return ...;
+}
+
+typedef struct {
+float re;
+float im;
+} complex;
+
+complex* __complex_new(float re, float im) {
+complex* ptr = malloc(sizeof(complex));
+ptr->re=re;
+ptr->im=im;
+return ptr;
+}
+
+float complex_magnitude(complex* a) {
+return f64_sqrt(a->re*a->re + a->im\*a->im);
+}
+
+complex* complex_add(complex* a, complex\* b) {
+return __complex_new(a->re + b->re, a->im + b->im);
+}
+```
+
+@def |a :let| set_type(t :type) {
+a.type = t
+}
+
+@def |a :i32| factorial -> {
+:if | a == 0 | -> 0
+:if | a == 1 | -> 1
+:else -> a \* :factorial |a-1|
+}
+
+let b = |5|:factorial:to_string
+
+```
+
+```
+
+@typ |re :f32, im :f32| complex
+@def |a :complex| {
+magnitude -> |a:re*a:re + a:im*a:im|:sqrt
+add(b :complex) -> |a:re + b:re, a:im + b:im|:complex
+lt(b :complex) -> |a:re + b:re, a:im + b:im|:complex
+}
+
+let a = |4.2, 2.2|:complex
+a:add(a)
+
+```
+
+```
+
+```css
+@struct |bits: @mut u64| Bitboard {
+    @new -> {
+        |bits: 0|:Bitboard
     }
-    while(@condition, @code)
-  }
+};
 
-  do::(@condition<bool>, { @code }) {
-    @code
-    while(@condition, @code)
-  }
+@define |board: Bitboard| {
+    mask_bits(mask: u64) -> {
+        board:bits:mutate(board:bits & mask)
+    }
+
+    set_bit(index: u64) -> {
+        @mut mask = 0x000000
+        mask_bits(mask)
+    }
 }
 
-pragma pow {
-  ::(@a<u32>, @b<u32>) {
-    mut i = 0
-    while (i < @b, {
-      @a *= @a
-      i++
-    })
-    @a
-  }
+@enum {
+    PAWN,
+    BISHOP,
+    QUEEN,
+    KING,
+    ROOK,
+    KNIGHT
+} PieceType;
+
+@struct |bb: Bitboard, piece_type: PieceType| PieceBitboard {
+    @new(piece_type: PieceType) {
+        |:Bitboard, piece_type|:PieceBitboard
+    }
 }
 
-
-pragma u32 {
-  @var: :: {
-    @var.type = 'u32'
-  }
-
-  ::add(@a: u32, @b: u32) {
-
-  }
+@define |bb: PieceBitboard| {
+    get_moves() -> {
+        @match(bb.piece_type) {
+            PAWN -> bb:mask_bits(PAWN_MOVE_MASK)
+            PAWN -> bb:mask_bits(PAWN_MOVE_MASK)
+        }
+    }
 }
 
-pragma + {
-  @a:u32 :: @b:u32 {
+@let pawn_bb = :PieceBitboard(PAWN);
 
-    u32::add(@a, @b)
+@let chessboard = |pawn_bb, ...|:Array
 
-  }
+@define hello_world() -> {
+    "hello world" :print
 }
-
-pragma complex {
-  ::real
-}
-
-int::add(a, b)
-5 + 5
-
-
-
-pragma mut {
-  ::f64 {
-
-  }
-}
-
-
-let.f64 :pi   = 3.1415;
-mut.f64 :test = 4.3;
-
-
-pragma complex {
-  ::@var {}
-
-  mut f64 :re   = 0;
-  mut f64 :im   = 0;
-}
-
-complex :a = {
-}
-
 
 ```

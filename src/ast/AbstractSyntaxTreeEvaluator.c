@@ -6,7 +6,7 @@
 #include <string.h>
 
 void throw_runtime_error(string msg) {
-  printf("%s", msg);
+  printf("Runtime ERROR: %s", msg);
   exit(1);
 }
 
@@ -20,9 +20,9 @@ int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
     return lhs.i32_value * rhs.i32_value;
   case DIV:
     return lhs.i32_value / rhs.i32_value;
-  default:
-    throw_runtime_error("unsupported operation for type");
   }
+  throw_runtime_error("unsupported operation for type");
+  return 0;
 }
 
 double perform_f64_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
@@ -35,9 +35,9 @@ double perform_f64_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
     return lhs.f64_value * rhs.f64_value;
   case DIV:
     return lhs.f64_value / rhs.f64_value;
-  default:
-    throw_runtime_error("unsupported operation for type");
   }
+  throw_runtime_error("unsupported operation for type");
+  return 0;
 }
 
 ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
@@ -118,6 +118,28 @@ ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type) {
   return v->value;
 };
 
+ReturnValue declare_implementation(Interpreter *ipr, string var_name,
+                                   LiteralType type, ReturnValue value) {
+
+  if (hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name}) != NULL) {
+    throw_runtime_error("redecleration of variable");
+  }
+
+  return write_variable(ipr, var_name, type, value);
+}
+
+ReturnValue call_implementation(Interpreter *ipr, string var_name,
+                                LiteralType type, ReturnValue arg) {
+  const RuntimeVariable *v =
+      hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name});
+
+  if (v == NULL) {
+    throw_runtime_error("undeclared variable!");
+  }
+
+  return v->value;
+};
+
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
   case LITERAL:
@@ -127,13 +149,20 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
                           evaluate_statement(ipr, stmt->right),
                           stmt->token.value.op_type);
   case VARIABLE_DECL:
-    return write_variable(ipr, stmt->var_decl.name, stmt->var_decl.type,
-                          evaluate_statement(ipr, stmt->right));
+    return declare_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
+                            evaluate_statement(ipr, stmt->right));
+
   case VARIABLE_READ:
-    return read_variable(ipr, stmt->var_decl.name, stmt->var_decl.type);
+    return read_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type);
   case VARIABLE_WRITE:
-    return write_variable(ipr, stmt->var_decl.name, stmt->var_decl.type,
+    return write_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                           evaluate_statement(ipr, stmt->right));
+  case IMPL_DECL:
+    return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
+                                  evaluate_statement(ipr, stmt->right));
+  case IMPL_CALL:
+    return call_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
+                               evaluate_statement(ipr, stmt->left));
   }
 
   throw_runtime_error("found unsupported token while evaluating");
