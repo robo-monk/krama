@@ -41,6 +41,13 @@ Statement *parse_factor(Parser *parser) {
   if (current_token.type == TOKEN_IDENTIFIER) {
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
+  } else if (current_token.type == TOKEN_COLON) {
+    Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
+                                      "expected implementation identifier");
+    printf("parsing implementation call :%s", identifier.value.str_value);
+    return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value, NULL,
+                              identifier);
+
   } else if (current_token.type == TOKEN_NUMBER) {
     // return new_abstract_node(NULL, current_token, NULL);
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
@@ -50,7 +57,7 @@ Statement *parse_factor(Parser *parser) {
     eat(parser);
     return node;
   } else if (current_token.type == TOKEN_LBRACKET) {
-    // multiple statments parser
+    // TODO: multiple statments parser
     Statement *node = parse_expression(parser);
     expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
     eat(parser);
@@ -125,8 +132,9 @@ Statement *parse_statement(Parser *parser) {
     expect_and_eat(parser, TOKEN_RPAR, "expected closing parenthesis");
     expect(parser, TOKEN_LBRACKET, "expected open bracket to define impl body");
 
-    Statement *stmt = parse_statement(parser);
-    return stmt;
+    Statement *impl_body = parse_statement(parser);
+    return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
+                              impl_body, identifier);
 
   } else if (current_token.type == TOKEN_LET) {
     eat(parser);
@@ -161,9 +169,13 @@ Statement *parse(Parser *parser) {
   return stmt;
 }
 
-#define DEBUG false
+#define DEBUG true
 
 Program *parse_program(Token *tokens) {
+  if (DEBUG) {
+
+    printf("\n----\n");
+  }
   Parser parser = new_parser(tokens);
   Program *program = new_program();
 

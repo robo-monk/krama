@@ -61,6 +61,8 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
   push_token(new_number_token(n), tokeniser);
 }
 
+// TODO:    implement this in a smarter way
+//          i want a switch statement similar to tokeniser_char
 void commit_buffer_as_string(Tokeniser *tokeniser) {
   if (strcmp("let", tokeniser->buffer) == 0) {
     push_token(new_token(TOKEN_LET), tokeniser);
@@ -113,6 +115,7 @@ void tokenise_char(char c, Tokeniser *state) {
   case ')':
   case '{':
   case '}':
+  case ':':
     commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
@@ -195,6 +198,7 @@ void dbg_token(Token token) {
   case TOKEN_LPAR:
   case TOKEN_RPAR:
   case TOKEN_EQ:
+  case TOKEN_COLON:
     printf("Token: '%c'", token.type);
     break;
   case TOKEN_PROGRAM_END:

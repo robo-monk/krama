@@ -22,13 +22,17 @@ Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
 
 Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
                               Token token) {
-  Statement *s = new_stmt(IMPL_DECL, NULL, expr, token);
+  Statement *s = new_sym_decl_stmt(IMPL_DECL, LiteralType_i32,
+                                   token.value.str_value, expr, token);
   return s;
 }
 
 Statement *new_impl_call_stmt(LiteralType type, string name, Statement *args,
                               Token token) {
-  return new_stmt(IMPL_CALL, args, NULL, token);
+
+  Statement *s = new_sym_decl_stmt(IMPL_CALL, LiteralType_i32,
+                                   token.value.str_value, args, token);
+  return s;
 }
 
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
@@ -148,7 +152,10 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
                             // with this approach
     break;
   case LITERAL:
-    snprintf(buffer, sizeof(buffer), "Statement Type: Literal with type ");
+    printf("\n");
+    dbg_token(stmt->token);
+    printf("\n");
+    snprintf(buffer, sizeof(buffer), "Statement Type: Literal with type");
     // Append specific literal type and value to buffer here
     break;
   case VARIABLE_DECL:

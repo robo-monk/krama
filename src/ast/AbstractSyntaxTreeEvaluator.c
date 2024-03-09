@@ -66,6 +66,41 @@ typedef struct {
   ReturnValue value;
 } RuntimeVariable;
 
+typedef struct {
+  Statement **stmts;
+} RuntimeImplementation;
+
+typedef struct {
+  string name;
+  union {
+    RuntimeImplementation *impl;
+    RuntimeVariable *var;
+  };
+} RuntimeSymbol;
+
+typedef struct {
+  struct hashmap *map;
+} Interpreter;
+
+int runtime_sym_compare(const void *a, const void *b, void *udata) {
+  const RuntimeSymbol *ua = a;
+  const RuntimeSymbol *ub = b;
+  return strcmp(ua->name, ub->name);
+}
+
+uint64_t runtime_sym_hash(const void *item, uint64_t seed0, uint64_t seed1) {
+  const RuntimeSymbol *var = item;
+  return hashmap_sip(var->name, strlen(var->name), seed0, seed1);
+}
+
+// Interpreter new_interpreter() {
+//   const Interpreter i = {.map = hashmap_new(sizeof(RuntimeVariable), 0, 0, 0,
+//                                             runtime_sym_hash,
+//                                             runtime_sym_compare, NULL,
+//                                             NULL)};
+//   return i;
+// }
+
 int runtime_variable_compare(const void *a, const void *b, void *udata) {
   const RuntimeVariable *ua = a;
   const RuntimeVariable *ub = b;
@@ -77,10 +112,6 @@ uint64_t runtime_variable_hash(const void *item, uint64_t seed0,
   const RuntimeVariable *var = item;
   return hashmap_sip(var->name, strlen(var->name), seed0, seed1);
 }
-
-typedef struct {
-  struct hashmap *map;
-} Interpreter;
 
 Interpreter new_interpreter() {
   const Interpreter i = {.map =

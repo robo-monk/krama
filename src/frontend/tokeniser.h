@@ -27,7 +27,8 @@ typedef enum {
   TOKEN_RPAR = ')',
   TOKEN_LBRACKET = '{',
   TOKEN_RBRACKET = '}',
-  TOKEN_PROGRAM_END
+  TOKEN_COLON = ':',
+  TOKEN_PROGRAM_END,
 } TokenType;
 
 typedef union {
