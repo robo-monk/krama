@@ -52,6 +52,7 @@ int main() {
   // impl stuff
   test_eval("@impl bing() { 5 }; :bing\n", 5);
   test_eval("@impl hello() { 1 } @impl add1() { 5-:hello }; :add1\n", 4);
+  test_eval("@impl hello() { 1;2;3 } :hello\n", 3);
   test_eval("@impl add1(a) { a + 5 }; :add1\n", 4);
   return 0;
 }

@@ -107,14 +107,15 @@ Statement *parse_block(Parser *parser) {
 
   if (current_token.type == TOKEN_LBRACKET) {
     eat(parser);
-    // TODO:    multiple statments parser
-    //          currently this only parses one expression
-    //          create new "BlockStatement" containing other stmts in an array
+
     BlockStatement *block_stmt = new_block_stmt();
-    Statement *stmt = parse_expression(parser);
-    push_stmt_to_block(stmt, block_stmt);
-    expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
-    eat(parser);
+    while (current_token.type != TOKEN_RBRACKET) {
+      Statement *stmt = parse_expression(parser);
+      push_stmt_to_block(stmt, block_stmt);
+      current_token = eat(parser);
+    }
+    // expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
+    // eat(parser);
     Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;
     return ret_stmt;
