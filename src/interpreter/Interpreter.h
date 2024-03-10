@@ -14,7 +14,8 @@ typedef struct {
 } RuntimeVariable;
 
 typedef struct {
-  Statement **stmts;
+  // TODO this should hold a BlockStatement
+  Statement *stmt;
 } RuntimeImplementation;
 
 typedef struct {
@@ -40,9 +41,11 @@ ReturnValue write_variable(Interpreter *ipr, string var_name, LiteralType type,
 
 ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type);
 
-ReturnValue declare_implementation(Interpreter *ipr, string var_name,
-                                   LiteralType type, ReturnValue value);
+ReturnValue declare_implementation(Interpreter *ipr, string impl_name,
+                                   LiteralType type, Statement *stmt);
 
 ReturnValue call_implementation(Interpreter *ipr, string var_name,
                                 LiteralType type, ReturnValue arg);
+
+Statement *get_implementation_body(Interpreter *ipr, string impl_name);
 #endif

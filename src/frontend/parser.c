@@ -44,12 +44,11 @@ Statement *parse_factor(Parser *parser) {
   } else if (current_token.type == TOKEN_COLON) {
     Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
                                       "expected implementation identifier");
-    printf("parsing implementation call :%s", identifier.value.str_value);
+
     return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value, NULL,
                               identifier);
 
   } else if (current_token.type == TOKEN_NUMBER) {
-    // return new_abstract_node(NULL, current_token, NULL);
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == TOKEN_LPAR) {
     Statement *node = parse_expression(parser);
@@ -57,7 +56,10 @@ Statement *parse_factor(Parser *parser) {
     eat(parser);
     return node;
   } else if (current_token.type == TOKEN_LBRACKET) {
-    // TODO: multiple statments parser
+
+    // TODO:    multiple statments parser
+    //          currently this only parses one expression
+    //          create new "BlockStatement" containing other stmts in an array
     Statement *node = parse_expression(parser);
     expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
     eat(parser);
@@ -91,10 +93,6 @@ Statement *parse_term(Parser *parser) {
 }
 
 Statement *parse_expression(Parser *parser) {
-
-  // printf("\nimma call parse_term being a bitch\n");
-  // dbg_token(peek(parser));
-  // printf("\n");
 
   Statement *stmt = parse_term(parser);
 

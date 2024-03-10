@@ -8,12 +8,11 @@ RuntimeSymbol *new_runtime_sym(string name) {
   RuntimeSymbol *sym = malloc(sizeof(RuntimeSymbol));
   sym->name = name;
   return sym;
-  // return &(RuntimeSymbol){.name = name};
 }
-RuntimeSymbol *new_runtime_impl_symbol(string name, Statement **stmts) {
+RuntimeSymbol *new_runtime_impl_symbol(string name, Statement *stmt) {
   RuntimeSymbol *sym = new_runtime_sym(name);
   RuntimeImplementation *impl = malloc(sizeof(RuntimeImplementation));
-  impl->stmts = stmts;
+  impl->stmt = stmt;
   sym->impl = impl;
   return sym;
 }
@@ -62,6 +61,11 @@ RuntimeVariable *get_var_symbol(Interpreter *ipr, string sym_name) {
 RuntimeImplementation *get_impl_symbol(Interpreter *ipr, string sym_name) {
   const RuntimeSymbol *sym =
       hashmap_get(ipr->map, &(RuntimeSymbol){.name = sym_name});
+
+  if (sym == NULL) {
+    return NULL;
+  }
+
   return sym->impl;
 }
 
@@ -93,24 +97,35 @@ ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type) {
 };
 
 ReturnValue declare_implementation(Interpreter *ipr, string impl_name,
-                                   LiteralType type, ReturnValue value) {
+                                   LiteralType type, Statement *stmt) {
 
   if (get_impl_symbol(ipr, impl_name) != NULL) {
     throw_runtime_error("impl already declared");
   }
 
-  hashmap_set(ipr->map, NULL);
+  const RuntimeSymbol *impl = new_runtime_impl_symbol(impl_name, stmt);
+  hashmap_set(ipr->map, impl);
   return (ReturnValue){.type = NULL};
 }
 
-ReturnValue call_implementation(Interpreter *ipr, string var_name,
-                                LiteralType type, ReturnValue arg) {
-
-  const RuntimeVariable *v = hashmap_get(ipr->map, new_runtime_sym(var_name));
-
-  if (v == NULL) {
+Statement *get_implementation_body(Interpreter *ipr, string impl_name) {
+  const RuntimeSymbol *sym = hashmap_get(ipr->map, new_runtime_sym(impl_name));
+  if (sym == NULL) {
     throw_runtime_error("undeclared implementation!");
   }
+  return sym->impl->stmt;
+}
 
-  return v->value;
-};
+// ReturnValue call_implementation(Interpreter *ipr, string var_name,
+//                                 LiteralType type, ReturnValue arg) {
+
+//   const RuntimeSymbol *sym = hashmap_get(ipr->map,
+//   new_runtime_sym(var_name));
+
+//   if (sym == NULL) {
+//     throw_runtime_error("undeclared implementation!");
+//   }
+
+//   // return (sym->impl->stmts)[0]
+//   // return sym->value;
+// };

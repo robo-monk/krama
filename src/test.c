@@ -50,6 +50,6 @@ int main() {
   test_eval("let b = 99; let c = (5 + 32 + 2 + b);\n", 138);
 
   // impl stuff
-  test_eval("@impl add1() { 8 }; :add1\n", 3);
+  test_eval("@impl add1() { 1 }; :add1\n", 3);
   return 0;
 }
