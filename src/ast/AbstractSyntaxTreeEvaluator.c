@@ -1,14 +1,6 @@
 #include "AbstractSyntaxTreeEvaluator.h"
-#include "../hashmap/hashmap.h"
+#include "../interpreter/Interpreter.h"
 #include "AbstractSyntaxTree.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-void throw_runtime_error(string msg) {
-  printf("Runtime ERROR: %s", msg);
-  exit(1);
-}
 
 int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   switch (op) {
@@ -59,117 +51,6 @@ ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
 
   return v;
 }
-
-typedef struct {
-  string name;
-  LiteralType type;
-  ReturnValue value;
-} RuntimeVariable;
-
-typedef struct {
-  Statement **stmts;
-} RuntimeImplementation;
-
-typedef struct {
-  string name;
-  union {
-    RuntimeImplementation *impl;
-    RuntimeVariable *var;
-  };
-} RuntimeSymbol;
-
-typedef struct {
-  struct hashmap *map;
-} Interpreter;
-
-int runtime_sym_compare(const void *a, const void *b, void *udata) {
-  const RuntimeSymbol *ua = a;
-  const RuntimeSymbol *ub = b;
-  return strcmp(ua->name, ub->name);
-}
-
-uint64_t runtime_sym_hash(const void *item, uint64_t seed0, uint64_t seed1) {
-  const RuntimeSymbol *var = item;
-  return hashmap_sip(var->name, strlen(var->name), seed0, seed1);
-}
-
-// Interpreter new_interpreter() {
-//   const Interpreter i = {.map = hashmap_new(sizeof(RuntimeVariable), 0, 0, 0,
-//                                             runtime_sym_hash,
-//                                             runtime_sym_compare, NULL,
-//                                             NULL)};
-//   return i;
-// }
-
-int runtime_variable_compare(const void *a, const void *b, void *udata) {
-  const RuntimeVariable *ua = a;
-  const RuntimeVariable *ub = b;
-  return strcmp(ua->name, ub->name);
-}
-
-uint64_t runtime_variable_hash(const void *item, uint64_t seed0,
-                               uint64_t seed1) {
-  const RuntimeVariable *var = item;
-  return hashmap_sip(var->name, strlen(var->name), seed0, seed1);
-}
-
-Interpreter new_interpreter() {
-  const Interpreter i = {.map =
-                             hashmap_new(sizeof(RuntimeVariable), 0, 0, 0,
-                                         runtime_variable_hash,
-                                         runtime_variable_compare, NULL, NULL)};
-  return i;
-}
-
-ReturnValue write_variable(Interpreter *ipr, string var_name, LiteralType type,
-                           ReturnValue value) {
-  hashmap_set(ipr->map, &(RuntimeVariable){
-                            .name = var_name, .type = type, .value = value});
-  return value;
-};
-
-ReturnValue declare_variable(Interpreter *ipr, string var_name,
-                             LiteralType type, ReturnValue value) {
-
-  if (hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name}) != NULL) {
-    throw_runtime_error("redecleration of variable");
-  }
-
-  return write_variable(ipr, var_name, type, value);
-}
-
-ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type) {
-  const RuntimeVariable *v =
-      hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name});
-
-  if (v == NULL) {
-    throw_runtime_error("undeclared variable!");
-  }
-
-  return v->value;
-};
-
-ReturnValue declare_implementation(Interpreter *ipr, string var_name,
-                                   LiteralType type, ReturnValue value) {
-
-  if (hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name}) != NULL) {
-    throw_runtime_error("redecleration of variable");
-  }
-
-  return write_variable(ipr, var_name, type, value);
-}
-
-ReturnValue call_implementation(Interpreter *ipr, string var_name,
-                                LiteralType type, ReturnValue arg) {
-  const RuntimeVariable *v =
-      hashmap_get(ipr->map, &(RuntimeVariable){.name = var_name});
-
-  if (v == NULL) {
-    throw_runtime_error("undeclared variable!");
-  }
-
-  return v->value;
-};
 
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
