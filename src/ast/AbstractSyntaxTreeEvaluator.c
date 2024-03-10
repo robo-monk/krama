@@ -70,11 +70,9 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
     return write_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                           evaluate_statement(ipr, stmt->right));
   case IMPL_DECL:
-    printf("declearing impl \n");
     return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
   case IMPL_CALL:
-    printf("calling impl \n");
     return evaluate_statement(
         ipr, get_implementation_body(ipr, stmt->sym_decl.name));
     // const Statement **smts = malloc(1 * sizeof(Statement *));
