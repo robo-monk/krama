@@ -54,6 +54,15 @@ ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
 
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
+  case BLOCK:
+    // TODO implement scope
+    for (int i = 0; i < stmt->block->len - 1; i++) {
+      // evaluate_statement(ipr, stmt);
+      evaluate_statement(ipr, stmt->block->statements[i]);
+    }
+    return evaluate_statement(ipr,
+                              stmt->block->statements[stmt->block->len - 1]);
+
   case LITERAL:
     return stmt->literal;
   case BIN_OP:
@@ -83,7 +92,7 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   throw_runtime_error("found unsupported token while evaluating");
 }
 
-ReturnValue exec_program(Program *program) {
+ReturnValue exec_program(BlockStatement *program) {
   Interpreter ipr = new_interpreter();
   ReturnValue result = {};
 

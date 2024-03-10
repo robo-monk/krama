@@ -80,7 +80,7 @@ Statement *new_f64_literal_stmt(double value, Token token) {
   return s;
 }
 
-void _alloc_statement_array(Program *program) {
+void _alloc_statement_array(BlockStatement *program) {
   if (program->len < program->max_len) {
     return;
   }
@@ -95,9 +95,9 @@ void _alloc_statement_array(Program *program) {
   program->statements = new_mem;
 }
 
-#define DEFAULT_PROGRAM_LEN 100;
-Program *new_program() {
-  Program *program = malloc(sizeof(Program));
+#define DEFAULT_PROGRAM_LEN 1;
+BlockStatement *new_block_stmt() {
+  BlockStatement *program = malloc(sizeof(BlockStatement));
   program->idx = 0;
   program->len = 0;
   program->max_len = DEFAULT_PROGRAM_LEN;
@@ -105,7 +105,7 @@ Program *new_program() {
   return program;
 }
 
-void push_stmt(Statement *stmt, Program *program) {
+void push_stmt_to_block(Statement *stmt, BlockStatement *program) {
   program->len += 1;
   // optionally alloc more memory
   _alloc_statement_array(program);

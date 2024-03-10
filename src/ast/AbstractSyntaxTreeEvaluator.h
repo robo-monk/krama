@@ -5,6 +5,6 @@
 
 // for now every  statement can be redu
 typedef LiteralStatement ReturnValue;
-ReturnValue exec_program(Program *program);
+ReturnValue exec_program(BlockStatement *program);
 
 #endif

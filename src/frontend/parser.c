@@ -55,15 +55,6 @@ Statement *parse_factor(Parser *parser) {
     expect(parser, TOKEN_RPAR, "Expected closing paren");
     eat(parser);
     return node;
-  } else if (current_token.type == TOKEN_LBRACKET) {
-
-    // TODO:    multiple statments parser
-    //          currently this only parses one expression
-    //          create new "BlockStatement" containing other stmts in an array
-    Statement *node = parse_expression(parser);
-    expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
-    eat(parser);
-    return node;
   }
 
   printf("\n");
@@ -109,6 +100,27 @@ Statement *parse_expression(Parser *parser) {
   }
 
   return stmt;
+}
+
+Statement *parse_block(Parser *parser) {
+  Token current_token = peek(parser);
+
+  if (current_token.type == TOKEN_LBRACKET) {
+    eat(parser);
+    // TODO:    multiple statments parser
+    //          currently this only parses one expression
+    //          create new "BlockStatement" containing other stmts in an array
+    BlockStatement *block_stmt = new_block_stmt();
+    Statement *stmt = parse_expression(parser);
+    push_stmt_to_block(stmt, block_stmt);
+    expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
+    eat(parser);
+    Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
+    ret_stmt->block = block_stmt;
+    return ret_stmt;
+  }
+
+  return parse_expression(parser);
 }
 
 Statement *parse_statement(Parser *parser) {
@@ -159,7 +171,7 @@ Statement *parse_statement(Parser *parser) {
   if (current_token.type == TOKEN_PROGRAM_END)
     return NULL;
 
-  return parse_expression(parser);
+  return parse_block(parser);
 }
 
 Statement *parse(Parser *parser) {
@@ -169,13 +181,13 @@ Statement *parse(Parser *parser) {
 
 #define DEBUG true
 
-Program *parse_program(Token *tokens) {
+BlockStatement *parse_program(Token *tokens) {
   if (DEBUG) {
 
     printf("\n----\n");
   }
   Parser parser = new_parser(tokens);
-  Program *program = new_program();
+  BlockStatement *program = new_block_stmt();
 
   Statement *stmt = parse(&parser);
 
@@ -186,7 +198,7 @@ Program *parse_program(Token *tokens) {
       printf("--|END STATEMENT|\n");
     }
 
-    push_stmt(stmt, program);
+    push_stmt_to_block(stmt, program);
     stmt = parse(&parser);
   } while (stmt != NULL);
 

@@ -11,7 +11,7 @@ void test_eval(string eval_str, int expected) {
 
   tokenise_str(eval_str, tokens);
 
-  Program *program = parse_program(tokens);
+  BlockStatement *program = parse_program(tokens);
   ReturnValue ret_val = exec_program(program);
 
   int result = ret_val.i32_value;
@@ -50,7 +50,8 @@ int main() {
   test_eval("let b = 99; let c = (5 + 32 + 2 + b);\n", 138);
 
   // impl stuff
-  test_eval("@impl add1() { 5 }; :add1\n", 5);
+  test_eval("@impl bing() { 5 }; :bing\n", 5);
   test_eval("@impl hello() { 1 } @impl add1() { 5-:hello }; :add1\n", 4);
+  test_eval("@impl add1(a) { a + 5 }; :add1\n", 4);
   return 0;
 }

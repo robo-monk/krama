@@ -4,10 +4,11 @@
 #include "../frontend/Tokeniser.h"
 #include "../utils.h"
 
-typedef struct Program Program;
+typedef struct BlockStatement BlockStatement;
 typedef struct Statement Statement;
 
 typedef enum {
+  BLOCK,
   BIN_OP,
   LITERAL,
 
@@ -43,16 +44,24 @@ typedef struct {
   string name;
 } SymbolStatement;
 
-typedef struct {
-  Program *program;
-} ImplementationStatement;
+// typedef struct {
+//   BlockStatement *stmts;
+// } BlockStatement;
 
+struct BlockStatement {
+  Statement **statements;
+  unsigned int idx;
+  unsigned int len;
+  unsigned int max_len;
+};
+
+// todo all of them should be pointers
 struct Statement {
   union {
     LiteralStatement literal;
     BinExpressionStatement bin_op;
     SymbolStatement sym_decl;
-    ImplementationStatement impl_decl;
+    BlockStatement *block;
   };
   StatementType type;
   Statement *left;
@@ -61,15 +70,8 @@ struct Statement {
   Token token;
 };
 
-struct Program {
-  Statement **statements;
-  unsigned int idx;
-  unsigned int len;
-  unsigned int max_len;
-};
-
-Program *new_program();
-void push_stmt(Statement *stmt, Program *program);
+BlockStatement *new_block_stmt();
+void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token);

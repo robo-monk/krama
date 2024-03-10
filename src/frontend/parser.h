@@ -22,5 +22,5 @@ Token peek(Parser *parser);
 Token look_ahead(Parser *parser);
 Token eat(Parser *parser);
 
-Program *parse_program(Token *tokens);
+BlockStatement *parse_program(Token *tokens);
 #endif
