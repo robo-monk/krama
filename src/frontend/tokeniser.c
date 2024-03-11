@@ -61,18 +61,54 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
   push_token(new_number_token(n), tokeniser);
 }
 
-// TODO:    implement this in a smarter way
-//          i want a switch statement similar to tokeniser_char
+typedef struct {
+  const string str;
+  __MulticharToken token;
+} TokenMap;
+
+static const TokenMap token_map[] = {
+    {"let", __MTOKEN_LET},    //
+    {"@impl", __MTOKEN_IMPL}, //
+    {"@if", __MTOKEN_IF},     //
+    {"==", __MTOKEN_OP_EQ},   //
+    {"<=", __MTOKEN_OP_LTE},  //
+    {">=", __MTOKEN_OP_GTE},  //
+    {NULL, 0}                 //
+};
+
+__MulticharToken __map_string_to_multichar_token(string str) {
+  for (const TokenMap *map = token_map; map->str != NULL; ++map) {
+    if (strcmp(map->str, str) == 0) {
+      return map->token;
+    }
+  }
+}
+
 void commit_buffer_as_string(Tokeniser *tokeniser) {
-  if (strcmp("let", tokeniser->buffer) == 0) {
+  __MulticharToken mulitchar_token =
+      __map_string_to_multichar_token(tokeniser->buffer);
+
+  switch (mulitchar_token) {
+  case __MTOKEN_LET:
     push_token(new_token(TOKEN_LET), tokeniser);
-  } else if (strcmp("@impl", tokeniser->buffer) == 0) {
+    break;
+  case __MTOKEN_IMPL:
     push_token(new_token(TOKEN_IMPL), tokeniser);
-  } else {
+    break;
+  default:
     push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
                              tokeniser->buffer_idx),
                tokeniser);
   }
+  // if (strcmp("let", tokeniser->buffer) == 0) {
+  //   push_token(new_token(TOKEN_LET), tokeniser);
+  // } else if (strcmp("@impl", tokeniser->buffer) == 0) {
+  //   push_token(new_token(TOKEN_IMPL), tokeniser);
+  // } else {
+  //   push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
+  //                            tokeniser->buffer_idx),
+  //              tokeniser);
+  // }
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
@@ -161,16 +197,18 @@ void tokenise_str(string str, Token *tokens) {
   close_tokeniser(tokeniser);
 }
 
-void tokenise(string filename, Token *tokens) {
+void tokenise_file(const string filename, Token *tokens) {
   FILE *fptr;
   fptr = fopen(filename, "r");
 
-  Tokeniser *state = init_tokeniser(tokens);
+  Tokeniser *tokeniser = init_tokeniser(tokens);
 
   char c;
   while ((c = fgetc(fptr)) != EOF) {
-    tokenise_char(c, state);
+    printf("\nconsum %c", c);
+    tokenise_char(c, tokeniser);
   }
+  close_tokeniser(tokeniser);
 
   fclose(fptr);
 }

@@ -1,0 +1,5 @@
+@impl pow2(a) {
+    a*a
+}
+
+:pow2(5)

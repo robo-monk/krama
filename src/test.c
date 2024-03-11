@@ -22,6 +22,9 @@ void test_eval(string eval_str, int expected) {
   } else {
     printf("    ✅   | passed %s", eval_str);
   }
+
+  free(tokens);
+  free(program);
 }
 
 int main() {

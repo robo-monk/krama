@@ -4,6 +4,15 @@
 #include "../utils.h"
 
 typedef enum {
+  __MTOKEN_OP_EQ,
+  __MTOKEN_OP_LTE,
+  __MTOKEN_OP_GTE,
+  __MTOKEN_LET,
+  __MTOKEN_IMPL,
+  __MTOKEN_IF,
+} __MulticharToken;
+
+typedef enum {
   ADD = '+',
   MIN = '-',
   DIV = '/',
@@ -13,7 +22,11 @@ typedef enum {
   MODULUS = '%',
   BIN_AND = '&',
   BIN_OR = '|',
-  BIN_XOR = '^'
+  BIN_XOR = '^',
+
+  TOKEN_OP_EQ,
+  TOKEN_OP_LTE,
+  TOKEN_OP_GTE
 } OpType;
 
 typedef enum {
@@ -28,6 +41,7 @@ typedef enum {
   TOKEN_LBRACKET = '{',
   TOKEN_RBRACKET = '}',
   TOKEN_COLON = ':',
+  TOKEN_IF,
   TOKEN_PROGRAM_END,
 } TokenType;
 
@@ -63,8 +77,8 @@ typedef struct {
 
 Token new_op_token(TokenType type, OpType op_type);
 Token new_token(TokenType type);
-void tokenise(string filename, Token *tokens);
 void tokenise_str(string filename, Token *tokens);
+void tokenise_file(const string filename, Token *tokens);
 void dbg_token(Token token);
 void dbg_tokens(Token *tokens);
 

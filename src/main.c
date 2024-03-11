@@ -1,78 +1,45 @@
+#include "ast/AbstractSyntaxTree.h"
+#include "ast/AbstractSyntaxTreeEvaluator.h"
+#include "frontend/Parser.h"
 #include "frontend/Tokeniser.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "utils.h"
+#include <stdio.h>
+#include <string.h>
 
-// produces program that when run
-void compile_c_to_str(Token *tokens, string program) {
-  int token_index = 0;
-  int i = 0;
-  while (tokens[token_index].type != TOKEN_PROGRAM_END) {
-    Token current_token = tokens[token_index++];
-
-    if (current_token.type == TOKEN_OP) {
-      // printf("-- OP %c\n", current_token.value.op_type);
-      program[i++] = current_token.value.op_type;
-    } else if (current_token.type == TOKEN_NUMBER) {
-      char num_str[64];
-      sprintf(num_str, "%d!", current_token.value.i32_value);
-      int _i = 0;
-      while (num_str[_i] != '!') {
-        program[i++] = num_str[_i++];
-      }
-    } else if (current_token.type == TOKEN_LPAR) {
-      program[i++] = '(';
-    } else if (current_token.type == TOKEN_RPAR) {
-      program[i++] = ')';
-    } else {
-      program[i++] = '?';
-    }
-  }
-}
-
-// prints a json representing the abstract tree
-void dbg_abstract_node(AbstractNode *node, int intentation) {
-  if (node == NULL) {
-    printf("null");
-    return;
-  }
-
-  printf("{\"token\":\"");
-  dbg_token(node->token);
-  printf("\",\"lhs\":");
-  dbg_abstract_node(node->lhs, intentation + 1);
-  printf(",\"rhs\":");
-  dbg_abstract_node(node->rhs, intentation + 1);
-  printf("}");
-}
-
-int main() {
+// Assuming these functions are defined elsewhere in your program
+void run_file(const char *filename) {
   Token *tokens = malloc(512 * sizeof(Token));
-  // tokenise("./expr.meth", tokens);
-  tokenise_str("4+390/2\n", tokens);
-  dbg_tokens(tokens);
+  tokenise_file(filename, tokens);
+  BlockStatement *program = parse_program(tokens);
+  ReturnValue ret_value = exec_program(program);
+  printf("---\n\n");
+  printf("%d", ret_value.i32_value);
+}
+// void run_inline_string(const char *str);
 
-  printf("\n\n");
+int main(int argc, char *argv[]) {
+  // Check if the only argument is "--help" or no arguments are passed
+  if (argc == 1 || (argc == 2 && strcmp(argv[1], "--help") == 0)) {
+    printf("usage:\n"
+           "    krama run ./x.kr                 --execute a file\n"
+           "    krama run \"inline code\"        --execute an inline string\n"
+           "    krama --help                     --show this\n");
+    return 0;
+  }
 
-  string c_program = malloc(4096 * sizeof(char));
+  // Check for proper usage of "krama run" with an argument
+  if (argc == 3 && strcmp(argv[1], "run") == 0) {
+    if (argv[2][0] == '\"' || argv[2][0] == '\'') {
+      // Assuming the inline string is passed with quotes, remove them
+      // (simplified handling)
+      char *inlineStr = argv[2] + 1;
+      inlineStr[strlen(inlineStr) - 1] = '\0';
+      // run_inline_string(inlineStr);
+    } else {
+      run_file(argv[2]);
+    }
+  } else {
+    printf("Invalid usage. Use 'krama --help' for more information.\n");
+  }
 
-  compile_c_to_str(tokens, c_program);
-
-  printf("compiled c program: \n\n");
-  printf("%s", c_program);
-
-  printf("\n\n---- ast ----\n\n");
-  AbstractNode *node = construct_abstract_node(tokens, 0);
-  dbg_abstract_node(node, 0);
-
-  int result = evaluate_abstract_node(node);
-  printf("\n\nresult is %d", result);
-
-  // int r = evaluate(tokens);
-  // printf("result -> %d", r);
-
-  free(c_program);
-  free(tokens);
-  printf("\ndone\n");
   return 0;
 }
