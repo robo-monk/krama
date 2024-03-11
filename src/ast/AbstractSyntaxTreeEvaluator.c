@@ -57,15 +57,19 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
   printf("\ncalling symbol: %s\n", sym_name);
   Statement *block_stmt = get_implementation_body(ipr, sym_name);
   printf("\ngot block_stmt %d\n", block_stmt != NULL);
+  Interpreter scope = new_interpreter();
+  scope.upper_scope = ipr;
   // declare vars
   // TODO: implement scope
   Argument *arg = block_stmt->block->arg;
   if (arg != NULL) {
     // printf("\ndeclaring argument with name: '%s'", arg->name);
-    declare_variable(ipr, arg->name, arg->type,
+    declare_variable(&scope, arg->name, arg->type,
                      evaluate_statement(ipr, impl_call_stmt->right));
   }
-  return evaluate_statement(ipr, block_stmt);
+  ReturnValue rv = evaluate_statement(&scope, block_stmt);
+  free_scope(&scope);
+  return rv;
 }
 
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {

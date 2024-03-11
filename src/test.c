@@ -60,8 +60,9 @@ int main() {
             80);
 
   // scope
-  // test_eval("@impl add25(a){a+25}; @impl add50(b){b+50}; "
-  //           ":add50(:add25(5)+:add25(25))\n",
-  //           130);
+  test_eval("@impl add25(a){a+25}; @impl add50(b){b+50}; "
+            ":add50(:add25(5)+:add25(25))\n",
+            130);
+
   return 0;
 }

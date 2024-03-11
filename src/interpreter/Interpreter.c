@@ -44,14 +44,20 @@ uint64_t runtime_sym_hash(const void *item, uint64_t seed0, uint64_t seed1) {
 Interpreter new_interpreter() {
   const Interpreter i = {.map = hashmap_new(sizeof(RuntimeSymbol), 0, 0, 0,
                                             runtime_sym_hash,
-                                            runtime_sym_compare, NULL, NULL)};
+                                            runtime_sym_compare, NULL, NULL),
+                         .upper_scope = NULL};
   return i;
 }
 
-RuntimeVariable *get_var_symbol(Interpreter *ipr, string sym_name) {
-  const RuntimeSymbol *sym =
-      hashmap_get(ipr->map, &(RuntimeSymbol){.name = sym_name});
+void free_scope(Interpreter *scope) { hashmap_free(scope->map); }
 
+RuntimeSymbol const *get_symbol(Interpreter *ipr, string sym_name) {
+  // return hashmap_get(ipr->map, &(RuntimeSymbol){.name = sym_name});
+  return hashmap_get(ipr->map, &(RuntimeSymbol){.name = sym_name});
+}
+
+RuntimeVariable *get_var_symbol(Interpreter *ipr, string sym_name) {
+  const RuntimeSymbol *sym = get_symbol(ipr, sym_name);
   if (sym == NULL)
     return NULL;
 
@@ -59,9 +65,8 @@ RuntimeVariable *get_var_symbol(Interpreter *ipr, string sym_name) {
 }
 
 RuntimeImplementation *get_impl_symbol(Interpreter *ipr, string sym_name) {
-  const RuntimeSymbol *sym =
-      hashmap_get(ipr->map, &(RuntimeSymbol){.name = sym_name});
 
+  const RuntimeSymbol *sym = get_symbol(ipr, sym_name);
   if (sym == NULL) {
     return NULL;
   }
@@ -86,14 +91,26 @@ ReturnValue declare_variable(Interpreter *ipr, string var_name,
   return write_variable(ipr, var_name, type, value);
 }
 
-ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type) {
-  const RuntimeVariable *v = get_var_symbol(ipr, var_name);
-
-  if (v == NULL) {
+const RuntimeSymbol *read_symbol(Interpreter *ipr, string sym_name) {
+  const RuntimeSymbol *sym = get_symbol(ipr, sym_name);
+  // bubble up scope
+  if (sym == NULL) {
+    if (ipr->upper_scope != NULL) {
+      printf("\nbubble up scope\n");
+      return read_symbol(ipr->upper_scope, sym_name);
+    }
     throw_runtime_error("undeclared variable!");
   }
 
-  return v->value;
+  return sym;
+};
+
+ReturnValue read_variable(Interpreter *ipr, string var_name, LiteralType type) {
+  const RuntimeSymbol *sym = read_symbol(ipr, var_name);
+  if (sym->var == NULL) {
+    throw_runtime_error("undeclared variable!");
+  }
+  return sym->var->value;
 };
 
 ReturnValue declare_implementation(Interpreter *ipr, string impl_name,
@@ -109,8 +126,8 @@ ReturnValue declare_implementation(Interpreter *ipr, string impl_name,
 }
 
 Statement *get_implementation_body(Interpreter *ipr, string impl_name) {
-  const RuntimeSymbol *sym = hashmap_get(ipr->map, new_runtime_sym(impl_name));
-  if (sym == NULL) {
+  const RuntimeSymbol *sym = read_symbol(ipr, impl_name);
+  if (sym->impl == NULL) {
     throw_runtime_error("undeclared implementation!");
   }
   return sym->impl->stmt;

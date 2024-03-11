@@ -9,6 +9,7 @@
 #include "string.h"
 
 typedef LiteralStatement ReturnValue;
+typedef struct Interpreter Interpreter;
 
 typedef struct {
   LiteralType type;
@@ -28,12 +29,14 @@ typedef struct {
   };
 } RuntimeSymbol;
 
-typedef struct {
+struct Interpreter {
   struct hashmap *map;
-} Interpreter;
+  Interpreter *upper_scope;
+};
 
 void throw_runtime_error(string msg);
 Interpreter new_interpreter();
+void free_scope(Interpreter *scope);
 
 ReturnValue declare_variable(Interpreter *ipr, string var_name,
                              LiteralType type, ReturnValue value);

@@ -210,7 +210,6 @@ Statement *parse(Parser *parser) {
 
 BlockStatement *parse_program(Token *tokens) {
   if (DEBUG) {
-
     printf("\n----\n");
   }
   Parser parser = new_parser(tokens);
