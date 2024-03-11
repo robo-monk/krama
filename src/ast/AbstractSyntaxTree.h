@@ -44,11 +44,14 @@ typedef struct {
   string name;
 } SymbolStatement;
 
+typedef SymbolStatement Argument;
+
 // typedef struct {
 //   BlockStatement *stmts;
 // } BlockStatement;
 
 struct BlockStatement {
+  Argument *arg;
   Statement **statements;
   unsigned int idx;
   unsigned int len;

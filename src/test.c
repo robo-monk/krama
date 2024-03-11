@@ -53,6 +53,15 @@ int main() {
   test_eval("@impl bing() { 5 }; :bing\n", 5);
   test_eval("@impl hello() { 1 } @impl add1() { 5-:hello }; :add1\n", 4);
   test_eval("@impl hello() { 1;2;3 } :hello\n", 3);
-  test_eval("@impl add1(a) { a + 5 }; :add1\n", 4);
+  test_eval("@impl add1(a) { a + 5 }; :add1(1)\n", 6);
+  test_eval("let xxx = 42; @impl return_self(a){ a }; :return_self(xxx)\n", 42);
+  test_eval("@impl add25(a){a+25}; @impl add50(b){b+50}; "
+            ":add50(:add25(5))\n",
+            80);
+
+  // scope
+  // test_eval("@impl add25(a){a+25}; @impl add50(b){b+50}; "
+  //           ":add50(:add25(5)+:add25(25))\n",
+  //           130);
   return 0;
 }

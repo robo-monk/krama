@@ -35,6 +35,28 @@ Parser new_parser(Token *tokens) {
   return p;
 }
 
+Statement *parse_impl_call_stmt(Parser *parser) {
+
+  Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
+                                    "expected implementation identifier");
+
+  int arg_len = 0;
+  Statement *arg_value = NULL;
+
+  // Argument arg
+  if (peek(parser).type == TOKEN_LPAR) {
+    eat(parser);
+    arg_value = parse_expression(parser);
+    // TODO: use optionaly_eat(parser, TOKEN_COMMA);
+    expect_and_eat(parser, TOKEN_RPAR,
+                   "expected r paren, multiple args not yet supported");
+    arg_len += 1;
+  }
+
+  return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value,
+                            arg_value, identifier);
+}
+
 Statement *parse_factor(Parser *parser) {
   Token current_token = eat(parser);
 
@@ -42,12 +64,7 @@ Statement *parse_factor(Parser *parser) {
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
   } else if (current_token.type == TOKEN_COLON) {
-    Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
-                                      "expected implementation identifier");
-
-    return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value, NULL,
-                              identifier);
-
+    return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == TOKEN_LPAR) {
@@ -114,8 +131,7 @@ Statement *parse_block(Parser *parser) {
       push_stmt_to_block(stmt, block_stmt);
       current_token = eat(parser);
     }
-    // expect(parser, TOKEN_RBRACKET, "Expected closing bracket");
-    // eat(parser);
+
     Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;
     return ret_stmt;
@@ -135,17 +151,27 @@ Statement *parse_statement(Parser *parser) {
     expect_and_eat(parser, TOKEN_LPAR,
                    "expected open parenthesis to define arguments");
 
+    // TODO parse multiple args
+    Token arg_identifier;
+    int arg_len = 0;
     if (peek(parser).type == TOKEN_IDENTIFIER) {
-      Token arg_identifier = eat(parser);
+      arg_identifier = eat(parser);
       printf("declaring arg with name %s", arg_identifier.value.str_value);
+      arg_len += 1;
     }
 
     expect_and_eat(parser, TOKEN_RPAR, "expected closing parenthesis");
     expect(parser, TOKEN_LBRACKET, "expected open bracket to define impl body");
 
-    Statement *impl_body = parse_statement(parser);
+    Statement *block_stmt = parse_statement(parser);
+    if (arg_len > 0) {
+      block_stmt->block->arg = malloc(sizeof(Argument));
+      block_stmt->block->arg->name = arg_identifier.value.str_value;
+      block_stmt->block->arg->type = LiteralType_i32;
+    }
+
     return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
-                              impl_body, identifier);
+                              block_stmt, identifier);
 
   } else if (current_token.type == TOKEN_LET) {
     eat(parser);
@@ -180,7 +206,7 @@ Statement *parse(Parser *parser) {
   return stmt;
 }
 
-#define DEBUG true
+#define DEBUG false
 
 BlockStatement *parse_program(Token *tokens) {
   if (DEBUG) {

@@ -2,11 +2,13 @@
 #define H_INTERPRETER
 
 #include "../ast/AbstractSyntaxTree.h"
-#include "../ast/AbstractSyntaxTreeEvaluator.h"
+// #include "../ast/AbstractSyntaxTreeEvaluator.h"
 #include "../hashmap/hashmap.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+
+typedef LiteralStatement ReturnValue;
 
 typedef struct {
   LiteralType type;

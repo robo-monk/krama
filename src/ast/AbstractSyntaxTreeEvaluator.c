@@ -1,5 +1,4 @@
 #include "AbstractSyntaxTreeEvaluator.h"
-#include "../interpreter/Interpreter.h"
 #include "AbstractSyntaxTree.h"
 
 int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
@@ -52,10 +51,28 @@ ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   return v;
 }
 
+// ReturnValue call_implementation()
+ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
+  string sym_name = impl_call_stmt->sym_decl.name;
+  printf("\ncalling symbol: %s\n", sym_name);
+  Statement *block_stmt = get_implementation_body(ipr, sym_name);
+  printf("\ngot block_stmt %d\n", block_stmt != NULL);
+  // declare vars
+  // TODO: implement scope
+  Argument *arg = block_stmt->block->arg;
+  if (arg != NULL) {
+    // printf("\ndeclaring argument with name: '%s'", arg->name);
+    declare_variable(ipr, arg->name, arg->type,
+                     evaluate_statement(ipr, impl_call_stmt->right));
+  }
+  return evaluate_statement(ipr, block_stmt);
+}
+
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
   case BLOCK:
     // TODO implement scope
+
     for (int i = 0; i < stmt->block->len - 1; i++) {
       // evaluate_statement(ipr, stmt);
       evaluate_statement(ipr, stmt->block->statements[i]);
@@ -82,11 +99,10 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
     return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
   case IMPL_CALL:
-    return evaluate_statement(
-        ipr, get_implementation_body(ipr, stmt->sym_decl.name));
+    // get_implementation_body(ipr, stmt->sym_decl.name);
+    // return evaluate_statement(ipr, );
     // const Statement **smts = malloc(1 * sizeof(Statement *));
-    // return call_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
-    //                            evaluate_statement(ipr, stmt->left));
+    return call_symbol(ipr, stmt);
   }
 
   throw_runtime_error("found unsupported token while evaluating");

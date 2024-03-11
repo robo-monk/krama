@@ -117,10 +117,14 @@ Statement *get_implementation_body(Interpreter *ipr, string impl_name) {
 }
 
 // ReturnValue call_implementation(Interpreter *ipr, string var_name,
-//                                 LiteralType type, ReturnValue arg) {
+//                                 LiteralType type, ReturnValue _) {
 
 //   const RuntimeSymbol *sym = hashmap_get(ipr->map,
 //   new_runtime_sym(var_name));
+
+//   Argument *arg = sym->impl->stmt->block->arg;
+//   declare_variable(ipr, arg->name, arg->type, evaluate_statement(ipr,
+//   sym->impl->stmt->right));
 
 //   if (sym == NULL) {
 //     throw_runtime_error("undeclared implementation!");
