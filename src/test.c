@@ -74,10 +74,21 @@ int main() {
   test_eval("if (2 < 3) { 8 } \n", 8);
   // nested if
   test_eval("let b = 5; if (2 < 3) { if (b > 0) {99}} \n", 99);
-  // test_eval("")
+  test_eval(" if (0 > 0) {99} else {5} \n", 5);
 
-  // recursion
-  // test_eval("let a = 10; fn conditional() {if{}}; fn sink(b) {
-  // :sink(b-1) }; :sink(a)\n", 0);
+  test_eval("fn factorial(a) {"
+            "if (a < 1) {"
+            "1"
+            "} else {"
+            "a*:factorial(a-1)"
+            "}"
+            "}"
+            ":factorial(10)\n",
+            3628800);
+
+  test_eval("fn fib(a) { if (a < 2) { a } else { :fib(a-1) + :fib(a-2) }}; "
+            ":fib(19)\n",
+            4181);
+
   return 0;
 }
