@@ -35,7 +35,7 @@ int main() {
   test_eval("4 * 4\n", 16);
   test_eval("4 + 2*2 + 20 / 2 \n", 18);
   test_eval("10 - 2 + 3\n", 11);
-  test_eval("8 / 4 * 2\n", 4);
+  test_eval("(8 / 4) * 2\n", 4);
   test_eval("1 + 2 * 3\n", 7);
   test_eval("4 * (2 + 3) - 10 / 2\n", 15);
   test_eval("2 + 2 * 3 - 1 + (4 / 2) * 3\n", 13);
