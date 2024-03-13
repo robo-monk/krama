@@ -266,3 +266,94 @@ a:add(a)
 }
 
 ```
+
+```rust
+shape |bb: Bitboard, piece_type: PieceType| PieceBitboard {
+    $new (piece_type: PieceType) {
+        |:Bitboard, piece_type|:PieceBitboard
+    }
+}
+
+forge |bb: PieceBitboard| {
+    get_moves() -> {
+        |bing|:match {
+            hello ->
+        }
+    }
+}
+
+```
+
+### Conditionals
+
+```
+1 -> 0          # returns 0
+true -> 1930    # returns 1930
+
+false
+  -> { 4 }
+  !> { 2 }  # evals to 2
+
+```
+
+```
+
+forge |a: i32|::factorial -> {
+  if (a == 0 || a == 1) -> a
+  a * (a-1)::factorial
+}
+
+```
+
+```
+let a = 5:f64
+a:sqrt
+
+```
+
+```css
+shape | alive: bool | Cell {
+    new() -> {
+        alive = false;
+    }
+}
+
+@shape DynArray {
+    size: i32,
+    elements
+}
+
+@forge |ary: DynArray| {
+    /* ... */
+    each(cb: Closure) {
+    }
+}
+
+@shape Grid {
+    rows: i32,
+    cols: i32,
+    cells: {
+        size: rows*cols
+    }:Grid
+}
+
+@forge |grid: Grid| {
+    get_neighbours(row:i32, col:32) {
+        grid.cells:idx(row*col)
+    }
+
+    iterate() {
+        grid.cells:each(|cell| {
+
+        })
+    }
+}
+
+let grid = {
+    rows: 0, cols: 0
+}:Grid
+
+grid:get_neigbours(5)
+
+
+```

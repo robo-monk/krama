@@ -9,6 +9,7 @@ typedef struct {
   Token *tokens;
 } Parser;
 
+Statement *parse_block(Parser *parser);
 Statement *parse_term(Parser *parser);
 Statement *parse_expression(Parser *parser);
 Statement *parse_factor(Parser *parser);

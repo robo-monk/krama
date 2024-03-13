@@ -17,7 +17,9 @@ typedef enum {
   VARIABLE_READ,
 
   IMPL_DECL,
-  IMPL_CALL
+  IMPL_CALL,
+
+  STMT_CONDITIONAL
 } StatementType;
 
 typedef enum {
@@ -58,6 +60,12 @@ struct BlockStatement {
   unsigned int max_len;
 };
 
+typedef struct {
+  Statement *condition;
+  BlockStatement *if_body;
+  BlockStatement *else_body;
+} ConditionalStatement;
+
 // todo all of them should be pointers
 struct Statement {
   union {
@@ -65,6 +73,7 @@ struct Statement {
     BinExpressionStatement bin_op;
     SymbolStatement sym_decl;
     BlockStatement *block;
+    ConditionalStatement *conditional;
   };
   StatementType type;
   Statement *left;
@@ -78,7 +87,12 @@ void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token);
+
+Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
+                                BlockStatement *else_body, Token token);
+
 Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
+
                              Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);

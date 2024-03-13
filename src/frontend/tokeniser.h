@@ -5,11 +5,16 @@
 
 typedef enum {
   __MTOKEN_OP_EQ,
+  __MTOKEN_OP_LT,
   __MTOKEN_OP_LTE,
+  __MTOKEN_OP_GT,
   __MTOKEN_OP_GTE,
   __MTOKEN_LET,
   __MTOKEN_IMPL,
   __MTOKEN_IF,
+  __MTOKEN_ELSE,
+  __MTOKEN_IDENTIFIER,
+  __MTOKEN_RETURN
 } __MulticharToken;
 
 typedef enum {
@@ -17,16 +22,19 @@ typedef enum {
   MIN = '-',
   DIV = '/',
   MUL = '*',
-  LT = '<',
-  GT = '>',
-  MODULUS = '%',
-  BIN_AND = '&',
-  BIN_OR = '|',
-  BIN_XOR = '^',
 
+  MODULUS = '%',
+  TOKEN_BITWISE_AND = '&',
+  TOKEN_BITWISE_OR = '|',
+  TOKEN_BITWISE_XOR = '^',
+
+  TOKEN_OP_LT = '<',
+  TOKEN_OP_GT = '>',
   TOKEN_OP_EQ,
   TOKEN_OP_LTE,
-  TOKEN_OP_GTE
+  TOKEN_OP_GTE,
+  TOKEN_OP_BIN_AND,
+  TOKEN_OP_BIN_OR,
 } OpType;
 
 typedef enum {
@@ -41,7 +49,9 @@ typedef enum {
   TOKEN_LBRACKET = '{',
   TOKEN_RBRACKET = '}',
   TOKEN_COLON = ':',
-  TOKEN_IF,
+  TOKEN_IF = 222,
+  TOKEN_ELSE,
+  TOKEN_RETURN,
   TOKEN_PROGRAM_END,
 } TokenType;
 
@@ -57,6 +67,10 @@ typedef struct {
 
   unsigned int start;
   unsigned int end;
+
+  int row_idx;
+  int col_idx;
+
   string raw_value;
 } Token;
 
@@ -65,6 +79,10 @@ typedef struct {
 typedef struct {
   Token current_token;
   int idx;
+
+  int row_idx;
+  int col_idx;
+
   Token *tokens;
 
   bool is_constructing_multichar_token;
@@ -75,7 +93,7 @@ typedef struct {
   unsigned int _last_char_idx_push;
 } Tokeniser;
 
-Token new_op_token(TokenType type, OpType op_type);
+Token new_op_token(OpType op_type);
 Token new_token(TokenType type);
 void tokenise_str(string filename, Token *tokens);
 void tokenise_file(const string filename, Token *tokens);

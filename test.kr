@@ -1,5 +1,5 @@
-@impl pow2(a) {
-    a*a
+if (1 < 2) {
+	10
+} else {
+    5
 }
-
-:pow2(5)

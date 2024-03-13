@@ -8,4 +8,5 @@
 typedef LiteralStatement ReturnValue;
 ReturnValue exec_program(BlockStatement *program);
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt);
+ReturnValue evaluate_block_statement(Interpreter *ipr, BlockStatement *block);
 #endif

@@ -28,6 +28,7 @@ void test_eval(string eval_str, int expected) {
 }
 
 int main() {
+  test_eval("@if(3 > 2) {5}\n", 5);
 
   // simple expressions
   test_eval("4 + 4\n", 8);
@@ -40,7 +41,7 @@ int main() {
   test_eval("2 + 2 * 3 - 1 + (4 / 2) * 3\n", 13);
 
   // varialbles
-  test_eval("let a = 5;\n", 5);
+  test_eval("let bing = 5;\n", 5);
   test_eval("let hello = 2\n", 2);
   test_eval("let a = 8-4; a\n", 4);
   test_eval("let a = 2; let b = 3; let c = 5; \n", 5);
@@ -57,6 +58,8 @@ int main() {
   test_eval("@impl hello() { 1 } @impl add1() { 5-:hello }; :add1\n", 4);
   test_eval("@impl hello() { 1;2;3 } :hello\n", 3);
   test_eval("@impl add1(a) { a + 5 }; :add1(1)\n", 6);
+  // return 0;
+
   test_eval("let xxx = 42; @impl return_self(a){ a }; :return_self(xxx)\n", 42);
   test_eval("@impl add25(a){a+25}; @impl add50(b){b+50}; "
             ":add50(:add25(5))\n",
@@ -67,5 +70,14 @@ int main() {
             ":add50(:add25(5)+:add25(25))\n",
             130);
 
+  // if
+  test_eval("@if (2 < 3) { 8 } \n", 8);
+  // nested if
+  test_eval("let b = 5; @if (2 < 3) { @if (b > 0) {99}} \n", 99);
+  // test_eval("")
+
+  // recursion
+  // test_eval("let a = 10; @impl conditional() {@if{}}; @impl sink(b) {
+  // :sink(b-1) }; :sink(a)\n", 0);
   return 0;
 }

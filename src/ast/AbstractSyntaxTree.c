@@ -112,6 +112,16 @@ void push_stmt_to_block(Statement *stmt, BlockStatement *program) {
   program->statements[program->len - 1] = stmt;
 }
 
+Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
+                                BlockStatement *else_body, Token token) {
+  Statement *s = new_stmt(STMT_CONDITIONAL, NULL, NULL, token);
+  s->conditional = malloc(sizeof(ConditionalStatement));
+  s->conditional->if_body = if_body;
+  s->conditional->else_body = else_body;
+  s->conditional->condition = condition;
+  return s;
+}
+
 #include <stdio.h>
 #include <string.h>
 
@@ -138,6 +148,14 @@ void print_indented(const char *text, int indent) {
   }
 }
 
+void dbg_stmt_with_indent(const Statement *stmt, int indent);
+
+void dbg_block_stmt_with_indent(const BlockStatement *block, int indent) {
+  for (int i = 0; i < block->len; i++) {
+    dbg_stmt_with_indent(block->statements[i], indent + 1);
+  }
+}
+
 void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   if (!stmt)
     return;
@@ -148,13 +166,13 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   switch (stmt->type) {
   case BIN_OP:
     snprintf(buffer, sizeof(buffer), "Statement Type: Binary Operation\n");
-    dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
-                            // with this approach
+    // dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
+    // with this approach
     break;
   case LITERAL:
-    printf("\n");
-    dbg_token(stmt->token);
-    printf("\n");
+    // printf("\n");
+    // dbg_token(stmt->token);
+    // printf("\n");
     snprintf(buffer, sizeof(buffer), "Statement Type: Literal with type");
     // Append specific literal type and value to buffer here
     break;
@@ -179,6 +197,17 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   case IMPL_CALL:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Implementation Call: %s\n", stmt->sym_decl.name);
+    break;
+  case BLOCK:
+    dbg_block_stmt_with_indent(stmt->block, indent + 1);
+    break;
+  case STMT_CONDITIONAL:
+    // printf("\n\n STMT Type %d", stmt->type);
+    snprintf(buffer, sizeof(buffer), "Statement Type: Conditional Stmt\n");
+    // printf("    [CONDITION]:\n");
+    dbg_stmt_with_indent(stmt->conditional->condition, indent + 1);
+    // printf("    [BODY]:\n");
+    dbg_block_stmt_with_indent(stmt->conditional->if_body, indent + 1);
     break;
   }
 

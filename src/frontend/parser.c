@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+Statement *parse_statement(Parser *parser);
+
 Token look_ahead(Parser *parser) { return parser->tokens[parser->idx + 1]; }
 
 Token peek(Parser *parser) { return parser->tokens[parser->idx]; }
@@ -15,16 +17,24 @@ void throw_parser_error(Parser *parser, string error_msg) {
   exit(1);
 }
 
+void throw_unexpected_token(Parser *parser, string error_msg) {
+  // printf("[_:%d] ", parser->idx);
+  printf("Syntax Error: %s. Got ", error_msg);
+  dbg_token(peek(parser));
+  exit(1);
+}
+
 void expect(Parser *parser, TokenType token_type, string error_msg) {
   if (peek(parser).type != token_type) {
-    throw_parser_error(parser, error_msg);
+    // throw_parser_error(parser, error_msg);
+    throw_unexpected_token(parser, error_msg);
   }
 }
 
 Token expect_and_eat(Parser *parser, TokenType token_type, string error_msg) {
   Token t = eat(parser);
   if (t.type != token_type) {
-    throw_parser_error(parser, error_msg);
+    throw_unexpected_token(parser, error_msg);
   }
   return t;
 }
@@ -57,10 +67,46 @@ Statement *parse_impl_call_stmt(Parser *parser) {
                             arg_value, identifier);
 }
 
+Statement *parse_conditional_stmt(Parser *parser) {
+  // printf("\nparsing if staament\n");
+  // conditions
+  Statement *condition = parse_expression(parser);
+  // printf("\ncondition is:\n");
+  // dbg_stmt(condition);
+
+  Statement *if_body = parse_block(parser);
+  expect_and_eat(parser, TOKEN_ELSE, "Expected ELSE statement");
+  Statement *else_body = parse_block(parser);
+
+  // printf("\nbody is:\n");
+  // dbg_stmt(if_body);
+
+  return new_conditional_stmt(condition, if_body->block, else_body->block,
+                              peek(parser));
+}
+
+void expect_one_of(Parser *parser, TokenType *types, int len) {
+  Token current_token = peek(parser);
+  for (int i = 0; i < len; i++) {
+    if (current_token.type == types[i]) {
+      return;
+    }
+  }
+
+  throw_unexpected_token(parser, "Expected one of");
+}
+
 Statement *parse_factor(Parser *parser) {
   Token current_token = eat(parser);
 
-  if (current_token.type == TOKEN_IDENTIFIER) {
+  // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
+  if (current_token.type == TOKEN_IF) {
+    printf("\n\nparsng if!\n\n");
+    Statement *stmt = parse_conditional_stmt(parser);
+    printf("\n\nparsed if!\n\n");
+    return stmt;
+  } else if (current_token.type == TOKEN_IDENTIFIER) {
+    printf("\n\n new read var %s\n\n ", current_token.value.str_value);
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
   } else if (current_token.type == TOKEN_COLON) {
@@ -68,17 +114,21 @@ Statement *parse_factor(Parser *parser) {
   } else if (current_token.type == TOKEN_NUMBER) {
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == TOKEN_LPAR) {
-    Statement *node = parse_expression(parser);
+    // Statement *node = parse_expression(parser);
+    Statement *node = parse_statement(parser);
     expect(parser, TOKEN_RPAR, "Expected closing paren");
     eat(parser);
     return node;
   }
 
-  printf("\n");
-  dbg_token(current_token);
-  printf("\n");
-  throw_parser_error(
-      parser, "Unexpected token: Expected Identifier, Number or Open Par");
+  // return NULL;
+
+  // printf("\n CURRENT TOKEN IS");
+  // dbg_token(current_token);
+  // printf("\n");
+
+  // throw_unexpected_token(
+  //     parser, "Unexpected token: Expected Identifier, Number or Open Par");
   return NULL;
 }
 
@@ -91,7 +141,7 @@ Statement *parse_term(Parser *parser) {
           current_token.value.op_type == DIV)) {
 
     eat(parser);
-    Statement *right = parse_factor(parser);
+    Statement *right = parse_term(parser);
     stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
                              current_token);
     current_token = peek(parser);
@@ -100,7 +150,7 @@ Statement *parse_term(Parser *parser) {
   return stmt;
 }
 
-Statement *parse_expression(Parser *parser) {
+Statement *parse_addition(Parser *parser) {
 
   Statement *stmt = parse_term(parser);
 
@@ -119,18 +169,53 @@ Statement *parse_expression(Parser *parser) {
   return stmt;
 }
 
+Statement *parse_expression(Parser *parser) {
+
+  Statement *stmt = parse_addition(parser);
+
+  Token current_token = peek(parser);
+
+  while (current_token.type == TOKEN_OP &&
+         (current_token.value.op_type == TOKEN_OP_EQ ||
+          current_token.value.op_type == TOKEN_OP_GT ||
+          current_token.value.op_type == TOKEN_OP_LT ||
+          current_token.value.op_type == TOKEN_OP_LTE ||
+          current_token.value.op_type == TOKEN_OP_GTE ||
+          current_token.value.op_type == TOKEN_OP_BIN_AND ||
+          current_token.value.op_type == TOKEN_OP_BIN_OR)) {
+    eat(parser);
+    Statement *right = parse_addition(parser);
+    stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
+                             current_token);
+    current_token = peek(parser);
+  }
+
+  return stmt;
+}
+
 Statement *parse_block(Parser *parser) {
   Token current_token = peek(parser);
+  printf("\n\n CURRENT_TOKEN is \n");
+  dbg_token(current_token);
 
   if (current_token.type == TOKEN_LBRACKET) {
     eat(parser);
-
     BlockStatement *block_stmt = new_block_stmt();
+
     while (current_token.type != TOKEN_RBRACKET) {
-      Statement *stmt = parse_expression(parser);
+      Statement *stmt = parse_statement(parser);
       push_stmt_to_block(stmt, block_stmt);
       current_token = eat(parser);
+
+      printf("  \n ATE ATE ATE");
+      dbg_token(current_token);
+      printf(" \n ---- \n");
     }
+
+    // current token should be TOKEN_RBRACKET
+    // eat(parser);
+    // expect_and_eat(parser, TOKEN_RBRACKET,
+    //                "Expected Block Closing Right Bracket");
 
     Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;
@@ -143,7 +228,9 @@ Statement *parse_block(Parser *parser) {
 Statement *parse_statement(Parser *parser) {
   Token current_token = peek(parser);
 
-  if (current_token.type == TOKEN_IMPL) {
+  if (current_token.type == TOKEN_LBRACKET) {
+    return parse_block(parser);
+  } else if (current_token.type == TOKEN_IMPL) {
     eat(parser);
     Token identifier =
         expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
@@ -156,7 +243,7 @@ Statement *parse_statement(Parser *parser) {
     int arg_len = 0;
     if (peek(parser).type == TOKEN_IDENTIFIER) {
       arg_identifier = eat(parser);
-      printf("declaring arg with name %s", arg_identifier.value.str_value);
+      // printf("declaring arg with name %s", arg_identifier.value.str_value);
       arg_len += 1;
     }
 
@@ -175,6 +262,9 @@ Statement *parse_statement(Parser *parser) {
 
   } else if (current_token.type == TOKEN_LET) {
     eat(parser);
+    printf("\n\n");
+    dbg_token(peek(parser));
+    printf("\n\n");
     expect(parser, TOKEN_IDENTIFIER, "expected identifier");
     Token identifier = eat(parser);
 
@@ -198,7 +288,8 @@ Statement *parse_statement(Parser *parser) {
   if (current_token.type == TOKEN_PROGRAM_END)
     return NULL;
 
-  return parse_block(parser);
+  // return parse_block(parser);
+  return parse_expression(parser);
 }
 
 Statement *parse(Parser *parser) {
@@ -206,7 +297,7 @@ Statement *parse(Parser *parser) {
   return stmt;
 }
 
-#define DEBUG false
+#define DEBUG true
 
 BlockStatement *parse_program(Token *tokens) {
   if (DEBUG) {

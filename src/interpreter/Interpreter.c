@@ -99,7 +99,9 @@ const RuntimeSymbol *read_symbol(Interpreter *ipr, string sym_name) {
       printf("\nbubble up scope\n");
       return read_symbol(ipr->upper_scope, sym_name);
     }
-    throw_runtime_error("undeclared variable!");
+
+    printf("usage of undeclared symbol '%s'!", sym_name);
+    throw_runtime_error("\n");
   }
 
   return sym;

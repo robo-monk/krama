@@ -11,6 +11,29 @@ int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
     return lhs.i32_value * rhs.i32_value;
   case DIV:
     return lhs.i32_value / rhs.i32_value;
+  case TOKEN_OP_LT:
+    printf("\n\n%d GT %d\n\n", lhs.i32_value, rhs.i32_value);
+    if (lhs.i32_value < rhs.i32_value) {
+      return 1;
+    } else {
+      return 0;
+    }
+  case TOKEN_OP_GT:
+    printf("\n\n%d GT %d\n\n", lhs.i32_value, rhs.i32_value);
+    if (lhs.i32_value > rhs.i32_value) {
+      return 1;
+    } else {
+      return 0;
+    }
+  case TOKEN_OP_EQ:
+    return lhs.i32_value == rhs.i32_value;
+  case TOKEN_OP_GTE:
+    return lhs.i32_value >= rhs.i32_value;
+  case TOKEN_OP_LTE:
+    return lhs.i32_value <= rhs.i32_value;
+  case TOKEN_OP_BIN_AND:
+  case TOKEN_OP_BIN_OR:
+    throw_runtime_error("unsupported binary operation for type");
   }
   throw_runtime_error("unsupported operation for type");
   return 0;
@@ -72,18 +95,34 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
   return rv;
 }
 
+ReturnValue evaluate_conditional_statement(Interpreter *ipr,
+                                           ConditionalStatement *conditional) {
+  ReturnValue condition = evaluate_statement(ipr, conditional->condition);
+  printf("return value is %d", condition.i32_value);
+  if (condition.i32_value == 1) {
+    printf("\ngo in conditional\n");
+    return evaluate_block_statement(ipr, conditional->if_body);
+  } else if (condition.i32_value == 0 && conditional->else_body != NULL) {
+    return evaluate_block_statement(ipr, conditional->else_body);
+    printf("\n dont go in conditional\n");
+  }
+  // throw_runtime_error("undefined behaviour %d");
+  printf("\n[WARNING] Statement evaluated to VOID\n");
+  return (ReturnValue){};
+}
+
+ReturnValue evaluate_block_statement(Interpreter *ipr, BlockStatement *block) {
+  for (int i = 0; i < block->len - 1; i++) {
+    // printf("\n\n eval stmt %d\n", i);
+    evaluate_statement(ipr, block->statements[i]);
+  }
+  return evaluate_statement(ipr, block->statements[block->len - 1]);
+}
+
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
   case BLOCK:
-    // TODO implement scope
-
-    for (int i = 0; i < stmt->block->len - 1; i++) {
-      // evaluate_statement(ipr, stmt);
-      evaluate_statement(ipr, stmt->block->statements[i]);
-    }
-    return evaluate_statement(ipr,
-                              stmt->block->statements[stmt->block->len - 1]);
-
+    return evaluate_block_statement(ipr, stmt->block);
   case LITERAL:
     return stmt->literal;
   case BIN_OP:
@@ -103,10 +142,11 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
     return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
   case IMPL_CALL:
-    // get_implementation_body(ipr, stmt->sym_decl.name);
-    // return evaluate_statement(ipr, );
-    // const Statement **smts = malloc(1 * sizeof(Statement *));
     return call_symbol(ipr, stmt);
+  case STMT_CONDITIONAL:
+    printf("\neval conditional:\n");
+    dbg_stmt(stmt);
+    return evaluate_conditional_statement(ipr, stmt->conditional);
   }
 
   throw_runtime_error("found unsupported token while evaluating");
@@ -116,7 +156,6 @@ ReturnValue exec_program(BlockStatement *program) {
   Interpreter ipr = new_interpreter();
   ReturnValue result = {};
 
-  // printf("\n--|EXEC program with len %d\n", program->len);
   for (int i = 0; i < program->len; i++) {
     result = evaluate_statement(&ipr, program->statements[i]);
   }

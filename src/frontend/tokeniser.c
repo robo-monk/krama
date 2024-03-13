@@ -4,8 +4,8 @@
 #include "stdlib.h"
 #include "string.h"
 
-Token new_op_token(TokenType type, OpType op_type) {
-  Token t = {.type = type, .value = {.op_type = op_type}};
+Token new_op_token(OpType op_type) {
+  Token t = {.type = TOKEN_OP, .value = {.op_type = op_type}};
   return t;
 }
 
@@ -37,8 +37,11 @@ void reset_tokeniser_buffer(Tokeniser *tokeniser) {
 void push_token(Token token, Tokeniser *tokeniser) {
   token.start = tokeniser->_last_char_idx_push;
   token.end = tokeniser->char_idx;
+  token.row_idx = tokeniser->row_idx;
+  token.col_idx = tokeniser->col_idx;
   tokeniser->tokens[tokeniser->idx++] = token;
   tokeniser->_last_char_idx_push = tokeniser->char_idx;
+  tokeniser->col_idx++;
 }
 
 void dbg_tokeniser_msg(string msg, Tokeniser *t) {
@@ -67,13 +70,17 @@ typedef struct {
 } TokenMap;
 
 static const TokenMap token_map[] = {
-    {"let", __MTOKEN_LET},    //
-    {"@impl", __MTOKEN_IMPL}, //
-    {"@if", __MTOKEN_IF},     //
-    {"==", __MTOKEN_OP_EQ},   //
-    {"<=", __MTOKEN_OP_LTE},  //
-    {">=", __MTOKEN_OP_GTE},  //
-    {NULL, 0}                 //
+    {"let", __MTOKEN_LET},       //
+    {"fn", __MTOKEN_IMPL},       //
+    {"if", __MTOKEN_IF},         //
+    {"else", __MTOKEN_ELSE},     //
+    {"return", __MTOKEN_RETURN}, //
+    {"==", __MTOKEN_OP_EQ},      //
+    {"<=", __MTOKEN_OP_LTE},     //
+    {"<", __MTOKEN_OP_LT},       //
+    {">=", __MTOKEN_OP_GTE},     //
+    {">", __MTOKEN_OP_GT},       //
+    {NULL, 0}                    //
 };
 
 __MulticharToken __map_string_to_multichar_token(string str) {
@@ -82,6 +89,7 @@ __MulticharToken __map_string_to_multichar_token(string str) {
       return map->token;
     }
   }
+  return __MTOKEN_IDENTIFIER;
 }
 
 void commit_buffer_as_string(Tokeniser *tokeniser) {
@@ -89,26 +97,33 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
       __map_string_to_multichar_token(tokeniser->buffer);
 
   switch (mulitchar_token) {
+  case __MTOKEN_IDENTIFIER:
+    break;
   case __MTOKEN_LET:
-    push_token(new_token(TOKEN_LET), tokeniser);
-    break;
+    return push_token(new_token(TOKEN_LET), tokeniser);
   case __MTOKEN_IMPL:
-    push_token(new_token(TOKEN_IMPL), tokeniser);
-    break;
-  default:
-    push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
-                             tokeniser->buffer_idx),
-               tokeniser);
+    return push_token(new_token(TOKEN_IMPL), tokeniser);
+  case __MTOKEN_ELSE:
+    return push_token(new_token(TOKEN_ELSE), tokeniser);
+  case __MTOKEN_RETURN:
+    return push_token(new_token(TOKEN_RETURN), tokeniser);
+  case __MTOKEN_OP_EQ:
+    return push_token(new_op_token(TOKEN_OP_EQ), tokeniser);
+  case __MTOKEN_OP_GTE:
+    return push_token(new_op_token(TOKEN_OP_GTE), tokeniser);
+  case __MTOKEN_OP_LTE:
+    return push_token(new_op_token(TOKEN_OP_LTE), tokeniser);
+  case __MTOKEN_OP_GT:
+    return push_token(new_op_token(TOKEN_OP_GT), tokeniser);
+  case __MTOKEN_OP_LT:
+    return push_token(new_op_token(TOKEN_OP_LT), tokeniser);
+  case __MTOKEN_IF:
+    return push_token(new_token(TOKEN_IF), tokeniser);
   }
-  // if (strcmp("let", tokeniser->buffer) == 0) {
-  //   push_token(new_token(TOKEN_LET), tokeniser);
-  // } else if (strcmp("@impl", tokeniser->buffer) == 0) {
-  //   push_token(new_token(TOKEN_IMPL), tokeniser);
-  // } else {
-  //   push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
-  //                            tokeniser->buffer_idx),
-  //              tokeniser);
-  // }
+
+  return push_token(
+      new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer, tokeniser->buffer_idx),
+      tokeniser);
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
@@ -141,7 +156,7 @@ void tokenise_char(char c, Tokeniser *state) {
   case '/':
   case '*':
     commit_multichar_token(state);
-    push_token(new_op_token(TOKEN_OP, c), state);
+    push_token(new_op_token(c), state);
     break;
   case '=':
     commit_multichar_token(state);
@@ -155,10 +170,16 @@ void tokenise_char(char c, Tokeniser *state) {
     commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
-    // seperators
+
+  case '\r':
+  case '\n':
+    state->row_idx += 1;
+    state->col_idx = 0;
+  case '\t':
+  case '\v':
+  case '\f':
   case ' ':
   case ';':
-  case '\n':
     // dbg_tokeniser_msg("commiting multichar", state);
     commit_multichar_token(state);
     break;
@@ -168,9 +189,13 @@ void tokenise_char(char c, Tokeniser *state) {
   }
 }
 
-Tokeniser *init_tokeniser(Token *tokens) {
+Tokeniser *new_tokeniser(Token *tokens) {
   Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
+
+  state->row_idx = 0;
+  state->col_idx = 0;
+
   state->is_constructing_multichar_token = false;
   state->char_idx = 0;
   state->_last_char_idx_push = 0;
@@ -187,7 +212,7 @@ void close_tokeniser(Tokeniser *tokeniser) {
 }
 
 void tokenise_str(string str, Token *tokens) {
-  Tokeniser *tokeniser = init_tokeniser(tokens);
+  Tokeniser *tokeniser = new_tokeniser(tokens);
   char c;
 
   while ((c = str[tokeniser->char_idx++]) != '\n') {
@@ -201,11 +226,11 @@ void tokenise_file(const string filename, Token *tokens) {
   FILE *fptr;
   fptr = fopen(filename, "r");
 
-  Tokeniser *tokeniser = init_tokeniser(tokens);
+  Tokeniser *tokeniser = new_tokeniser(tokens);
 
   char c;
   while ((c = fgetc(fptr)) != EOF) {
-    printf("\nconsum %c", c);
+    // printf("\nconsum %c", c);
     tokenise_char(c, tokeniser);
   }
   close_tokeniser(tokeniser);
@@ -214,7 +239,7 @@ void tokenise_file(const string filename, Token *tokens) {
 }
 
 void dbg_token(Token token) {
-  printf("[%d:%d] ", token.start, token.end);
+  printf("[%d:%d] ", token.row_idx + 1, token.col_idx);
   switch (token.type) {
   case TOKEN_OP:
     printf("Operand: %c", token.value.op_type);
@@ -242,6 +267,8 @@ void dbg_token(Token token) {
   case TOKEN_PROGRAM_END:
     printf("PROGRAM_END");
     break;
+  case TOKEN_IF:
+    printf("If Statement");
   }
 }
 
