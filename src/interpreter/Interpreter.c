@@ -96,7 +96,7 @@ const RuntimeSymbol *read_symbol(Interpreter *ipr, string sym_name) {
   // bubble up scope
   if (sym == NULL) {
     if (ipr->upper_scope != NULL) {
-      printf("\nbubble up scope\n");
+      // printf("\nbubble up scope\n");
       return read_symbol(ipr->upper_scope, sym_name);
     }
 

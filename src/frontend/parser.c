@@ -106,12 +106,9 @@ Statement *parse_factor(Parser *parser) {
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
   if (current_token.type == TOKEN_IF) {
-    printf("\n\nparsng if!\n\n");
     Statement *stmt = parse_conditional_stmt(parser);
-    printf("\n\nparsed if!\n\n");
     return stmt;
   } else if (current_token.type == TOKEN_IDENTIFIER) {
-    printf("\n\n new read var %s\n\n ", current_token.value.str_value);
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
   } else if (current_token.type == TOKEN_COLON) {
@@ -200,8 +197,6 @@ Statement *parse_expression(Parser *parser) {
 
 Statement *parse_block(Parser *parser) {
   Token current_token = peek(parser);
-  printf("\n\n CURRENT_TOKEN is \n");
-  dbg_token(current_token);
 
   if (current_token.type == TOKEN_LBRACKET) {
     eat(parser);
@@ -211,16 +206,7 @@ Statement *parse_block(Parser *parser) {
       Statement *stmt = parse_statement(parser);
       push_stmt_to_block(stmt, block_stmt);
       current_token = eat(parser);
-
-      printf("  \n ATE ATE ATE");
-      dbg_token(current_token);
-      printf(" \n ---- \n");
     }
-
-    // current token should be TOKEN_RBRACKET
-    // eat(parser);
-    // expect_and_eat(parser, TOKEN_RBRACKET,
-    //                "Expected Block Closing Right Bracket");
 
     Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;
@@ -302,7 +288,7 @@ Statement *parse(Parser *parser) {
   return stmt;
 }
 
-#define DEBUG true
+#define DEBUG false
 
 BlockStatement *parse_program(Token *tokens) {
   if (DEBUG) {

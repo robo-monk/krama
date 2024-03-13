@@ -1,3 +1,29 @@
+```
+shape Array {
+  length: u32
+  type: any
+  _ptr -> c:malloc(length * type:size)
+}
+
+forge |array: Array| {
+  each(cb: Closure, start=0, end=array.length) -> {
+  }
+}
+
+
+
+```
+
+## Syntax Primitives
+
+#### Closures
+
+|<Identifier>: <Type>, ...| -> { ...scoped execution }
+
+|<Identifier>: <Type>, ...| {
+<ClosureName> -> { ...scoped execution }
+}
+
 ## TODOs
 
 - [ ] rewrite hashmap myself
@@ -325,16 +351,21 @@ shape | alive: bool | Cell {
 
 @forge |ary: DynArray| {
     /* ... */
-    each(cb: Closure) {
+    each(fwd: Callback) {
+        mut i = 0
+        @while |i < arr.size| {
+            fwd(arr.elements:at(i))
+            i += 1
+        }
     }
 }
 
 @shape Grid {
     rows: i32,
     cols: i32,
-    cells: {
+    cells = {
         size: rows*cols
-    }:Grid
+    }:DynArray
 }
 
 @forge |grid: Grid| {
@@ -343,8 +374,7 @@ shape | alive: bool | Cell {
     }
 
     iterate() {
-        grid.cells:each(|cell| {
-
+        grid.cells:each(|cell|{
         })
     }
 }

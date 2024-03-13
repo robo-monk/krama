@@ -12,14 +12,12 @@ int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   case DIV:
     return lhs.i32_value / rhs.i32_value;
   case TOKEN_OP_LT:
-    printf("\n\n%d GT %d\n\n", lhs.i32_value, rhs.i32_value);
     if (lhs.i32_value < rhs.i32_value) {
       return 1;
     } else {
       return 0;
     }
   case TOKEN_OP_GT:
-    printf("\n\n%d GT %d\n\n", lhs.i32_value, rhs.i32_value);
     if (lhs.i32_value > rhs.i32_value) {
       return 1;
     } else {
@@ -77,9 +75,9 @@ ReturnValue perform_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
 // ReturnValue call_implementation()
 ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
   string sym_name = impl_call_stmt->sym_decl.name;
-  printf("\ncalling symbol: %s\n", sym_name);
+  // printf("\ncalling symbol: %s\n", sym_name);
   Statement *block_stmt = get_implementation_body(ipr, sym_name);
-  printf("\ngot block_stmt %d\n", block_stmt != NULL);
+  // printf("\ngot block_stmt %d\n", block_stmt != NULL);
   Interpreter scope = new_interpreter();
   scope.upper_scope = ipr;
   // declare vars
@@ -98,13 +96,13 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
 ReturnValue evaluate_conditional_statement(Interpreter *ipr,
                                            ConditionalStatement *conditional) {
   ReturnValue condition = evaluate_statement(ipr, conditional->condition);
-  printf("return value is %d", condition.i32_value);
+  // printf("return value is %d", condition.i32_value);
   if (condition.i32_value == 1) {
-    printf("\ngo in conditional\n");
+    // printf("\ngo in conditional\n");
     return evaluate_block_statement(ipr, conditional->if_body);
   } else if (condition.i32_value == 0 && conditional->else_body != NULL) {
     return evaluate_block_statement(ipr, conditional->else_body);
-    printf("\n dont go in conditional\n");
+    // printf("\n dont go in conditional\n");
   }
   // throw_runtime_error("undefined behaviour %d");
   printf("\n[WARNING] Statement evaluated to VOID\n");
@@ -144,8 +142,8 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   case IMPL_CALL:
     return call_symbol(ipr, stmt);
   case STMT_CONDITIONAL:
-    printf("\neval conditional:\n");
-    dbg_stmt(stmt);
+    // printf("\neval conditional:\n");
+    // dbg_stmt(stmt);
     return evaluate_conditional_statement(ipr, stmt->conditional);
   }
 

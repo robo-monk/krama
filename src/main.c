@@ -9,19 +9,9 @@
 void run_file(const char *filename) {
   Token *tokens = malloc(512 * sizeof(Token));
   tokenise_file(filename, tokens);
-  int i = 0;
-  Token t;
-  do {
-    t = tokens[i];
-    printf("\n");
-    dbg_token(t);
-    printf("\n");
-    i += 1;
-  } while (t.type != TOKEN_PROGRAM_END);
-
   BlockStatement *program = parse_program(tokens);
-  // return;
   ReturnValue ret_value = exec_program(program);
+
   printf("---\n\n");
   printf("%d", ret_value.i32_value);
 }
