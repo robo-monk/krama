@@ -75,13 +75,18 @@ Statement *parse_conditional_stmt(Parser *parser) {
   // dbg_stmt(condition);
 
   Statement *if_body = parse_block(parser);
-  expect_and_eat(parser, TOKEN_ELSE, "Expected ELSE statement");
-  Statement *else_body = parse_block(parser);
+  // expect_and_eat(parser, TOKEN_ELSE, "Expected ELSE statement");
+  BlockStatement *else_body_block = NULL;
+  if (peek(parser).type == TOKEN_ELSE) {
+    eat(parser);
+    Statement *else_body = parse_block(parser);
+    else_body_block = else_body->block;
+  }
 
   // printf("\nbody is:\n");
   // dbg_stmt(if_body);
 
-  return new_conditional_stmt(condition, if_body->block, else_body->block,
+  return new_conditional_stmt(condition, if_body->block, else_body_block,
                               peek(parser));
 }
 

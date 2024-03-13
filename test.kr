@@ -1,5 +1,9 @@
-if (1 < 2) {
-	10
-} else {
-    5
+fn factorial(a) {
+    if (a < 1) {
+        1
+    } else {
+        a*:factorial(a-1)
+    }
 }
+
+:factorial(6)
