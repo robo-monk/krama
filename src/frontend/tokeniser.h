@@ -74,6 +74,7 @@ typedef struct {
   string raw_value;
 } Token;
 
+#define TOKENISER_INITIAL_TOKEN_ARRAY_LEN 100
 #define TOKENISER_BUFFER_LEN 512
 
 typedef struct {
@@ -91,12 +92,16 @@ typedef struct {
 
   unsigned int char_idx;
   unsigned int _last_char_idx_push;
+
+  unsigned int len;
+  unsigned int max_len;
 } Tokeniser;
 
 Token new_op_token(OpType op_type);
 Token new_token(TokenType type);
-void tokenise_str(string filename, Token *tokens);
-void tokenise_file(const string filename, Token *tokens);
+Tokeniser *tokenise_str(string filename);
+void free_tokeniser(Tokeniser *t);
+Tokeniser *tokenise_file(const string filename);
 void dbg_token(Token token);
 void dbg_tokens(Token *tokens);
 

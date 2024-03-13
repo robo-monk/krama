@@ -7,11 +7,10 @@
 
 void test_eval(string eval_str, int expected) {
 
-  Token *tokens = malloc(512 * sizeof(Token));
+  // Token *tokens = malloc(512 * sizeof(Token));
 
-  tokenise_str(eval_str, tokens);
-
-  BlockStatement *program = parse_program(tokens);
+  Tokeniser *t = tokenise_str(eval_str);
+  BlockStatement *program = program_from_tokeniser(t);
   ReturnValue ret_val = exec_program(program);
 
   int result = ret_val.i32_value;
@@ -23,7 +22,7 @@ void test_eval(string eval_str, int expected) {
     printf("    ✅   | passed %s", eval_str);
   }
 
-  free(tokens);
+  free_tokeniser(t);
   free(program);
 }
 

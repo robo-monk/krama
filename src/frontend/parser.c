@@ -290,7 +290,7 @@ Statement *parse(Parser *parser) {
 
 #define DEBUG false
 
-BlockStatement *parse_program(Token *tokens) {
+BlockStatement *parse_tokens(Token *tokens) {
   if (DEBUG) {
     printf("\n----\n");
   }
@@ -311,4 +311,12 @@ BlockStatement *parse_program(Token *tokens) {
   } while (stmt != NULL);
 
   return program;
+}
+
+BlockStatement *program_from_tokeniser(Tokeniser *t) {
+  return parse_tokens(t->tokens);
+}
+
+BlockStatement *program_from_filename(const string filename) {
+  return program_from_tokeniser(tokenise_file(filename));
 }

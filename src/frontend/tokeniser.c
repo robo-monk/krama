@@ -34,11 +34,34 @@ void reset_tokeniser_buffer(Tokeniser *tokeniser) {
   tokeniser->buffer_idx = 0;
 }
 
+void _alloc_tokens_array(Tokeniser *tokeniser) {
+  if (tokeniser->len < tokeniser->max_len) {
+    return;
+  }
+
+  printf("\nALLOC MORE MEM\n");
+  tokeniser->max_len = tokeniser->max_len * 2;
+
+  Token *new_mem =
+      realloc(tokeniser->tokens, sizeof(Token) * tokeniser->max_len);
+
+  if (new_mem == NULL) {
+    printf("faield to alloc memoery");
+    // throw_tokeniser_err("failed to alloc memory");
+    return;
+  }
+
+  tokeniser->tokens = new_mem;
+}
 void push_token(Token token, Tokeniser *tokeniser) {
   token.start = tokeniser->_last_char_idx_push;
   token.end = tokeniser->char_idx;
   token.row_idx = tokeniser->row_idx;
   token.col_idx = tokeniser->col_idx;
+
+  tokeniser->len += 1;
+  _alloc_tokens_array(tokeniser);
+
   tokeniser->tokens[tokeniser->idx++] = token;
   tokeniser->_last_char_idx_push = tokeniser->char_idx;
   tokeniser->col_idx++;
@@ -54,7 +77,7 @@ void throw_tokeniser_err(string msg) {
 
 void push_to_tokeniser_buffer(char c, Tokeniser *tokeniser) {
   if (tokeniser->buffer_idx >= TOKENISER_BUFFER_LEN) {
-    throw_tokeniser_err("buffer overflow");
+    throw_tokeniser_err("Buffer overflow. Multichar token is too big!");
   }
   tokeniser->buffer[tokeniser->buffer_idx++] = c;
 }
@@ -189,7 +212,7 @@ void tokenise_char(char c, Tokeniser *state) {
   }
 }
 
-Tokeniser *new_tokeniser(Token *tokens) {
+Tokeniser *new_tokeniser() {
   Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
 
@@ -199,7 +222,11 @@ Tokeniser *new_tokeniser(Token *tokens) {
   state->is_constructing_multichar_token = false;
   state->char_idx = 0;
   state->_last_char_idx_push = 0;
-  state->tokens = tokens;
+
+  state->tokens = malloc(sizeof(Token) * TOKENISER_INITIAL_TOKEN_ARRAY_LEN);
+  state->len = 0;
+  state->max_len = TOKENISER_INITIAL_TOKEN_ARRAY_LEN;
+
   state->buffer_idx = 0;
   state->buffer = malloc(sizeof(char) * TOKENISER_BUFFER_LEN);
   return state;
@@ -208,11 +235,16 @@ Tokeniser *new_tokeniser(Token *tokens) {
 void close_tokeniser(Tokeniser *tokeniser) {
   commit_multichar_token(tokeniser);
   tokeniser->tokens[tokeniser->idx] = new_token(TOKEN_PROGRAM_END);
-  free(tokeniser);
 }
 
-void tokenise_str(string str, Token *tokens) {
-  Tokeniser *tokeniser = new_tokeniser(tokens);
+void free_tokeniser(Tokeniser *t) {
+  free(t->buffer);
+  free(t->tokens);
+  free(t);
+}
+
+Tokeniser *tokenise_str(string str) {
+  Tokeniser *tokeniser = new_tokeniser();
   char c;
 
   while ((c = str[tokeniser->char_idx++]) != '\n') {
@@ -220,13 +252,14 @@ void tokenise_str(string str, Token *tokens) {
   }
 
   close_tokeniser(tokeniser);
+  return tokeniser;
 }
 
-void tokenise_file(const string filename, Token *tokens) {
+Tokeniser *tokenise_file(const string filename) {
   FILE *fptr;
   fptr = fopen(filename, "r");
 
-  Tokeniser *tokeniser = new_tokeniser(tokens);
+  Tokeniser *tokeniser = new_tokeniser();
 
   char c;
   while ((c = fgetc(fptr)) != EOF) {
@@ -255,6 +288,12 @@ void dbg_token(Token token) {
     break;
   case TOKEN_LET:
     printf("Token: LET");
+    break;
+  case TOKEN_RETURN:
+    printf("RETURN");
+    break;
+  case TOKEN_ELSE:
+    printf("Else statement");
     break;
   case TOKEN_RBRACKET:
   case TOKEN_LBRACKET:

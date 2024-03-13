@@ -20,9 +20,7 @@ void run_file(const string filename) {
   printf("\n%s%s > krama run %s%s\n", style_bold, color_green, filename,
          color_reset);
 
-  Token *tokens = malloc(512 * sizeof(Token));
-  tokenise_file(filename, tokens);
-  BlockStatement *program = parse_program(tokens);
+  BlockStatement *program = program_from_filename(filename);
   ReturnValue ret_value = exec_program(program);
 
   // End timing
