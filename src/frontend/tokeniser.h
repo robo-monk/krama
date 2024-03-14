@@ -5,27 +5,31 @@
 
 typedef enum {
   __MTOKEN_OP_EQ,
+  __MTOKEN_OP_MIN,
   __MTOKEN_OP_LT,
   __MTOKEN_OP_LTE,
   __MTOKEN_OP_GT,
   __MTOKEN_OP_GTE,
   __MTOKEN_LET,
-  __MTOKEN_IMPL,
+  __MTOKEN_MUT,
+  __MTOKEN_DEF,
+  __MTOKEN_SHAPE,
   __MTOKEN_IF,
   __MTOKEN_ELSE,
   __MTOKEN_IDENTIFIER,
-  __MTOKEN_RETURN
+  __MTOKEN_RETURN,
+  __MTOKEN_RIGHT_ARROW
 } __MulticharToken;
 
 typedef enum {
-  ADD = '+',
-  MIN = '-',
+  TOKEN_OP_ADD = '+',
+  TOKEN_OP_MIN = '-',
   DIV = '/',
   MUL = '*',
 
   MODULUS = '%',
   TOKEN_BITWISE_AND = '&',
-  TOKEN_BITWISE_OR = '|',
+  // TOKEN_BITWISE_OR = '|',
   TOKEN_BITWISE_XOR = '^',
 
   TOKEN_OP_LT = '<',
@@ -38,20 +42,26 @@ typedef enum {
 } OpType;
 
 typedef enum {
-  TOKEN_NUMBER,
-  TOKEN_OP,
-  TOKEN_LET,
-  TOKEN_IMPL,
+  TOKEN_NUMBER, // number
+  TOKEN_OP,     // op
+  TOKEN_LET,    // let
+  TOKEN_MUT,    // mut
+  TOKEN_DEF,    // def
+  TOKEN_SHAPE,  // shape
   TOKEN_IDENTIFIER,
   TOKEN_EQ = '=',
-  TOKEN_LPAR = '(',
-  TOKEN_RPAR = ')',
-  TOKEN_LBRACKET = '{',
-  TOKEN_RBRACKET = '}',
+  TOKEN_L_PAR = '(',
+  TOKEN_R_PAR = ')',
+  TOKEN_L_BRACKET = '{',
+  TOKEN_R_BRACKET = '}',
+  TOKEN_L_SQ_BRACKET = '[',
+  TOKEN_R_SQ_BRACKET = ']',
   TOKEN_COLON = ':',
-  TOKEN_IF = 222,
-  TOKEN_ELSE,
-  TOKEN_RETURN,
+  TOKEN_PIPE = '|',
+  TOKEN_RIGHT_ARROW, // ->
+  TOKEN_IF = 222,    // if
+  TOKEN_ELSE,        // else
+  TOKEN_RETURN,      // return
   TOKEN_PROGRAM_END,
 } TokenType;
 

@@ -9,6 +9,7 @@ RuntimeSymbol *new_runtime_sym(string name) {
   sym->name = name;
   return sym;
 }
+
 RuntimeSymbol *new_runtime_impl_symbol(string name, Statement *stmt) {
   RuntimeSymbol *sym = new_runtime_sym(name);
   RuntimeImplementation *impl = malloc(sizeof(RuntimeImplementation));

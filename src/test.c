@@ -53,19 +53,19 @@ int main() {
   test_eval("let b = 99; let c = (5 + 32 + 2 + b);\n", 138);
 
   // impl stuff
-  test_eval("fn bing() { 5 }; :bing\n", 5);
-  test_eval("fn hello() { 1 } fn add1() { 5-:hello }; :add1\n", 4);
-  test_eval("fn hello() { 1;2;3 } :hello\n", 3);
-  test_eval("fn add1(a) { a + 5 }; :add1(1)\n", 6);
+  test_eval("def bing() { 5 }; :bing\n", 5);
+  test_eval("def hello() { 1 } def add1() { 5-:hello }; :add1\n", 4);
+  test_eval("def hello() { 1;2;3 } :hello\n", 3);
+  test_eval("def add1(a) { a + 5 }; :add1(1)\n", 6);
   // return 0;
 
-  test_eval("let xxx = 42; fn return_self(a){ a }; :return_self(xxx)\n", 42);
-  test_eval("fn add25(a){a+25}; fn add50(b){b+50}; "
+  test_eval("let xxx = 42; def return_self(a){ a }; :return_self(xxx)\n", 42);
+  test_eval("def add25(a){a+25}; def add50(b){b+50}; "
             ":add50(:add25(5))\n",
             80);
 
   // scope
-  test_eval("fn add25(a){a+25}; fn add50(b){b+50}; "
+  test_eval("def add25(a){a+25}; def add50(b){b+50}; "
             ":add50(:add25(5)+:add25(25))\n",
             130);
 
@@ -75,7 +75,7 @@ int main() {
   test_eval("let b = 5; if (2 < 3) { if (b > 0) {99}} \n", 99);
   test_eval(" if (0 > 0) {99} else {5} \n", 5);
 
-  test_eval("fn factorial(a) {"
+  test_eval("def factorial(a) {"
             "if (a < 1) {"
             "1"
             "} else {"
@@ -85,7 +85,7 @@ int main() {
             ":factorial(10)\n",
             3628800);
 
-  test_eval("fn fib(a) { if (a < 2) { a } else { :fib(a-1) + :fib(a-2) }}; "
+  test_eval("def fib(a) { if (a < 2) { a } else { :fib(a-1) + :fib(a-2) }}; "
             ":fib(19)\n",
             4181);
 

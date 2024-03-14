@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "tokeniser.h"
 
 Token new_op_token(OpType op_type) {
   Token t = {.type = TOKEN_OP, .value = {.op_type = op_type}};
@@ -93,17 +94,24 @@ typedef struct {
 } TokenMap;
 
 static const TokenMap token_map[] = {
-    {"let", __MTOKEN_LET},       //
-    {"fn", __MTOKEN_IMPL},       //
+    {"mut", __MTOKEN_MUT},
+    {"let", __MTOKEN_LET},     //
+    {"def", __MTOKEN_DEF},     //
+    {"shape", __MTOKEN_SHAPE}, //
+
     {"if", __MTOKEN_IF},         //
     {"else", __MTOKEN_ELSE},     //
     {"return", __MTOKEN_RETURN}, //
-    {"==", __MTOKEN_OP_EQ},      //
-    {"<=", __MTOKEN_OP_LTE},     //
-    {"<", __MTOKEN_OP_LT},       //
-    {">=", __MTOKEN_OP_GTE},     //
-    {">", __MTOKEN_OP_GT},       //
-    {NULL, 0}                    //
+
+    {"-", __MTOKEN_OP_MIN},       //
+    {"->", __MTOKEN_RIGHT_ARROW}, //
+
+    {"==", __MTOKEN_OP_EQ},  //
+    {"<=", __MTOKEN_OP_LTE}, //
+    {"<", __MTOKEN_OP_LT},   //
+    {">=", __MTOKEN_OP_GTE}, //
+    {">", __MTOKEN_OP_GT},   //
+    {NULL, 0}                //
 };
 
 __MulticharToken __map_string_to_multichar_token(string str) {
@@ -121,15 +129,25 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
 
   switch (mulitchar_token) {
   case __MTOKEN_IDENTIFIER:
-    break;
+    return push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer,
+                                    tokeniser->buffer_idx),
+                      tokeniser);
   case __MTOKEN_LET:
     return push_token(new_token(TOKEN_LET), tokeniser);
-  case __MTOKEN_IMPL:
-    return push_token(new_token(TOKEN_IMPL), tokeniser);
+  case __MTOKEN_DEF:
+    return push_token(new_token(TOKEN_DEF), tokeniser);
+  case __MTOKEN_SHAPE:
+    return push_token(new_token(TOKEN_SHAPE), tokeniser);
+  case __MTOKEN_MUT:
+    return push_token(new_token(TOKEN_MUT), tokeniser);
   case __MTOKEN_ELSE:
     return push_token(new_token(TOKEN_ELSE), tokeniser);
   case __MTOKEN_RETURN:
     return push_token(new_token(TOKEN_RETURN), tokeniser);
+  case __MTOKEN_RIGHT_ARROW:
+    return push_token(new_token(TOKEN_RIGHT_ARROW), tokeniser);
+  case __MTOKEN_OP_MIN:
+    return push_token(new_op_token(TOKEN_OP_MIN), tokeniser);
   case __MTOKEN_OP_EQ:
     return push_token(new_op_token(TOKEN_OP_EQ), tokeniser);
   case __MTOKEN_OP_GTE:
@@ -144,9 +162,7 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
     return push_token(new_token(TOKEN_IF), tokeniser);
   }
 
-  return push_token(
-      new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer, tokeniser->buffer_idx),
-      tokeniser);
+  throw_tokeniser_err("unreachable?");
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
@@ -187,9 +203,12 @@ void tokenise_char(char c, Tokeniser *state) {
     break;
   case '(':
   case ')':
+  case '[':
+  case ']':
   case '{':
   case '}':
   case ':':
+  case '|':
     commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
@@ -272,7 +291,7 @@ Tokeniser *tokenise_file(const string filename) {
 }
 
 void dbg_token(Token token) {
-  printf("[%d:%d] ", token.row_idx + 1, token.col_idx);
+  printf("[%d:%d] ", token.row_idx + 1, token.col_idx + 1);
   switch (token.type) {
   case TOKEN_OP:
     printf("Operand: %c", token.value.op_type);
@@ -283,11 +302,17 @@ void dbg_token(Token token) {
   case TOKEN_IDENTIFIER:
     printf("Identifier: %s", token.value.str_value);
     break;
-  case TOKEN_IMPL:
+  case TOKEN_DEF:
     printf("Implementation");
     break;
   case TOKEN_LET:
     printf("Token: LET");
+    break;
+  case TOKEN_MUT:
+    printf("Token: MUT");
+    break;
+  case TOKEN_SHAPE:
+    printf("Token: SHAPE");
     break;
   case TOKEN_RETURN:
     printf("RETURN");
@@ -295,12 +320,15 @@ void dbg_token(Token token) {
   case TOKEN_ELSE:
     printf("Else statement");
     break;
-  case TOKEN_RBRACKET:
-  case TOKEN_LBRACKET:
-  case TOKEN_LPAR:
-  case TOKEN_RPAR:
+  case TOKEN_R_BRACKET:
+  case TOKEN_L_BRACKET:
+  case TOKEN_L_PAR:
+  case TOKEN_R_PAR:
+  case TOKEN_L_SQ_BRACKET:
+  case TOKEN_R_SQ_BRACKET:
   case TOKEN_EQ:
   case TOKEN_COLON:
+  case TOKEN_PIPE:
     printf("Token: '%c'", token.type);
     break;
   case TOKEN_PROGRAM_END:

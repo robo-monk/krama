@@ -3,9 +3,9 @@
 
 int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   switch (op) {
-  case ADD:
+  case TOKEN_OP_ADD:
     return lhs.i32_value + rhs.i32_value;
-  case MIN:
+  case TOKEN_OP_MIN:
     return lhs.i32_value - rhs.i32_value;
   case MUL:
     return lhs.i32_value * rhs.i32_value;
@@ -39,9 +39,9 @@ int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
 
 double perform_f64_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   switch (op) {
-  case ADD:
+  case TOKEN_OP_ADD:
     return lhs.f64_value + rhs.f64_value;
-  case MIN:
+  case TOKEN_OP_MIN:
     return lhs.f64_value - rhs.f64_value;
   case MUL:
     return lhs.f64_value * rhs.f64_value;

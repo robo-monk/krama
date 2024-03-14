@@ -54,11 +54,11 @@ Statement *parse_impl_call_stmt(Parser *parser) {
   Statement *arg_value = NULL;
 
   // Argument arg
-  if (peek(parser).type == TOKEN_LPAR) {
+  if (peek(parser).type == TOKEN_L_PAR) {
     eat(parser);
     arg_value = parse_expression(parser);
     // TODO: use optionaly_eat(parser, TOKEN_COMMA);
-    expect_and_eat(parser, TOKEN_RPAR,
+    expect_and_eat(parser, TOKEN_R_PAR,
                    "expected r paren, multiple args not yet supported");
     arg_len += 1;
   }
@@ -115,10 +115,10 @@ Statement *parse_factor(Parser *parser) {
     return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
-  } else if (current_token.type == TOKEN_LPAR) {
+  } else if (current_token.type == TOKEN_L_PAR) {
     // Statement *node = parse_expression(parser);
     Statement *node = parse_statement(parser);
-    expect(parser, TOKEN_RPAR, "Expected closing paren");
+    expect(parser, TOKEN_R_PAR, "Expected closing paren");
     eat(parser);
     return node;
   }
@@ -159,8 +159,8 @@ Statement *parse_addition(Parser *parser) {
   Token current_token = peek(parser);
 
   while (current_token.type == TOKEN_OP &&
-         (current_token.value.op_type == ADD ||
-          current_token.value.op_type == MIN)) {
+         (current_token.value.op_type == TOKEN_OP_ADD ||
+          current_token.value.op_type == TOKEN_OP_MIN)) {
     eat(parser);
     Statement *right = parse_term(parser);
     stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
@@ -198,11 +198,11 @@ Statement *parse_expression(Parser *parser) {
 Statement *parse_block(Parser *parser) {
   Token current_token = peek(parser);
 
-  if (current_token.type == TOKEN_LBRACKET) {
+  if (current_token.type == TOKEN_L_BRACKET) {
     eat(parser);
     BlockStatement *block_stmt = new_block_stmt();
 
-    while (current_token.type != TOKEN_RBRACKET) {
+    while (current_token.type != TOKEN_R_BRACKET) {
       Statement *stmt = parse_statement(parser);
       push_stmt_to_block(stmt, block_stmt);
       current_token = eat(parser);
@@ -216,61 +216,69 @@ Statement *parse_block(Parser *parser) {
   return parse_expression(parser);
 }
 
+Statement *parse_def(Parser *parser) {
+  expect_and_eat(parser, TOKEN_DEF,
+                 "parse_def expected current token to be DEF");
+
+  Token identifier =
+      expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
+
+  expect_and_eat(parser, TOKEN_L_PAR,
+                 "expected open parenthesis to define arguments");
+
+  // TODO parse multiple args
+  Token arg_identifier;
+  int arg_len = 0;
+  if (peek(parser).type == TOKEN_IDENTIFIER) {
+    arg_identifier = eat(parser);
+    // printf("declaring arg with name %s", arg_identifier.value.str_value);
+    arg_len += 1;
+  }
+
+  expect_and_eat(parser, TOKEN_R_PAR, "expected closing parenthesis");
+  expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
+
+  Statement *block_stmt = parse_statement(parser);
+  if (arg_len > 0) {
+    block_stmt->block->arg = malloc(sizeof(Argument));
+    block_stmt->block->arg->name = arg_identifier.value.str_value;
+    block_stmt->block->arg->type = LiteralType_i32;
+  }
+
+  return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
+                            block_stmt, identifier);
+}
+
+Statement *parse_let(Parser *parser) {
+  expect_and_eat(parser, TOKEN_LET,
+                 "parse_def expected current token to be LET");
+  expect(parser, TOKEN_IDENTIFIER, "expected identifier");
+  Token identifier = eat(parser);
+
+  // dbg_token(identifier);
+  expect(parser, TOKEN_EQ, "expected assigment");
+  eat(parser);
+
+  Statement *decl =
+      new_var_decl_stmt(LiteralType_i32, identifier.value.str_value,
+                        parse_expression(parser), identifier);
+  return decl;
+}
+
 Statement *parse_statement(Parser *parser) {
   Token current_token = peek(parser);
 
-  if (current_token.type == TOKEN_LBRACKET) {
+  if (current_token.type == TOKEN_L_BRACKET) {
     return parse_block(parser);
-  } else if (current_token.type == TOKEN_IMPL) {
-    eat(parser);
-    Token identifier =
-        expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
-
-    expect_and_eat(parser, TOKEN_LPAR,
-                   "expected open parenthesis to define arguments");
-
-    // TODO parse multiple args
-    Token arg_identifier;
-    int arg_len = 0;
-    if (peek(parser).type == TOKEN_IDENTIFIER) {
-      arg_identifier = eat(parser);
-      // printf("declaring arg with name %s", arg_identifier.value.str_value);
-      arg_len += 1;
-    }
-
-    expect_and_eat(parser, TOKEN_RPAR, "expected closing parenthesis");
-    expect(parser, TOKEN_LBRACKET, "expected open bracket to define impl body");
-
-    Statement *block_stmt = parse_statement(parser);
-    if (arg_len > 0) {
-      block_stmt->block->arg = malloc(sizeof(Argument));
-      block_stmt->block->arg->name = arg_identifier.value.str_value;
-      block_stmt->block->arg->type = LiteralType_i32;
-    }
-
-    return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
-                              block_stmt, identifier);
-
+  } else if (current_token.type == TOKEN_DEF) {
+    return parse_def(parser);
   } else if (current_token.type == TOKEN_LET) {
-    eat(parser);
-    printf("\n\n");
-    dbg_token(peek(parser));
-    printf("\n\n");
-    expect(parser, TOKEN_IDENTIFIER, "expected identifier");
-    Token identifier = eat(parser);
-
-    // dbg_token(identifier);
-    expect(parser, TOKEN_EQ, "expected assigment");
-    eat(parser);
-
-    Statement *decl =
-        new_var_decl_stmt(LiteralType_i32, identifier.value.str_value,
-                          parse_expression(parser), identifier);
-    return decl;
+    return parse_let(parser);
   } else if (current_token.type == TOKEN_IDENTIFIER) {
     if (look_ahead(parser).type == TOKEN_EQ) {
       Token identifier = eat(parser);
-      eat(parser);
+      expect_and_eat(parser, TOKEN_EQ,
+                     "expected equal sign to assing value to variable");
       return new_var_write_stmt(LiteralType_i32, identifier.value.str_value,
                                 parse_expression(parser), identifier);
     }
