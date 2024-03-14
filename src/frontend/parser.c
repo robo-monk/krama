@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "LiteralType.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -224,40 +225,6 @@ Statement *parse_block(Parser *parser) {
   return parse_expression(parser);
 }
 
-typedef struct {
-  const string str;
-  LiteralType type;
-} TypeMap;
-
-static const TypeMap type_map[] = {
-    {"i32", LiteralType_i32},
-    {"f64", LiteralType_f64},   //
-    {"char", LiteralType_char}, //
-    {"bool", LiteralType_bool}, //
-    {NULL, 0}                   //
-};
-
-LiteralType __map_string_to_literal_type(Parser *parser, string str) {
-  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
-    if (strcmp(map->str, str) == 0) {
-      return map->type;
-    }
-  }
-  printf("\n Unrecognised type: %s \n", str);
-  throw_parser_error(parser, "unrecognised type");
-  return NULL;
-}
-
-const string __map_literal_type_to_string(Parser *parser, LiteralType type) {
-  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
-    if (type == map->type) {
-      return map->str;
-    }
-  }
-  throw_parser_error(parser, "unrecognised type");
-  return NULL;
-}
-
 SymbolStatement *parse_symbol_statement(Parser *parser) {
   Token symbol_identifier =
       expect_and_eat(parser, TOKEN_IDENTIFIER,
@@ -270,8 +237,9 @@ SymbolStatement *parse_symbol_statement(Parser *parser) {
       expect_and_eat(parser, TOKEN_IDENTIFIER, "expected type identifier");
 
   sym_stmt->name = symbol_identifier.value.str_value;
-  sym_stmt->type =
-      __map_string_to_literal_type(parser, type_identifier.value.str_value);
+  sym_stmt->type = str_to_literal_type(type_identifier.value.str_value);
+  if (sym_stmt == NULL)
+    throw_parser_error(parser, "unrecognised literal type");
   return sym_stmt;
 }
 
@@ -296,8 +264,7 @@ Statement *parse_def(Parser *parser) {
     // throw_parser_error(parser, "not implemented");
     SymbolStatement *sym_stmt = parse_symbol_statement(parser);
     printf("\n DEFINE for type %s (defed as: %s) \n",
-           __map_literal_type_to_string(parser, sym_stmt->type),
-           sym_stmt->name);
+           literal_type_to_str(sym_stmt->type), sym_stmt->name);
   }
 
   Token identifier =

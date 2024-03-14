@@ -8,5 +8,6 @@ typedef struct {
   Vec implementations;
 } CCompiler;
 
+string com_statement(CCompiler *com, Statement *stmt);
 void compile_program(BlockStatement *program, string filename);
 #endif

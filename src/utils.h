@@ -13,12 +13,21 @@ typedef struct {
   size_t el_size;
 } Vec;
 
+typedef Vec StrVec;
+string str_vec_at(StrVec *vec, int idx);
+void str_vector_push(Vec *vec, string el);
+string str_vector_join(Vec *vec);
+
 bool is_digit(char c);
 
 int str2int(string str, int len);
 int parse_digit(char c);
 
 Vec new_vec(size_t capacity, size_t el_size);
+StrVec new_str_vec(size_t el_size);
+
 void vector_push(Vec *vec, void *el);
 void *vector_at(Vec *vec, int idx);
+Vec *vector_merge(Vec *a, Vec *b);
+char *concat(int count, ...);
 #endif
