@@ -30,10 +30,11 @@ Vec new_vec(size_t capacity, size_t el_size) {
 }
 
 void vector_push(Vec *vec, void *el) {
-  if (vec->size + 1 > vec->capacity) {
+  if (vec->size >= vec->capacity) {
     vec->capacity *= 2;
     vec->ptr = realloc(vec->ptr, vec->capacity * vec->el_size);
   }
+  printf("\n--pushing %s\n", el);
   vec->ptr[vec->size++] = el;
 }
 
@@ -45,34 +46,23 @@ void *vector_at(Vec *vec, int idx) {
   return vec->ptr[idx];
 }
 
-Vec *vector_merge(Vec *a, Vec *b) {
-  if (a->el_size != b->el_size) {
-    printf("cannot merge vectors with different el sizes!");
-    exit(1);
-  }
-
-  Vec *larger_vec = b;
-  Vec *other_vec = a;
-  if (a->capacity > b->capacity) {
-    larger_vec = a;
-    other_vec = b;
-  }
-
-  // iterate over a and push every element to b
-  for (int i = 0; i < other_vec->size; i++) {
-    vector_push(larger_vec, vector_at(other_vec, i));
-  }
-
-  free(other_vec);
-  return larger_vec;
-}
-
 string str_vec_at(StrVec *vec, int idx) { return vector_at(vec, idx); }
 void str_vector_push(Vec *vec, string el) { vector_push(vec, el); }
-string str_vector_join(Vec *vec) {
-  string accum;
+char *str_vector_join(StrVec *vec) {
+  if (vec->size == 0) {
+    return strdup(""); // or calloc(1, sizeof(char)) for an empty string
+  }
+
+  // Initially allocate accum with enough space for a reasonable guess at the
+  // final size This might need to be adjusted based on the expected average
+  // string length
+  char *accum = calloc(1, sizeof(char)); // Start with an empty string
   for (int i = 0; i < vec->size; i++) {
-    accum = concat(2, accum, vec[i]);
+    char *element =
+        str_vec_at(vec, i); // Correctly retrieve the string using vector_at
+    char *newAccum = concat(2, accum, element);
+    // free(accum); // Free the old accum to prevent memory leaks
+    accum = newAccum;
   }
   return accum;
 }

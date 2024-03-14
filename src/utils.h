@@ -28,6 +28,5 @@ StrVec new_str_vec(size_t el_size);
 
 void vector_push(Vec *vec, void *el);
 void *vector_at(Vec *vec, int idx);
-Vec *vector_merge(Vec *a, Vec *b);
 char *concat(int count, ...);
 #endif

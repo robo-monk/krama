@@ -2,17 +2,26 @@
 #include "../frontend/LiteralType.h"
 #include "stdio.h"
 #include "stdlib.h"
+#define i32 int
 
 CCompiler new_ccompiler() {
-  return (CCompiler){.headers = new_vec(1024, sizeof(string)),
-                     .implementations = new_vec(1024, sizeof(string))};
+  CCompiler com = {.headers = new_vec(1024, sizeof(string)),
+                   .implementations = new_vec(1024, sizeof(string))};
+
+  str_vector_push(&com.headers, "#define i32 int\n"
+                                "#define i64 long\n"
+                                "#define u32 unsigned int\n"
+                                "#define u64 unsigned long\n"
+                                "#define f32 float\n"
+                                "#define f64 double\n");
+  return com;
 }
 
 void push_implementation(CCompiler *com, string impl_str) {
-  vector_push(&com->implementations, impl_str);
+  str_vector_push(&com->implementations, impl_str);
 }
 void push_header(CCompiler *com, string head_str) {
-  vector_push(&com->implementations, head_str);
+  str_vector_push(&com->implementations, head_str);
 }
 
 void throw_compilation_error(string error) {
@@ -24,8 +33,8 @@ void throw_compilation_error(string error) {
 string com_block_statement(CCompiler *com, BlockStatement *stmt) {
   StrVec statements = new_str_vec(512);
   for (int i = 0; i < stmt->len; i++) {
-    string comstmt = com_statement(com, stmt->statements[i]);
-    str_vector_push(&statements, comstmt);
+    printf("\n COM BLOCK ");
+    str_vector_push(&statements, com_statement(com, stmt->statements[i]));
   }
   string a = str_vector_join(&statements);
   printf("\n\nvector join is %s\n\n", a);
@@ -91,6 +100,7 @@ void write_ccompiler_state_to_file(CCompiler *com, string filename) {
 
   fprintf(file, "\n\n // implementations \n");
   for (int i = 0; i < com->implementations.size; i++) {
+    printf("\n\n %d*** %s\n", i, (string)vector_at(&com->implementations, i));
     fprintf(file, "%s\n", (string)vector_at(&com->implementations, i));
   }
   // Write the text to the file, followed by a newline character
