@@ -19,3 +19,26 @@ int str2int(string str, int len) {
   }
   return n;
 }
+
+Vec new_vec(size_t capacity, size_t el_size) {
+  return (Vec){.capacity = capacity,
+               .ptr = calloc(capacity, el_size),
+               .size = 0,
+               .el_size = el_size};
+}
+
+void vector_push(Vec *vec, void *el) {
+  if (vec->size + 1 > vec->capacity) {
+    vec->capacity *= 2;
+    vec->ptr = realloc(vec->ptr, vec->capacity * vec->el_size);
+  }
+  vec->ptr[vec->size++] = el;
+}
+
+void *vector_at(Vec *vec, int idx) {
+  if (idx >= vec->size) {
+    printf("\nidx bigger that vec size.\n");
+    exit(1);
+  }
+  return vec->ptr[idx];
+}

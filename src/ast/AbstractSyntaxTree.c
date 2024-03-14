@@ -22,30 +22,30 @@ Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
 
 Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
                               Token token) {
-  Statement *s = new_sym_decl_stmt(IMPL_DECL, LiteralType_i32,
+  Statement *s = new_sym_decl_stmt(STMT_DEF_DECL, LiteralType_i32,
                                    token.value.str_value, expr, token);
   return s;
 }
 
 Statement *new_impl_call_stmt(LiteralType type, string name,
                               BlockStatement *args, Token token) {
-  Statement *arg_stmt = new_stmt(BLOCK, NULL, NULL, token);
+  Statement *arg_stmt = new_stmt(STMT_BLOCK, NULL, NULL, token);
   arg_stmt->block = args;
-  Statement *s = new_sym_decl_stmt(IMPL_CALL, LiteralType_i32,
+  Statement *s = new_sym_decl_stmt(STMT_DEF_INVOKE, LiteralType_i32,
                                    token.value.str_value, arg_stmt, token);
   return s;
 }
 
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
                              Token token) {
-  Statement *s = new_stmt(VARIABLE_DECL, NULL, expr, token);
+  Statement *s = new_stmt(STMT_VARIABLE_DECL, NULL, expr, token);
   s->sym_decl.name = name;
   s->sym_decl.type = type;
   return s;
 }
 
 Statement *new_var_read_stmt(LiteralType type, string name, Token token) {
-  Statement *s = new_stmt(VARIABLE_READ, NULL, NULL, token);
+  Statement *s = new_stmt(STMT_VARIABLE_READ, NULL, NULL, token);
   s->sym_decl.name = name;
   s->sym_decl.type = type;
   return s;
@@ -54,7 +54,7 @@ Statement *new_var_read_stmt(LiteralType type, string name, Token token) {
 Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
                               Token token) {
 
-  Statement *s = new_stmt(VARIABLE_WRITE, NULL, expr, token);
+  Statement *s = new_stmt(STMT_VARIABLE_WRITE, NULL, expr, token);
   s->sym_decl.name = name;
   s->sym_decl.type = type;
   return s;
@@ -62,20 +62,20 @@ Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
 
 Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
                              Token token) {
-  Statement *s = new_stmt(BIN_OP, left, right, token);
+  Statement *s = new_stmt(STMT_BINARY_OP, left, right, token);
   s->bin_op.op = op;
   return s;
 }
 
 Statement *new_i32_literal_stmt(int value, Token token) {
-  Statement *s = new_stmt(LITERAL, NULL, NULL, token);
+  Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
   s->literal.type = LiteralType_i32;
   s->literal.i32_value = value;
   return s;
 }
 
 Statement *new_f64_literal_stmt(double value, Token token) {
-  Statement *s = new_stmt(LITERAL, NULL, NULL, token);
+  Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
   s->literal.type = LiteralType_f64;
   s->literal.f64_value = value;
   return s;
@@ -166,12 +166,12 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
                      // output length
 
   switch (stmt->type) {
-  case BIN_OP:
+  case STMT_BINARY_OP:
     snprintf(buffer, sizeof(buffer), "Statement Type: Binary Operation\n");
     // dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
     // with this approach
     break;
-  case LITERAL:
+  case STMT_LITERAL:
     // printf("\n");
     // dbg_token(stmt->token);
     // printf("\n");
@@ -180,29 +180,29 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
              stmt->token.value.i32_value);
     // Append specific literal type and value to buffer here
     break;
-  case VARIABLE_DECL:
+  case STMT_VARIABLE_DECL:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Variable Declaration: Type , Name: %s\n",
              stmt->sym_decl.name);
     break;
-  case VARIABLE_WRITE:
+  case STMT_VARIABLE_WRITE:
     snprintf(buffer, sizeof(buffer), "Statement Type: Variable Write: %s\n",
              stmt->sym_decl.name);
     break;
-  case VARIABLE_READ:
+  case STMT_VARIABLE_READ:
     snprintf(buffer, sizeof(buffer), "Statement Type: Variable Read: %s\n",
              stmt->sym_decl.name);
 
     break;
-  case IMPL_DECL:
+  case STMT_DEF_DECL:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Implementation Decl: %s\n", stmt->sym_decl.name);
     break;
-  case IMPL_CALL:
+  case STMT_DEF_INVOKE:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Implementation Call: %s\n", stmt->sym_decl.name);
     break;
-  case BLOCK:
+  case STMT_BLOCK:
     dbg_block_stmt_with_indent(stmt->block, indent + 1);
     break;
   case STMT_CONDITIONAL:

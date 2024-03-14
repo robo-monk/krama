@@ -1,0 +1,5 @@
+def hello(a: i32) {
+	a
+}
+
+:hello(20)

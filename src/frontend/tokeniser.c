@@ -1,4 +1,4 @@
-#include "Tokeniser.h"
+#include "tokeniser.h"
 #include "../utils.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -289,6 +289,7 @@ Tokeniser *tokenise_file(const string filename) {
   close_tokeniser(tokeniser);
 
   fclose(fptr);
+  return tokeniser;
 }
 
 void dbg_token(Token token) {

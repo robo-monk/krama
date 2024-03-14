@@ -1,23 +1,23 @@
 #ifndef H_AST
 #define H_AST
 
-#include "../frontend/Tokeniser.h"
+#include "../frontend/tokeniser.h"
 #include "../utils.h"
 
 typedef struct BlockStatement BlockStatement;
 typedef struct Statement Statement;
 
 typedef enum {
-  BLOCK,
-  BIN_OP,
-  LITERAL,
+  STMT_BLOCK,
+  STMT_BINARY_OP,
+  STMT_LITERAL,
 
-  VARIABLE_DECL,
-  VARIABLE_WRITE,
-  VARIABLE_READ,
+  STMT_VARIABLE_DECL,
+  STMT_VARIABLE_WRITE,
+  STMT_VARIABLE_READ,
 
-  IMPL_DECL,
-  IMPL_CALL,
+  STMT_DEF_DECL,
+  STMT_DEF_INVOKE,
 
   STMT_CONDITIONAL
 } StatementType;

@@ -86,7 +86,7 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
   }
 
   Statement *args_statement = impl_call_stmt->right;
-  if (args_statement->type != BLOCK) {
+  if (args_statement->type != STMT_BLOCK) {
     throw_runtime_error("expected block statement that defines arguments");
   }
 
@@ -129,27 +129,27 @@ ReturnValue evaluate_block_statement(Interpreter *ipr, BlockStatement *block) {
 
 ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   switch (stmt->type) {
-  case BLOCK:
+  case STMT_BLOCK:
     return evaluate_block_statement(ipr, stmt->block);
-  case LITERAL:
+  case STMT_LITERAL:
     return stmt->literal;
-  case BIN_OP:
+  case STMT_BINARY_OP:
     return perform_bin_op(evaluate_statement(ipr, stmt->left),
                           evaluate_statement(ipr, stmt->right),
                           stmt->token.value.op_type);
-  case VARIABLE_DECL:
+  case STMT_VARIABLE_DECL:
     return declare_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                             evaluate_statement(ipr, stmt->right));
 
-  case VARIABLE_READ:
+  case STMT_VARIABLE_READ:
     return read_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type);
-  case VARIABLE_WRITE:
+  case STMT_VARIABLE_WRITE:
     return write_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                           evaluate_statement(ipr, stmt->right));
-  case IMPL_DECL:
+  case STMT_DEF_DECL:
     return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
-  case IMPL_CALL:
+  case STMT_DEF_INVOKE:
     return call_symbol(ipr, stmt);
   case STMT_CONDITIONAL:
     // printf("\neval conditional:\n");

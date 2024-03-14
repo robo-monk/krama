@@ -1,11 +1,38 @@
 #include "ast/AbstractSyntaxTree.h"
 #include "ast/AbstractSyntaxTreeEvaluator.h"
-#include "frontend/Parser.h"
-#include "frontend/Tokeniser.h"
+#include "compiler/compiler.h"
+#include "frontend/parser.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+void compile_file(const string filename) {
+  // Start timing
+  clock_t start_time = clock();
+
+  // ANSI escape codes for colors and styles
+  const char *color_green = "\033[32m";
+  const char *color_yellow = "\033[33m";
+  const char *color_reset = "\033[0m";
+  const char *style_bold = "\033[1m";
+
+  printf("\n%s%s > krama compile %s%s\n", style_bold, color_green, filename,
+         color_reset);
+
+  BlockStatement *program = program_from_filename(filename);
+  printf("\ncompiling...\n");
+  // ReturnValue ret_value = exec_program(program);
+  compile_program(program, "out.c");
+
+  // End timing
+  clock_t end_time = clock();
+  double time_spent = (double)(end_time - start_time) / CLOCKS_PER_SEC *
+                      1000; // Convert to milliseconds
+
+  // Display result and execution time
+  printf("%s---%s\n\n", color_yellow, color_reset);
+  printf("%s > Done in %.4fms%s\n", color_green, time_spent, color_reset);
+}
 // Assuming these functions are defined elsewhere in your program
 void run_file(const string filename) {
   // Start timing
@@ -20,6 +47,7 @@ void run_file(const string filename) {
   printf("\n%s%s > krama run %s%s\n", style_bold, color_green, filename,
          color_reset);
 
+  printf("");
   BlockStatement *program = program_from_filename(filename);
   ReturnValue ret_value = exec_program(program);
 
@@ -38,9 +66,9 @@ int main(int argc, char *argv[]) {
   // Check if the only argument is "--help" or no arguments are passed
   if (argc == 1 || (argc == 2 && strcmp(argv[1], "--help") == 0)) {
     printf("usage:\n"
-           "    krama run ./x.kr                 --execute a file\n"
-           "    krama run \"inline code\"        --execute an inline string\n"
-           "    krama --help                     --show this\n");
+           "    krama run ./x.kr                        --execute a file\n"
+           "    krama compile ./x.kr                    --execute a file\n"
+           "    krama --help                            --show this\n");
     return 0;
   }
 
@@ -55,6 +83,8 @@ int main(int argc, char *argv[]) {
     } else {
       run_file(argv[2]);
     }
+  } else if (argc == 3 && strcmp(argv[1], "compile") == 0) {
+    compile_file(argv[2]);
   } else {
     printf("Invalid usage. Use 'krama --help' for more information.\n");
   }

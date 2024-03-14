@@ -1,8 +1,8 @@
-#include "Parser.h"
-#include "Tokeniser.h"
+#include "parser.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "tokeniser.h"
 
 Statement *parse_statement(Parser *parser);
 
@@ -216,7 +216,7 @@ Statement *parse_block(Parser *parser) {
       current_token = eat(parser);
     }
 
-    Statement *ret_stmt = new_stmt(BLOCK, NULL, NULL, peek(parser));
+    Statement *ret_stmt = new_stmt(STMT_BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;
     return ret_stmt;
   }
@@ -244,6 +244,16 @@ LiteralType __map_string_to_literal_type(Parser *parser, string str) {
     }
   }
   printf("\n Unrecognised type: %s \n", str);
+  throw_parser_error(parser, "unrecognised type");
+  return NULL;
+}
+
+const string __map_literal_type_to_string(Parser *parser, LiteralType type) {
+  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
+    if (type == map->type) {
+      return map->str;
+    }
+  }
   throw_parser_error(parser, "unrecognised type");
   return NULL;
 }
@@ -282,7 +292,12 @@ Statement *parse_def(Parser *parser) {
                  "parse_def expected current token to be DEF");
 
   if (peek(parser).type == TOKEN_PIPE) {
-    throw_parser_error(parser, "not implemented");
+    eat(parser);
+    // throw_parser_error(parser, "not implemented");
+    SymbolStatement *sym_stmt = parse_symbol_statement(parser);
+    printf("\n DEFINE for type %s (defed as: %s) \n",
+           __map_literal_type_to_string(parser, sym_stmt->type),
+           sym_stmt->name);
   }
 
   Token identifier =

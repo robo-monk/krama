@@ -1,6 +1,6 @@
 #include "ast/AbstractSyntaxTreeEvaluator.h"
-#include "frontend/Parser.h"
-#include "frontend/Tokeniser.h"
+#include "frontend/parser.h"
+#include "frontend/tokeniser.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "utils.h"
@@ -101,5 +101,8 @@ int main() {
   test_eval("def add(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) "
             "{a+b+c+d+e+f}; let hello = 5; :add(hello, 2, 3, 4, 5, 6);\n",
             25);
+
+  // this shit ||
+  // test_eval("def |x: i32| incr() {x+1}; 4:incr \n", 5);
   return 0;
 }
