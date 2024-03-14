@@ -59,9 +59,9 @@ typedef SymbolStatement Argument;
 // } BlockStatement;
 
 struct BlockStatement {
-  Argument *arg;
   Argument **args;
   unsigned int arg_len;
+
   Statement **statements;
   unsigned int idx;
   unsigned int len;
@@ -113,7 +113,7 @@ Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
 Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
                               Token token);
 
-Statement *new_impl_call_stmt(LiteralType type, string name, Statement *args,
-                              Token token);
+Statement *new_impl_call_stmt(LiteralType type, string name,
+                              BlockStatement *args, Token token);
 void dbg_stmt(const Statement *stmt);
 #endif

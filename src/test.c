@@ -91,5 +91,15 @@ int main() {
       ":fib(19)\n",
       4181);
 
+  test_eval("def add(a: i32, b: i32) {a+b}; :add(3-1, 3+3);\n", 8);
+  test_eval("def add(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) "
+            "{a+b+c+d+e+f}; :add(5, 5, 5, 5, 5, 5);\n",
+            30);
+  test_eval("def add(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) "
+            "{a+b+c+d+e+f}; :add(1, 2, 3, 4, 5, 6);\n",
+            21);
+  test_eval("def add(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) "
+            "{a+b+c+d+e+f}; let hello = 5; :add(hello, 2, 3, 4, 5, 6);\n",
+            25);
   return 0;
 }

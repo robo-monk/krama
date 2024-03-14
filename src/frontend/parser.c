@@ -51,21 +51,28 @@ Statement *parse_impl_call_stmt(Parser *parser) {
   Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
                                     "expected implementation identifier");
 
-  int arg_len = 0;
   Statement *arg_value = NULL;
 
+  BlockStatement *arg_defs = new_block_stmt();
   // Argument arg
   if (peek(parser).type == TOKEN_L_PAR) {
-    eat(parser);
-    arg_value = parse_expression(parser);
-    // TODO: use optionaly_eat(parser, TOKEN_COMMA);
+    expect_and_eat(parser, TOKEN_L_PAR, "expected Left paren");
+    do {
+      Statement *arg_stmt = parse_expression(parser);
+      dbg_stmt(arg_stmt);
+      push_stmt_to_block(arg_stmt, arg_defs);
+      if (peek(parser).type == TOKEN_COMMA) {
+        printf("\nEATING COMMA\n");
+        eat(parser);
+      }
+    } while (peek(parser).type != TOKEN_R_PAR);
+
     expect_and_eat(parser, TOKEN_R_PAR,
                    "expected r paren, multiple args not yet supported");
-    arg_len += 1;
   }
 
   return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value,
-                            arg_value, identifier);
+                            arg_defs, identifier);
 }
 
 Statement *parse_conditional_stmt(Parser *parser) {
@@ -263,6 +270,9 @@ int parse_symbol_statements(Parser *parser, SymbolStatement **syms) {
   while (peek(parser).type == TOKEN_IDENTIFIER) {
     syms[len] = parse_symbol_statement(parser);
     len += 1;
+    if (peek(parser).type == TOKEN_COMMA) {
+      eat(parser);
+    }
   }
   return len;
 }
@@ -272,7 +282,6 @@ Statement *parse_def(Parser *parser) {
                  "parse_def expected current token to be DEF");
 
   if (peek(parser).type == TOKEN_PIPE) {
-    printf("TOKEN OIPE");
     throw_parser_error(parser, "not implemented");
   }
 
@@ -292,16 +301,6 @@ Statement *parse_def(Parser *parser) {
   printf("\nhere\n");
   block_stmt->block->args = args;
   block_stmt->block->arg_len = arg_len;
-  // if (arg_len > 0) {
-  // block_stmt->block->arg = args[0];
-  // block_stmt->block->arg = malloc(sizeof(Argument));
-  // block_stmt->block->arg->name = arg_identifier.value.str_value;
-  // block_stmt->block->arg->type = LiteralType_i32;
-
-  // block_stmt->block->arg->name = arg_identifier.value.str_value;
-  // block_stmt->block->arg->type = LiteralType_i32;
-  // }
-
   return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
                             block_stmt, identifier);
 }

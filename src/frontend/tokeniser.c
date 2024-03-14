@@ -201,6 +201,7 @@ void tokenise_char(char c, Tokeniser *state) {
     commit_multichar_token(state);
     push_token(new_token(TOKEN_EQ), state);
     break;
+  case ',':
   case '(':
   case ')':
   case '[':
@@ -329,6 +330,7 @@ void dbg_token(Token token) {
   case TOKEN_EQ:
   case TOKEN_COLON:
   case TOKEN_PIPE:
+  case TOKEN_COMMA:
     printf("Token: '%c'", token.type);
     break;
   case TOKEN_PROGRAM_END:

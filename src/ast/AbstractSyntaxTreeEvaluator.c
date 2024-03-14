@@ -85,10 +85,17 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
     throw_runtime_error("wtf??");
   }
 
+  Statement *args_statement = impl_call_stmt->right;
+  if (args_statement->type != BLOCK) {
+    throw_runtime_error("expected block statement that defines arguments");
+  }
+
   for (int i = 0; i < block_stmt->block->arg_len; i++) {
     Argument *arg = block_stmt->block->args[i];
-    declare_variable(&scope, arg->name, arg->type,
-                     evaluate_statement(ipr, impl_call_stmt->right));
+    ReturnValue arg_value =
+        evaluate_statement(ipr, args_statement->block->statements[i]);
+
+    declare_variable(&scope, arg->name, arg->type, arg_value);
   }
 
   ReturnValue rv = evaluate_statement(&scope, block_stmt);

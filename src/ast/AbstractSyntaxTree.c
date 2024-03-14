@@ -27,11 +27,12 @@ Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
   return s;
 }
 
-Statement *new_impl_call_stmt(LiteralType type, string name, Statement *args,
-                              Token token) {
-
+Statement *new_impl_call_stmt(LiteralType type, string name,
+                              BlockStatement *args, Token token) {
+  Statement *arg_stmt = new_stmt(BLOCK, NULL, NULL, token);
+  arg_stmt->block = args;
   Statement *s = new_sym_decl_stmt(IMPL_CALL, LiteralType_i32,
-                                   token.value.str_value, args, token);
+                                   token.value.str_value, arg_stmt, token);
   return s;
 }
 
@@ -174,7 +175,9 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
     // printf("\n");
     // dbg_token(stmt->token);
     // printf("\n");
-    snprintf(buffer, sizeof(buffer), "Statement Type: Literal with type");
+    snprintf(buffer, sizeof(buffer),
+             "Statement Type: Literal with type and value %d",
+             stmt->token.value.i32_value);
     // Append specific literal type and value to buffer here
     break;
   case VARIABLE_DECL:

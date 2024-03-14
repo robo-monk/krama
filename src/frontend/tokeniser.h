@@ -49,6 +49,7 @@ typedef enum {
   TOKEN_DEF,    // def
   TOKEN_SHAPE,  // shape
   TOKEN_IDENTIFIER,
+  TOKEN_COMMA = ',',
   TOKEN_EQ = '=',
   TOKEN_L_PAR = '(',
   TOKEN_R_PAR = ')',

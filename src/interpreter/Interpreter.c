@@ -85,6 +85,7 @@ ReturnValue write_variable(Interpreter *ipr, string var_name, LiteralType type,
 ReturnValue declare_variable(Interpreter *ipr, string var_name,
                              LiteralType type, ReturnValue value) {
 
+  printf("   DECLARE %s = %d\n", var_name, value.i32_value);
   if (get_var_symbol(ipr, var_name) != NULL) {
     throw_runtime_error("redecleration of variable");
   }
