@@ -2,4 +2,5 @@
 
 
  // implementations 
-(i32)2
+i32 b = (i32)390;
+pÂó

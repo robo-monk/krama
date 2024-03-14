@@ -33,6 +33,12 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
   return a;
 }
 
+string com_declare_variable(CCompiler *com, string var_name,
+                            LiteralType var_type, string value) {
+  return concat(6, literal_type_to_str(var_type), " ", var_name, " = ", value,
+                ";\n");
+}
+
 string com_statement(CCompiler *com, Statement *stmt) {
   switch (stmt->type) {
   case STMT_BLOCK:
@@ -40,14 +46,13 @@ string com_statement(CCompiler *com, Statement *stmt) {
   case STMT_LITERAL:
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ")",
                   literal_val2str(stmt->literal));
-    // case STMT_BINARY_OP:
-    // return com_bin_op(com_statement(com, stmt->left),
-    //                   com_statement(ipr, stmt->right),
-    //                   stmt->token.value.op_type);
-    // case STMT_VARIABLE_DECL:
-    //   return com_declare_variable(com, stmt->sym_decl.name,
-    //   stmt->sym_decl.type,
-    //                               com_statement(com, stmt->right));
+  // case STMT_BINARY_OP:
+  // return com_bin_op(com_statement(com, stmt->left),
+  //                   com_statement(ipr, stmt->right),
+  //                   stmt->token.value.op_type);
+  case STMT_VARIABLE_DECL:
+    return com_declare_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
+                                com_statement(com, stmt->right));
 
     // case STMT_VARIABLE_READ:
     //   return com_read_variable(com, stmt->sym_decl.name,
