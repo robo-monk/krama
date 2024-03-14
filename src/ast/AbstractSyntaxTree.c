@@ -101,6 +101,7 @@ BlockStatement *new_block_stmt() {
   program->idx = 0;
   program->len = 0;
   program->max_len = DEFAULT_PROGRAM_LEN;
+  program->arg_len = 0;
   program->statements = malloc(sizeof(Statement) * program->max_len);
   return program;
 }

@@ -80,14 +80,17 @@ ReturnValue call_symbol(Interpreter *ipr, Statement *impl_call_stmt) {
   // printf("\ngot block_stmt %d\n", block_stmt != NULL);
   Interpreter scope = new_interpreter();
   scope.upper_scope = ipr;
-  // declare vars
-  // TODO: implement scope
-  Argument *arg = block_stmt->block->arg;
-  if (arg != NULL) {
-    // printf("\ndeclaring argument with name: '%s'", arg->name);
+
+  if (block_stmt->block->args == NULL && block_stmt->block->arg_len == 0) {
+    throw_runtime_error("wtf??");
+  }
+
+  for (int i = 0; i < block_stmt->block->arg_len; i++) {
+    Argument *arg = block_stmt->block->args[i];
     declare_variable(&scope, arg->name, arg->type,
                      evaluate_statement(ipr, impl_call_stmt->right));
   }
+
   ReturnValue rv = evaluate_statement(&scope, block_stmt);
   free_scope(&scope);
   return rv;

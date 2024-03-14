@@ -25,7 +25,8 @@ typedef enum {
 typedef enum {
   LiteralType_i32,
   LiteralType_f64,
-  LiteralType_cha,
+  LiteralType_char,
+  LiteralType_bool,
 } LiteralType;
 
 typedef struct {
@@ -46,6 +47,11 @@ typedef struct {
   string name;
 } SymbolStatement;
 
+typedef struct {
+  SymbolStatement **symbols;
+  unsigned int length;
+} SymbolStatements;
+
 typedef SymbolStatement Argument;
 
 // typedef struct {
@@ -54,6 +60,8 @@ typedef SymbolStatement Argument;
 
 struct BlockStatement {
   Argument *arg;
+  Argument **args;
+  unsigned int arg_len;
   Statement **statements;
   unsigned int idx;
   unsigned int len;

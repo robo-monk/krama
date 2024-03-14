@@ -2,6 +2,7 @@
 #include "Tokeniser.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "string.h"
 
 Statement *parse_statement(Parser *parser);
 
@@ -216,9 +217,64 @@ Statement *parse_block(Parser *parser) {
   return parse_expression(parser);
 }
 
+typedef struct {
+  const string str;
+  LiteralType type;
+} TypeMap;
+
+static const TypeMap type_map[] = {
+    {"i32", LiteralType_i32},
+    {"f64", LiteralType_f64},   //
+    {"char", LiteralType_char}, //
+    {"bool", LiteralType_bool}, //
+    {NULL, 0}                   //
+};
+
+LiteralType __map_string_to_literal_type(Parser *parser, string str) {
+  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
+    if (strcmp(map->str, str) == 0) {
+      return map->type;
+    }
+  }
+  printf("\n Unrecognised type: %s \n", str);
+  throw_parser_error(parser, "unrecognised type");
+  return NULL;
+}
+
+SymbolStatement *parse_symbol_statement(Parser *parser) {
+  Token symbol_identifier =
+      expect_and_eat(parser, TOKEN_IDENTIFIER,
+                     "parse_symbol_statement expected symbol identifier");
+  SymbolStatement *sym_stmt = malloc(sizeof(SymbolStatement));
+
+  expect_and_eat(parser, TOKEN_COLON, "expected colon to define symbol type");
+
+  Token type_identifier =
+      expect_and_eat(parser, TOKEN_IDENTIFIER, "expected type identifier");
+
+  sym_stmt->name = symbol_identifier.value.str_value;
+  sym_stmt->type =
+      __map_string_to_literal_type(parser, type_identifier.value.str_value);
+  return sym_stmt;
+}
+
+int parse_symbol_statements(Parser *parser, SymbolStatement **syms) {
+  int len = 0;
+  while (peek(parser).type == TOKEN_IDENTIFIER) {
+    syms[len] = parse_symbol_statement(parser);
+    len += 1;
+  }
+  return len;
+}
+
 Statement *parse_def(Parser *parser) {
   expect_and_eat(parser, TOKEN_DEF,
                  "parse_def expected current token to be DEF");
+
+  if (peek(parser).type == TOKEN_PIPE) {
+    printf("TOKEN OIPE");
+    throw_parser_error(parser, "not implemented");
+  }
 
   Token identifier =
       expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
@@ -226,24 +282,25 @@ Statement *parse_def(Parser *parser) {
   expect_and_eat(parser, TOKEN_L_PAR,
                  "expected open parenthesis to define arguments");
 
-  // TODO parse multiple args
-  Token arg_identifier;
-  int arg_len = 0;
-  if (peek(parser).type == TOKEN_IDENTIFIER) {
-    arg_identifier = eat(parser);
-    // printf("declaring arg with name %s", arg_identifier.value.str_value);
-    arg_len += 1;
-  }
-
+  // TODO: this should be a dynamic array
+  SymbolStatement **args = malloc(sizeof(SymbolStatement) * 100);
+  int arg_len = parse_symbol_statements(parser, args);
   expect_and_eat(parser, TOKEN_R_PAR, "expected closing parenthesis");
   expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
 
   Statement *block_stmt = parse_statement(parser);
-  if (arg_len > 0) {
-    block_stmt->block->arg = malloc(sizeof(Argument));
-    block_stmt->block->arg->name = arg_identifier.value.str_value;
-    block_stmt->block->arg->type = LiteralType_i32;
-  }
+  printf("\nhere\n");
+  block_stmt->block->args = args;
+  block_stmt->block->arg_len = arg_len;
+  // if (arg_len > 0) {
+  // block_stmt->block->arg = args[0];
+  // block_stmt->block->arg = malloc(sizeof(Argument));
+  // block_stmt->block->arg->name = arg_identifier.value.str_value;
+  // block_stmt->block->arg->type = LiteralType_i32;
+
+  // block_stmt->block->arg->name = arg_identifier.value.str_value;
+  // block_stmt->block->arg->type = LiteralType_i32;
+  // }
 
   return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
                             block_stmt, identifier);
