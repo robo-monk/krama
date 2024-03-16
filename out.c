@@ -10,5 +10,6 @@
 
  // implementations 
 i32 hello = (i32)200;
-i32 bing3 = (i32)3;
+i32 bing3 = (i32)3+(i32)3;
+;
 

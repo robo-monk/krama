@@ -36,6 +36,7 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
     printf("\n COM BLOCK ");
     str_vector_push(&statements, com_statement(com, stmt->statements[i]));
   }
+
   string a = str_vector_join(&statements);
   printf("\n\nvector join is %s\n\n", a);
   push_implementation(com, a);
@@ -48,6 +49,10 @@ string com_declare_variable(CCompiler *com, string var_name,
                 ";\n");
 }
 
+string com_bin_op(string left, string right, OpType optype) {
+  return concat(4, left, optype_to_str(optype), right, ";\n");
+}
+
 string com_statement(CCompiler *com, Statement *stmt) {
   switch (stmt->type) {
   case STMT_BLOCK:
@@ -55,10 +60,10 @@ string com_statement(CCompiler *com, Statement *stmt) {
   case STMT_LITERAL:
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ")",
                   literal_val2str(stmt->literal));
-  // case STMT_BINARY_OP:
-  // return com_bin_op(com_statement(com, stmt->left),
-  //                   com_statement(ipr, stmt->right),
-  //                   stmt->token.value.op_type);
+  case STMT_BINARY_OP:
+    return com_bin_op(com_statement(com, stmt->left),
+                      com_statement(com, stmt->right),
+                      stmt->token.value.op_type);
   case STMT_VARIABLE_DECL:
     return com_declare_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                                 com_statement(com, stmt->right));

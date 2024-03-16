@@ -36,7 +36,7 @@ def hello(suffix: string) -> {
   :print("Hello", suffix)
 }
 
-:hello("World)
+:hello("World")
 ```
 
 Symbols declared using the `def` syntax, are available to be invoked by all scopes.

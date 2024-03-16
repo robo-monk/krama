@@ -3,9 +3,9 @@
 #include "string.h"
 
 LiteralType str_to_literal_type(string str) {
-  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
-    if (strcmp(map->str, str) == 0) {
-      return map->type;
+  for (int i = 0; i < TYPE_MAP_SIZE; i++) {
+    if (strcmp(type_map[i].str, str) == 0) {
+      return type_map[i].type;
     }
   }
   printf("\n Unrecognised type: %s \n", str);
@@ -13,9 +13,9 @@ LiteralType str_to_literal_type(string str) {
 }
 
 const string literal_type_to_str(LiteralType type) {
-  for (const TypeMap *map = type_map; map->str != NULL; ++map) {
-    if (type == map->type) {
-      return map->str;
+  for (int i = 0; i < TYPE_MAP_SIZE; i++) {
+    if (type == type_map[i].type) {
+      return type_map[i].str;
     }
   }
   return NULL;

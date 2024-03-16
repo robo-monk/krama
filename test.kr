@@ -1,2 +1,2 @@
 let hello = 200
-let bing3 = 3
+let bing3 = 3 + 3

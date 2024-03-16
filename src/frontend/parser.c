@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "LiteralType.h"
+#include "Op.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -148,8 +149,9 @@ Statement *parse_term(Parser *parser) {
   Token current_token = peek(parser);
 
   while (current_token.type == TOKEN_OP &&
-         (current_token.value.op_type == MUL ||
-          current_token.value.op_type == DIV)) {
+         (current_token.value.op_type == OpType_MUL ||
+          current_token.value.op_type == OpType_MOD ||
+          current_token.value.op_type == OpType_DIV)) {
 
     eat(parser);
     Statement *right = parse_term(parser);
@@ -168,8 +170,8 @@ Statement *parse_addition(Parser *parser) {
   Token current_token = peek(parser);
 
   while (current_token.type == TOKEN_OP &&
-         (current_token.value.op_type == TOKEN_OP_ADD ||
-          current_token.value.op_type == TOKEN_OP_MIN)) {
+         (current_token.value.op_type == OpType_ADD ||
+          current_token.value.op_type == OpType_SUB)) {
     eat(parser);
     Statement *right = parse_term(parser);
     stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
@@ -187,13 +189,13 @@ Statement *parse_expression(Parser *parser) {
   Token current_token = peek(parser);
 
   while (current_token.type == TOKEN_OP &&
-         (current_token.value.op_type == TOKEN_OP_EQ ||
-          current_token.value.op_type == TOKEN_OP_GT ||
-          current_token.value.op_type == TOKEN_OP_LT ||
-          current_token.value.op_type == TOKEN_OP_LTE ||
-          current_token.value.op_type == TOKEN_OP_GTE ||
-          current_token.value.op_type == TOKEN_OP_BIN_AND ||
-          current_token.value.op_type == TOKEN_OP_BIN_OR)) {
+         (current_token.value.op_type == OpType_EQ ||
+          current_token.value.op_type == OpType_GT ||
+          current_token.value.op_type == OpType_LT ||
+          current_token.value.op_type == OpType_LTE ||
+          current_token.value.op_type == OpType_GTE ||
+          current_token.value.op_type == OpType_BIN_AND ||
+          current_token.value.op_type == OpType_BIN_OR)) {
     eat(parser);
     Statement *right = parse_addition(parser);
     stmt = new_bin_expr_stmt(current_token.value.op_type, stmt, right,
@@ -270,6 +272,7 @@ Statement *parse_def(Parser *parser) {
   Token identifier =
       expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
 
+  printf("\nexpected: %d | GOT %d\n", TOKEN_L_PAR, peek(parser).type);
   expect_and_eat(parser, TOKEN_L_PAR,
                  "expected open parenthesis to define arguments");
 

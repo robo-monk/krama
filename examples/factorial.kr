@@ -1,4 +1,4 @@
-fn factorial(a) {
+def factorial(a: i32) {
     if (a < 1) {
         1
     } else {

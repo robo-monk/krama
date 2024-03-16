@@ -3,34 +3,26 @@
 
 int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
   switch (op) {
-  case TOKEN_OP_ADD:
+  case OpType_ADD:
     return lhs.i32_value + rhs.i32_value;
-  case TOKEN_OP_MIN:
+  case OpType_SUB:
     return lhs.i32_value - rhs.i32_value;
-  case MUL:
+  case OpType_MUL:
     return lhs.i32_value * rhs.i32_value;
-  case DIV:
+  case OpType_DIV:
     return lhs.i32_value / rhs.i32_value;
-  case TOKEN_OP_LT:
-    if (lhs.i32_value < rhs.i32_value) {
-      return 1;
-    } else {
-      return 0;
-    }
-  case TOKEN_OP_GT:
-    if (lhs.i32_value > rhs.i32_value) {
-      return 1;
-    } else {
-      return 0;
-    }
-  case TOKEN_OP_EQ:
+  case OpType_LT:
+    return lhs.i32_value < rhs.i32_value;
+  case OpType_GT:
+    return lhs.i32_value > rhs.i32_value;
+  case OpType_EQ:
     return lhs.i32_value == rhs.i32_value;
-  case TOKEN_OP_GTE:
+  case OpType_GTE:
     return lhs.i32_value >= rhs.i32_value;
-  case TOKEN_OP_LTE:
+  case OpType_LTE:
     return lhs.i32_value <= rhs.i32_value;
-  case TOKEN_OP_BIN_AND:
-  case TOKEN_OP_BIN_OR:
+  case OpType_BIN_AND:
+  case OpType_BIN_OR:
     throw_runtime_error("unsupported binary operation for type");
   }
   throw_runtime_error("unsupported operation for type");
@@ -38,16 +30,7 @@ int perform_i32_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
 }
 
 double perform_f64_bin_op(ReturnValue lhs, ReturnValue rhs, OpType op) {
-  switch (op) {
-  case TOKEN_OP_ADD:
-    return lhs.f64_value + rhs.f64_value;
-  case TOKEN_OP_MIN:
-    return lhs.f64_value - rhs.f64_value;
-  case MUL:
-    return lhs.f64_value * rhs.f64_value;
-  case DIV:
-    return lhs.f64_value / rhs.f64_value;
-  }
+  switch (op) {}
   throw_runtime_error("unsupported operation for type");
   return 0;
 }

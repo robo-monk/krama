@@ -48,6 +48,7 @@ void *vector_at(Vec *vec, int idx) {
 
 string str_vec_at(StrVec *vec, int idx) { return vector_at(vec, idx); }
 void str_vector_push(Vec *vec, string el) { vector_push(vec, el); }
+
 char *str_vector_join(StrVec *vec) {
   if (vec->size == 0) {
     return strdup(""); // or calloc(1, sizeof(char)) for an empty string

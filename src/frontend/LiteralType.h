@@ -13,8 +13,9 @@ static const TypeMap type_map[] = {
     {"f64", LiteralType_f64},   //
     {"char", LiteralType_char}, //
     {"bool", LiteralType_bool}, //
-    {NULL}                      //
 };
+
+#define TYPE_MAP_SIZE (sizeof(type_map) / sizeof(TypeMap))
 
 #include "LiteralType.h"
 #include "stdio.h"
