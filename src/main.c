@@ -6,7 +6,7 @@
 #include <string.h>
 #include <time.h>
 
-void compile_file(const string filename) {
+void compile_file(const string filename, const string out_filename) {
   // Start timing
   clock_t start_time = clock();
 
@@ -22,7 +22,7 @@ void compile_file(const string filename) {
   BlockStatement *program = program_from_filename(filename);
   printf("\ncompiling...\n");
   // ReturnValue ret_value = exec_program(program);
-  compile_program(program, "out.c");
+  compile_program(program, out_filename);
 
   // End timing
   clock_t end_time = clock();
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
     } else {
       run_file(argv[2]);
     }
-  } else if (argc == 3 && strcmp(argv[1], "compile") == 0) {
-    compile_file(argv[2]);
+  } else if (argc == 4 && strcmp(argv[1], "compile") == 0) {
+    compile_file(argv[2], argv[3]);
   } else {
     printf("Invalid usage. Use 'krama --help' for more information.\n");
   }
