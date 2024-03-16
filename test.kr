@@ -1,2 +1,10 @@
 let hello = 200
 let bing3 = 3 + 3
+
+bing3 = hello + 4*34 + bing3
+
+if (bing3 > 5) {
+    hello + 490290
+} else {
+    bing * 2 * bing
+}

@@ -35,6 +35,7 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
   for (int i = 0; i < stmt->len; i++) {
     printf("\n COM BLOCK ");
     str_vector_push(&statements, com_statement(com, stmt->statements[i]));
+    str_vector_push(&statements, ";\n");
   }
 
   string a = str_vector_join(&statements);
@@ -43,14 +44,37 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
   return a;
 }
 
+string com_write_variable(CCompiler *com, string var_name, LiteralType var_type,
+                          string value) {
+  return concat(3, var_name, " = ", value);
+}
+
 string com_declare_variable(CCompiler *com, string var_name,
                             LiteralType var_type, string value) {
-  return concat(6, literal_type_to_str(var_type), " ", var_name, " = ", value,
-                ";\n");
+  // return concat(5, literal_type_to_str(var_type), " ", var_name, " = ",
+  // value);
+  return concat(3, literal_type_to_str(var_type), " ",
+                com_write_variable(com, var_name, var_type, value));
+}
+
+string com_read_variable(CCompiler *com, string var_name,
+                         LiteralType var_type) {
+  return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
 }
 
 string com_bin_op(string left, string right, OpType optype) {
-  return concat(4, left, optype_to_str(optype), right, ";\n");
+  return concat(3, left, optype_to_str(optype), right);
+}
+
+string com_conditional(CCompiler *com, ConditionalStatement *conditional) {
+  string else_com = "";
+  if (conditional->else_body) {
+    else_com = concat(3, " else {\n",
+                      com_block_statement(com, conditional->else_body), "}");
+  }
+
+  return concat(6, "if (", com_statement(com, conditional->condition), ") {\n",
+                com_block_statement(com, conditional->if_body), "}", else_com);
 }
 
 string com_statement(CCompiler *com, Statement *stmt) {
@@ -68,22 +92,20 @@ string com_statement(CCompiler *com, Statement *stmt) {
     return com_declare_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                                 com_statement(com, stmt->right));
 
-    // case STMT_VARIABLE_READ:
-    //   return com_read_variable(com, stmt->sym_decl.name,
-    //   stmt->sym_decl.type);
-    // case STMT_VARIABLE_WRITE:
-    //   return com_write_variable(com, stmt->sym_decl.name,
-    //   stmt->sym_decl.type,
-    //                             evaluate_statement(com, stmt->right));
-    // case STMT_DEF_DECL:
-    //   return com_declare_implementation(ipr, stmt->sym_decl.name,
-    //                                     stmt->sym_decl.type, stmt->right);
-    // case STMT_DEF_INVOKE:
-    //   return com_call_symbol(com, stmt);
-    // case STMT_CONDITIONAL:
-    //   // printf("\neval conditional:\n");
-    //   // dbg_stmt(stmt);
-    //   return com_conditional_statement(ipr, stmt->conditional);
+  case STMT_VARIABLE_READ:
+    return com_read_variable(com, stmt->sym_decl.name, stmt->sym_decl.type);
+  case STMT_VARIABLE_WRITE:
+    return com_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
+                              com_statement(com, stmt->right));
+  // case STMT_DEF_DECL:
+  //   return com_declare_implementation(ipr, stmt->sym_decl.name,
+  //                                     stmt->sym_decl.type, stmt->right);
+  // case STMT_DEF_INVOKE:
+  //   return com_call_symbol(com, stmt);
+  case STMT_CONDITIONAL:
+    // printf("\neval conditional:\n");
+    // dbg_stmt(stmt);
+    return com_conditional(com, stmt->conditional);
   }
 
   throw_compilation_error("found unsupported token while compiling");
