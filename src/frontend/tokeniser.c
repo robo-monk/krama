@@ -280,22 +280,13 @@ void dbg_token(Token token) {
     printf("Identifier: %s", token.value.str_value);
     break;
   case TOKEN_DEF:
-    printf("Implementation");
-    break;
+  case TOKEN_RIGHT_ARROW:
   case TOKEN_LET:
-    printf("Token: LET");
-    break;
   case TOKEN_MUT:
-    printf("Token: MUT");
-    break;
   case TOKEN_SHAPE:
-    printf("Token: SHAPE");
-    break;
   case TOKEN_RETURN:
-    printf("RETURN");
-    break;
   case TOKEN_ELSE:
-    printf("Else statement");
+    printf("Keyword token: %s", kw_token_to_str(token.type));
     break;
   case TOKEN_R_BRACKET:
   case TOKEN_L_BRACKET:

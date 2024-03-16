@@ -22,8 +22,8 @@ typedef enum {
   TOKEN_R_SQ_BRACKET = ']',
   TOKEN_COLON = ':',
   TOKEN_PIPE = '|',
-  TOKEN_RIGHT_ARROW, // ->
   TOKEN_IF = 222,    // if
+  TOKEN_RIGHT_ARROW, // ->
   TOKEN_ELSE,        // else
   TOKEN_RETURN,      // return
   TOKEN_PROGRAM_END,

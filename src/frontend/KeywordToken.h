@@ -37,5 +37,6 @@ static const KeywordTokenMap kw_token_map[] = {
 #define KW_TOKEN_MAP_SIZE (sizeof(kw_token_map) / sizeof(KeywordTokenMap))
 
 TokenType str_to_kw_token(string str);
+const string kw_token_to_str(TokenType token);
 
 #endif
