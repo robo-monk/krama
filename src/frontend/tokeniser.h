@@ -5,44 +5,6 @@
 #include "Op.h"
 
 typedef enum {
-  // __MTOKEN_OP_EQ,
-  // __MTOKEN_OP_MIN,
-  // __MTOKEN_OP_LT,
-  // __MTOKEN_OP_LTE,
-  // __MTOKEN_OP_GT,
-  // __MTOKEN_OP_GTE,
-  __MTOKEN_LET,
-  __MTOKEN_MUT,
-  __MTOKEN_DEF,
-  __MTOKEN_SHAPE,
-  __MTOKEN_IF,
-  __MTOKEN_ELSE,
-  __MTOKEN_IDENTIFIER,
-  __MTOKEN_RETURN,
-  __MTOKEN_RIGHT_ARROW
-} __MulticharToken;
-
-// typedef enum {
-//   TOKEN_OP_ADD = '+',
-//   TOKEN_OP_MIN = '-',
-//   DIV = '/',
-//   MUL = '*',
-
-//   MODULUS = '%',
-//   TOKEN_BITWISE_AND = '&',
-//   // TOKEN_BITWISE_OR = '|',
-//   TOKEN_BITWISE_XOR = '^',
-
-//   TOKEN_OP_LT = '<',
-//   TOKEN_OP_GT = '>',
-//   TOKEN_OP_EQ,
-//   TOKEN_OP_LTE,
-//   TOKEN_OP_GTE,
-//   TOKEN_OP_BIN_AND,
-//   TOKEN_OP_BIN_OR,
-// } TokenOpType;
-
-typedef enum {
   TOKEN_NUMBER, // number
   TOKEN_OP,     // op
   TOKEN_LET,    // let
@@ -94,6 +56,7 @@ typedef enum {
   TokeniserBufferType_string,
   TokeniserBufferType_decimal_base10,
 } TokeniserBufferType;
+
 typedef struct {
   bool constructing;
   TokeniserBufferType type;

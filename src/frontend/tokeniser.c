@@ -1,5 +1,6 @@
 #include "tokeniser.h"
 #include "../utils.h"
+#include "KeywordToken.h"
 #include "Op.h"
 #include "ctype.h"
 #include "stdio.h"
@@ -101,41 +102,6 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
   push_token(new_number_token(n), tokeniser);
 }
 
-typedef struct {
-  const string str;
-  __MulticharToken token;
-} TokenMap;
-
-static const TokenMap token_map[] = {
-    {"mut", __MTOKEN_MUT},
-    {"let", __MTOKEN_LET},     //
-    {"def", __MTOKEN_DEF},     //
-    {"shape", __MTOKEN_SHAPE}, //
-
-    {"if", __MTOKEN_IF},         //
-    {"else", __MTOKEN_ELSE},     //
-    {"return", __MTOKEN_RETURN}, //
-
-    // {"-", __MTOKEN_OP_MIN},       //
-    {"->", __MTOKEN_RIGHT_ARROW}, //
-
-    // {"==", __MTOKEN_OP_EQ},  //
-    // {"<=", __MTOKEN_OP_LTE}, //
-    // {"<", __MTOKEN_OP_LT},   //
-    // {">=", __MTOKEN_OP_GTE}, //
-    // {">", __MTOKEN_OP_GT},   //
-    {NULL, 0} //
-};
-
-__MulticharToken __map_string_to_multichar_token(string str) {
-  for (const TokenMap *map = token_map; map->str != NULL; ++map) {
-    if (strcmp(map->str, str) == 0) {
-      return map->token;
-    }
-  }
-  return __MTOKEN_IDENTIFIER;
-}
-
 void commit_buffer_as_string(Tokeniser *tokeniser) {
 
   OpType op = str_to_optype(tokeniser->buffer.str);
@@ -143,45 +109,25 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
     return push_token(new_op_token(op), tokeniser);
   }
 
-  __MulticharToken mulitchar_token =
-      __map_string_to_multichar_token(tokeniser->buffer.str);
+  TokenType token_type = str_to_kw_token(tokeniser->buffer.str);
 
-  switch (mulitchar_token) {
-  case __MTOKEN_IDENTIFIER:
+  switch (token_type) {
+  case TOKEN_IDENTIFIER:
     return push_token(new_str_token(TOKEN_IDENTIFIER, tokeniser->buffer.str,
                                     tokeniser->buffer.idx),
                       tokeniser);
-  case __MTOKEN_LET:
-    return push_token(new_token(TOKEN_LET), tokeniser);
-  case __MTOKEN_DEF:
-    return push_token(new_token(TOKEN_DEF), tokeniser);
-  case __MTOKEN_SHAPE:
-    return push_token(new_token(TOKEN_SHAPE), tokeniser);
-  case __MTOKEN_MUT:
-    return push_token(new_token(TOKEN_MUT), tokeniser);
-  case __MTOKEN_ELSE:
-    return push_token(new_token(TOKEN_ELSE), tokeniser);
-  case __MTOKEN_RETURN:
-    return push_token(new_token(TOKEN_RETURN), tokeniser);
-  case __MTOKEN_RIGHT_ARROW:
-    return push_token(new_token(TOKEN_RIGHT_ARROW), tokeniser);
-  // case __MTOKEN_OP_MIN:
-  //   return push_token(new_op_token(OpType_SUB), tokeniser);
-  // case __MTOKEN_OP_EQ:
-  //   return push_token(new_op_token(OpType_EQ), tokeniser);
-  // case __MTOKEN_OP_GTE:
-  //   return push_token(new_op_token(OpType_GTE), tokeniser);
-  // case __MTOKEN_OP_LTE:
-  //   return push_token(new_op_token(OpType_LTE), tokeniser);
-  // case __MTOKEN_OP_GT:
-  //   return push_token(new_op_token(OpType_GT), tokeniser);
-  // case __MTOKEN_OP_LT:
-  //   return push_token(new_op_token(OpType_LT), tokeniser);
-  case __MTOKEN_IF:
-    return push_token(new_token(TOKEN_IF), tokeniser);
+  case TOKEN_LET:
+  case TOKEN_DEF:
+  case TOKEN_SHAPE:
+  case TOKEN_MUT:
+  case TOKEN_ELSE:
+  case TOKEN_RETURN:
+  case TOKEN_RIGHT_ARROW:
+  case TOKEN_IF:
+    return push_token(new_token(token_type), tokeniser);
+  default:
+    throw_tokeniser_err("unreachable?");
   }
-
-  throw_tokeniser_err("unreachable?");
 }
 
 void commit_multichar_token(Tokeniser *tokeniser) {
