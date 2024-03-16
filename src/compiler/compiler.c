@@ -1,12 +1,81 @@
 #include "compiler.h"
 #include "../frontend/LiteralType.h"
+#include "../hashmap/hashmap.h"
+#include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
-#define i32 int
+#include <complex.h>
+
+void throw_compilation_error(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  printf("\n[compiler] Error! ");
+  vprintf(format, args);
+  printf("\n");
+
+  va_end(args);
+  exit(1);
+}
+
+int __sym_compare(const void *a, const void *b, void *udata) {
+  const Symbol *ua = a;
+  const Symbol *ub = b;
+  return strcmp(ua->name, ub->name);
+}
+
+uint64_t __sym_hash(const void *item, uint64_t seed0, uint64_t seed1) {
+  const Symbol *var = item;
+  return hashmap_sip(var->name, strlen(var->name), seed0, seed1);
+}
+
+Symbol *new_sym(string name) {
+  Symbol *sym = malloc(sizeof(Symbol));
+  sym->name = name;
+  return sym;
+}
+
+Symbol *new_def_symbol(string name, Statement *stmt) {
+  Symbol *sym = new_sym(name);
+  DefSymbol *def = malloc(sizeof(DefSymbol));
+  def->stmt = stmt;
+  sym->def = def;
+  return sym;
+}
+
+Symbol *new_var_symbol(string name, LiteralType type) {
+  Symbol *sym = new_sym(name);
+  sym->var = malloc(sizeof(VariableSymbol));
+  sym->var->type = type;
+  return sym;
+}
+
+Symbol const *com_get_symbol(CCompiler *com, string sym_name) {
+  return hashmap_get(com->sym_map, &(Symbol){.name = sym_name});
+}
+
+VariableSymbol *com_get_var_sym(CCompiler *com, string var_name) {
+  const Symbol *sym = com_get_symbol(com, var_name);
+  if (sym == NULL) {
+    return NULL;
+  }
+  return sym->var;
+}
+
+void com_declare_var_sym(CCompiler *com, string var_name, LiteralType type) {
+  printf("   DECLARE %s of type %s \n", var_name, literal_type_to_str(type));
+  if (com_get_var_sym(com, var_name) != NULL) {
+    throw_compilation_error("redecleration of variable '%s'", var_name);
+  }
+  hashmap_set(com->sym_map, new_var_symbol(var_name, type));
+}
 
 CCompiler new_ccompiler() {
   CCompiler com = {.headers = new_vec(1024, sizeof(string)),
                    .implementations = new_vec(1024, sizeof(string))};
+
+  com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
+                            __sym_compare, NULL, NULL);
 
   str_vector_push(&com.headers, "#define i32 int\n"
                                 "#define i64 long\n"
@@ -22,11 +91,6 @@ void push_implementation(CCompiler *com, string impl_str) {
 }
 void push_header(CCompiler *com, string head_str) {
   str_vector_push(&com->implementations, head_str);
-}
-
-void throw_compilation_error(string error) {
-  printf("\n[compiler] Error! %s\n", error);
-  exit(1);
 }
 
 // StrVec com_block_statement(CCompiler *com, BlockStatement *stmt);
@@ -46,19 +110,32 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
 
 string com_write_variable(CCompiler *com, string var_name, LiteralType var_type,
                           string value) {
+
+  VariableSymbol *varsym = com_get_var_sym(com, var_name);
+  if (varsym == NULL) {
+    throw_compilation_error("tried to write an undeclared variable '%s'",
+                            var_name);
+  }
+  // if (com_get_symbol(com, var_name)) {
+  // }
   return concat(3, var_name, " = ", value);
 }
 
 string com_declare_variable(CCompiler *com, string var_name,
                             LiteralType var_type, string value) {
-  // return concat(5, literal_type_to_str(var_type), " ", var_name, " = ",
-  // value);
+  com_declare_var_sym(com, var_name, var_type);
+
   return concat(3, literal_type_to_str(var_type), " ",
                 com_write_variable(com, var_name, var_type, value));
 }
 
 string com_read_variable(CCompiler *com, string var_name,
                          LiteralType var_type) {
+  VariableSymbol *varsym = com_get_var_sym(com, var_name);
+  if (varsym == NULL) {
+    throw_compilation_error("tried to read from undeclared variable '%s'",
+                            var_name);
+  }
   return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
 }
 
@@ -97,9 +174,6 @@ string com_statement(CCompiler *com, Statement *stmt) {
   case STMT_VARIABLE_WRITE:
     return com_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                               com_statement(com, stmt->right));
-  // case STMT_DEF_DECL:
-  //   return com_declare_implementation(ipr, stmt->sym_decl.name,
-  //                                     stmt->sym_decl.type, stmt->right);
   // case STMT_DEF_INVOKE:
   //   return com_call_symbol(com, stmt);
   case STMT_CONDITIONAL:
