@@ -26,4 +26,5 @@ Token eat(Parser *parser);
 BlockStatement *parse_program(Token *tokens);
 BlockStatement *program_from_tokeniser(Tokeniser *t);
 BlockStatement *program_from_filename(const string filename);
+void report_syntax_error(Token token, string error_msg);
 #endif

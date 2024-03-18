@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "../frontend/LiteralType.h"
+#include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
 #include "stdarg.h"
 #include "stdio.h"
@@ -95,8 +96,9 @@ void com_declare_var_sym(CCompiler *com, string var_name, LiteralType type) {
 }
 
 CCompiler new_ccompiler() {
-  CCompiler com = {.headers = new_vec(1024, sizeof(string)),
-                   .implementations = new_vec(1024, sizeof(string))};
+  CCompiler com = {.headers = new_str_vec(1),
+                   .implementations = new_str_vec(1),
+                   .declerations = new_str_vec(1)};
 
   com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
                             __sym_compare, NULL, NULL);
@@ -256,7 +258,7 @@ string com_statement(CCompiler *com, Statement *stmt) {
     return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
   }
 
-  throw_compilation_error("found unsupported token while compiling");
+  report_syntax_error(stmt->token, "unsupported token");
 }
 
 void write_ccompiler_state_to_file(CCompiler *com, string filename) {

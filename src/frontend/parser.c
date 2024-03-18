@@ -37,18 +37,20 @@ string line_of_token(Token token) {
   for (int i = 0; i < idx - start - 1; i++) {
     pointer[i] = ' ';
   }
-  for (int i = idx - start - 1; i < idx - start + length; i++) {
+  for (int i = idx - start - 1; i < idx - start + length - 2; i++) {
     pointer[i] = '^';
   }
   return concat(3, line, "\n", pointer);
 }
 
-void throw_parser_error(Parser *parser, string error_msg) {
-  Token current_token = look_behind(parser);
-  string error_line = line_of_token(current_token);
+void report_syntax_error(Token token, string error_msg) {
+  string error_line = line_of_token(token);
+  throw_hard_error("%s\n[%d:%d] Parser error: %s\n", error_line, token.row_idx,
+                   token.col_idx, error_msg);
+}
 
-  throw_hard_error("%s\n[%d:%d] Parser error: %s\n", error_line,
-                   current_token.row_idx, current_token.col_idx, error_msg);
+void throw_parser_error(Parser *parser, string error_msg) {
+  return report_syntax_error(look_behind(parser), error_msg);
 }
 
 void throw_unexpected_token(Parser *parser, string error_msg) {

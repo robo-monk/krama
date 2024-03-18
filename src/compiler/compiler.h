@@ -21,8 +21,9 @@ typedef struct {
 } Symbol;
 
 typedef struct {
-  Vec headers;
-  Vec implementations;
+  StrVec headers;
+  StrVec declerations;
+  StrVec implementations;
   struct hashmap *sym_map;
 } CCompiler;
 
