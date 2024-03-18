@@ -1,4 +1,4 @@
-// headers 
+// headers
 #define i32 int
 #define i64 long
 #define u32 unsigned int
@@ -6,20 +6,13 @@
 #define f32 float
 #define f64 double
 
-
-
-// declerations 
+// declerations
 void add(i32 a, i32 b);
-void main();
+int main();
 
-
-// implementations 
-void add(i32 a, i32 b) {
-(i32)a+(i32)b;
-
+// implementations
+void add(i32 a, i32 b) { (i32) a + (i32)b; };
+int main() {
+  add((i32)5, (i32)5);
+  return 1;
 };
-void main() {
-add();
-
-};
-

@@ -186,8 +186,24 @@ string compile_call_symbol(CCompiler *com, Statement *stmt) {
                             stmt->sym_decl.name);
   }
 
-  return concat(3, stmt->sym_decl.name, "(", ")");
-  // return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
+  printf("\n-----\n");
+  dbg_stmt(stmt);
+  printf("\n-----\n");
+  // printf("\nCOMPIKLING %d ARG\n", stmt->block->arg_len);
+  Statement *args_statement = stmt->right;
+  if (args_statement->type != STMT_BLOCK) {
+    throw_compilation_error("expected block statement that defines arguments");
+  }
+
+  StrVec arguments = new_str_vec(1);
+  for (int i = 0; i < args_statement->block->len; i++) {
+    if (i != 0) {
+      str_vector_push(&arguments, ",");
+    }
+    string arg_value = com_statement(com, args_statement->block->statements[i]);
+    str_vector_push(&arguments, arg_value);
+  };
+  return concat(4, stmt->sym_decl.name, "(", str_vector_join(&arguments), ")");
 }
 
 string com_bin_op(string left, string right, OpType optype) {
