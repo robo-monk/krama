@@ -66,18 +66,22 @@ VariableSymbol *com_get_var_sym(CCompiler *com, string var_name) {
   return sym->var;
 }
 
-DefSymbol *com_get_def_sym(CCompiler *com, string var_name) {
-  const Symbol *sym = com_get_symbol(com, var_name);
+DefSymbol *com_get_def_sym(CCompiler *com, string def_name) {
+  const Symbol *sym = com_get_symbol(com, def_name);
   if (sym == NULL) {
+    // bubble up scope
+    if (com->upper != NULL)
+      return com_get_def_sym(com->upper, def_name);
+
     return NULL;
   }
   return sym->def;
 }
 
-void com_declare_def_sym(CCompiler *com, string def_name, Statement *body,
-                         LiteralType return_type) {
+void declare_def_sym_on_com(CCompiler *com, string def_name, Statement *body,
+                            LiteralType return_type) {
 
-  printf("   DEFINE %s w/ return type %s \n", def_name,
+  printf("\nDECLARE DEFINITION %s w/ return type %s \n", def_name,
          literal_type_to_str(return_type));
 
   if (com_get_def_sym(com, def_name) != NULL) {
@@ -88,7 +92,7 @@ void com_declare_def_sym(CCompiler *com, string def_name, Statement *body,
 }
 
 void com_declare_var_sym(CCompiler *com, string var_name, LiteralType type) {
-  printf("   DECLARE %s of type %s \n", var_name, literal_type_to_str(type));
+  printf("\nDECLARE %s of type %s \n", var_name, literal_type_to_str(type));
   if (com_get_var_sym(com, var_name) != NULL) {
     throw_compilation_error("redecleration of variable '%s'", var_name);
   }
@@ -98,7 +102,9 @@ void com_declare_var_sym(CCompiler *com, string var_name, LiteralType type) {
 CCompiler new_ccompiler() {
   CCompiler com = {.headers = new_str_vec(1),
                    .implementations = new_str_vec(1),
-                   .declerations = new_str_vec(1)};
+                   .declerations = new_str_vec(1),
+                   .upper = NULL,
+                   .sym_map = malloc(sizeof(Scope))};
 
   com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
                             __sym_compare, NULL, NULL);
@@ -112,8 +118,18 @@ CCompiler new_ccompiler() {
   return com;
 }
 
+void free_ccompiler(CCompiler *com) {
+  Vec_free(&com->declerations);
+  Vec_free(&com->implementations);
+  Vec_free(&com->headers);
+  hashmap_free(com->sym_map);
+}
+
 void push_implementation(CCompiler *com, string impl_str) {
   str_vector_push(&com->implementations, impl_str);
+}
+void push_decleration(CCompiler *com, string decl_str) {
+  str_vector_push(&com->declerations, concat(2, decl_str, ";"));
 }
 void push_header(CCompiler *com, string head_str) {
   str_vector_push(&com->implementations, head_str);
@@ -134,16 +150,14 @@ string com_block_statement(CCompiler *com, BlockStatement *stmt) {
   return a;
 }
 
-string com_write_variable(CCompiler *com, string var_name, LiteralType var_type,
-                          string value) {
+string compile_write_variable(CCompiler *com, string var_name,
+                              LiteralType var_type, string value) {
 
   VariableSymbol *varsym = com_get_var_sym(com, var_name);
   if (varsym == NULL) {
     throw_compilation_error("tried to write an undeclared variable '%s'",
                             var_name);
   }
-  // if (com_get_symbol(com, var_name)) {
-  // }
   return concat(3, var_name, " = ", value);
 }
 
@@ -152,17 +166,28 @@ string com_declare_variable(CCompiler *com, string var_name,
   com_declare_var_sym(com, var_name, var_type);
 
   return concat(3, literal_type_to_str(var_type), " ",
-                com_write_variable(com, var_name, var_type, value));
+                compile_write_variable(com, var_name, var_type, value));
 }
 
-string com_read_variable(CCompiler *com, string var_name,
-                         LiteralType var_type) {
+string compile_read_variable(CCompiler *com, string var_name,
+                             LiteralType var_type) {
   VariableSymbol *varsym = com_get_var_sym(com, var_name);
   if (varsym == NULL) {
     throw_compilation_error("tried to read from undeclared variable '%s'",
                             var_name);
   }
   return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
+}
+
+string compile_call_symbol(CCompiler *com, Statement *stmt) {
+  DefSymbol *defsym = com_get_def_sym(com, stmt->sym_decl.name);
+  if (defsym == NULL) {
+    throw_compilation_error("tried to invoke undeclared definition '%s'",
+                            stmt->sym_decl.name);
+  }
+
+  return concat(3, stmt->sym_decl.name, "(", ")");
+  // return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
 }
 
 string com_bin_op(string left, string right, OpType optype) {
@@ -188,6 +213,7 @@ string compile_block_arguments(CCompiler *com, BlockStatement *block) {
       str_vector_push(&compiled_args, ", ");
     }
 
+    com_declare_var_sym(com, block->args[i]->name, block->args[i]->type);
     string arg_str = concat(3, literal_type_to_str(block->args[i]->type), " ",
                             block->args[i]->name);
 
@@ -202,16 +228,25 @@ string com_def_declaration(CCompiler *com, string def_name, Statement *stmt) {
     throw_compilation_error("redecleration of definition'%s'", def_name);
   }
   LiteralType return_type = LiteralType_void;
-  com_declare_def_sym(com, def_name, stmt, return_type);
+  declare_def_sym_on_com(com, def_name, stmt, return_type);
+
+  CCompiler scoped_compiler = new_ccompiler();
+  scoped_compiler.upper = com;
+  // declare_def_sym_on_com(&scoped_compiler, def_name, stmt, return_type);
   // body->block->
   // args parsing
-  string compiled_args = compile_block_arguments(com, stmt->block);
+  string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
   printf("\n -- compiled args %s\n", compiled_args);
 
-  return concat(6, literal_type_to_str(return_type), " ", def_name, "(",
-                compiled_args, ")");
+  string decleration_str = concat(6, literal_type_to_str(return_type), " ",
+                                  def_name, "(", compiled_args, ")");
 
+  push_decleration(com, decleration_str);
+  string body = com_block_statement(&scoped_compiler, stmt->block);
+  free_ccompiler(&scoped_compiler);
+  // return decleration_str;
+  return concat(4, decleration_str, " {\n", body, "\n}");
   // new_def_symbol(char *name, BlockStatement *body)
   // com_declare_def_sym(com, stmt->sym_decl.name, stmt->, LiteralType
   // return_type)
@@ -243,13 +278,13 @@ string com_statement(CCompiler *com, Statement *stmt) {
                                 com_statement(com, stmt->right));
 
   case STMT_VARIABLE_READ:
-    return com_read_variable(com, stmt->sym_decl.name, stmt->sym_decl.type);
+    return compile_read_variable(com, stmt->sym_decl.name, stmt->sym_decl.type);
   case STMT_VARIABLE_WRITE:
-    return com_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
-                              com_statement(com, stmt->right));
+    return compile_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
+                                  com_statement(com, stmt->right));
 
-  // case STMT_DEF_INVOKE:
-  //   return com_call_symbol(com, stmt);
+  case STMT_DEF_INVOKE:
+    return compile_call_symbol(com, stmt);
   case STMT_CONDITIONAL:
     // printf("\neval conditional:\n");
     // dbg_stmt(stmt);
@@ -275,9 +310,16 @@ void write_ccompiler_state_to_file(CCompiler *com, string filename) {
     fprintf(file, "%s\n", (string)vector_at(&com->headers, i));
   }
 
-  fprintf(file, "\n\n // implementations \n");
+  fprintf(file, "\n\n// declerations \n");
+  for (int i = 0; i < com->declerations.size; i++) {
+    // printf("\n\n %d*** %s\n", i, (string)vector_at(&com->declerations, i));
+    fprintf(file, "%s\n", (string)vector_at(&com->declerations, i));
+  }
+
+  fprintf(file, "\n\n// implementations \n");
   for (int i = 0; i < com->implementations.size; i++) {
-    printf("\n\n %d*** %s\n", i, (string)vector_at(&com->implementations, i));
+    // printf("\n\n %d*** %s\n", i, (string)vector_at(&com->implementations,
+    // i));
     fprintf(file, "%s\n", (string)vector_at(&com->implementations, i));
   }
   // Write the text to the file, followed by a newline character

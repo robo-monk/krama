@@ -30,4 +30,8 @@ void vector_push(Vec *vec, void *el);
 void *vector_at(Vec *vec, int idx);
 char *concat(int count, ...);
 void throw_hard_error(const char *format, ...);
+#include <stdlib.h> // For free()
+
+// Free the dynamically allocated memory of a Vec
+void Vec_free(Vec *vec);
 #endif

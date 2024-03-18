@@ -8,6 +8,18 @@
 
 
 
- // implementations 
-void add(i32 a, f64 b);
+// declerations 
+void add(i32 a, i32 b);
+void main();
+
+
+// implementations 
+void add(i32 a, i32 b) {
+(i32)a+(i32)b;
+
+};
+void main() {
+add();
+
+};
 

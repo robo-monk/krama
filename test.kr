@@ -1,3 +1,7 @@
-def add(a: i32, b: f64) {
-    a+b
+def add(a: i32, b: i32) {
+    a + b
+}
+
+def main() {
+    :add(5, 5)
 }

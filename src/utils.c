@@ -72,6 +72,21 @@ StrVec new_str_vec(size_t capacity) {
   return new_vec(capacity, sizeof(string));
 }
 
+void Vec_free(Vec *vec) {
+  // Safely handle null pointer
+  if (vec == NULL)
+    return;
+
+  // Free the allocated memory block pointed to by ptr
+  free(vec->ptr);
+
+  // Reset the Vec fields to indicate it's no longer valid.
+  vec->ptr = NULL;
+  vec->size = 0;
+  vec->capacity = 0;
+  vec->el_size = 0;
+}
+
 char *concat(int count, ...) {
   va_list ap;
   int i;
