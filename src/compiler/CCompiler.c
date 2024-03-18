@@ -1,21 +1,53 @@
 #include "../frontend/LiteralType.h"
+#include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
 #include "compiler.h"
 #include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include <complex.h>
 
-void Compiler_throw(const char *format, ...) {
-  va_list args;
-  va_start(args, format);
+void Compiler_throw(Compiler *com, const char *fmt, ...) {
+  char buffer[1024]; // Buffer to hold the formatted error message
+  // com->current_stmt->token;
+  va_list args;        // To handle the variable argument list
+  va_start(args, fmt); // Initialize the variable arguments list
+  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
+  va_end(args); // Clean up the variable arguments list
 
-  fprintf(stderr, "\033[31m\n[Compiler] Error! "); // Start red text
-  vfprintf(stderr, format, args); // Print formatted output in red
-  fprintf(stderr, "\033[0m\n");   // Reset to default text color
+  report_syntax_error(com->current_stmt->token, buffer);
+  // va_list args;
+  // va_start(args, format);
 
-  va_end(args);
-  exit(1);
+  // fprintf(stderr, "\033[31m\n[Compiler] Error! "); // Start red text
+  // vfprintf(stderr, format, args); // Print formatted output in red
+  // fprintf(stderr, "\033[0m\n");   // Reset to default text color
+
+  // va_end(args);
+  // exit(1);
+}
+
+void Compiler_throw_for_token(Token token, const char *fmt, ...) {
+  char buffer[1024]; // Buffer to hold the formatted error message
+
+  va_list args;        // To handle the variable argument list
+  va_start(args, fmt); // Initialize the variable arguments list
+  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
+  va_end(args); // Clean up the variable arguments list
+
+  report_syntax_error(
+      token, buffer); // Pass the formatted string to report_syntax_error
+}
+
+void Compiler_throw_for_stmt(Statement *stmt, const char *fmt, ...) {
+  char buffer[1024]; // Buffer to hold the formatted error message
+
+  va_list args;        // To handle the variable argument list
+  va_start(args, fmt); // Initialize the variable arguments list
+  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
+  va_end(args); // Clean up the variable arguments list
+
+  report_syntax_error(
+      stmt->token, buffer); // Pass the formatted string to report_syntax_error
 }
 
 int __sym_compare(const void *a, const void *b, void *udata) {
@@ -85,6 +117,7 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw("redecleration of definition '%s'", def_name);
+    // Compiler_throw("redecleration of definition '%s'", def_name);
   }
 
   hashmap_set(com->sym_map, new_def_symbol(def_name, body));
@@ -103,7 +136,8 @@ Compiler Compiler_new() {
                   .implementations = new_str_vec(1),
                   .declerations = new_str_vec(1),
                   .upper = NULL,
-                  .sym_map = malloc(sizeof(Scope))};
+                  .sym_map = malloc(sizeof(Scope)),
+                  .current_stmt = NULL};
 
   com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
                             __sym_compare, NULL, NULL);

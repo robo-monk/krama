@@ -18,6 +18,7 @@ Statement *parse(Parser *parser);
 Parser new_parser(Token *tokens);
 void expect(Parser *parser, TokenType token_type, string error_msg);
 void throw_parser_error(Parser *parser, string error_msg);
+// void report_syntax_error(Token token, string error_msg);
 
 Token peek(Parser *parser);
 Token look_ahead(Parser *parser);

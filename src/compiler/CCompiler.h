@@ -36,12 +36,16 @@ struct Compiler {
 
   // TODO: this should be a Scope struct
   // Scope *scope;
-
   struct hashmap *sym_map;
   Compiler *upper;
+
+  Statement *current_stmt;
 };
 
-void Compiler_throw(const char *format, ...);
+// void Compiler_throw(const char *format, ...);
+void Compiler_throw(Compiler *com, const char *fmt, ...);
+void Compiler_throw_for_token(Token token, const char *fmt, ...);
+void Compiler_throw_for_stmt(Statement *stmt, const char *fmt, ...);
 
 Symbol *new_sym(string name);
 Symbol *new_def_symbol(string name, Statement *body);

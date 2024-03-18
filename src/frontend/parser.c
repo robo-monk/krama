@@ -45,7 +45,7 @@ string line_of_token(Token token) {
 
 void report_syntax_error(Token token, string error_msg) {
   string error_line = line_of_token(token);
-  throw_hard_error("%s\n[%d:%d] Parser error: %s\n", error_line, token.row_idx,
+  throw_hard_error("%s\n[%d:%d] Syntax error: %s\n", error_line, token.row_idx,
                    token.col_idx, error_msg);
 }
 

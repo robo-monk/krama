@@ -19,7 +19,7 @@ void add(i32 a, i32 b) {
 
 };
 void main() {
-add((i32)5,(i32)5);
+add((i32)5,(i32)5+(i32)3);
 
 };
 

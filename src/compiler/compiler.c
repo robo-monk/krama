@@ -1,6 +1,5 @@
 #include "compiler.h"
 #include "../frontend/LiteralType.h"
-#include "../frontend/parser.h"
 #include "stdio.h"
 #include "stdlib.h"
 
@@ -23,7 +22,7 @@ string compile_write_variable(Compiler *com, string var_name,
 
   VariableSymbol *varsym = Compiler_varsym_get(com, var_name);
   if (varsym == NULL) {
-    Compiler_throw("tried to write an undeclared variable '%s'", var_name);
+    Compiler_throw(com, "tried to write an undeclared variable '%s'", var_name);
   }
   return concat(3, var_name, " = ", value);
 }
@@ -40,7 +39,8 @@ string compile_read_variable(Compiler *com, string var_name,
                              LiteralType var_type) {
   VariableSymbol *varsym = Compiler_varsym_get(com, var_name);
   if (varsym == NULL) {
-    Compiler_throw("tried to read from undeclared variable '%s'", var_name);
+    Compiler_throw(com, "tried to read from undeclared variable '%s'",
+                   var_name);
   }
   return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
 }
@@ -48,7 +48,7 @@ string compile_read_variable(Compiler *com, string var_name,
 string compile_call_symbol(Compiler *com, Statement *stmt) {
   DefSymbol *defsym = Compiler_defsym_get(com, stmt->sym_decl.name);
   if (defsym == NULL) {
-    Compiler_throw("tried to invoke undeclared definition '%s'",
+    Compiler_throw(com, "tried to invoke undeclared definition '%s'",
                    stmt->sym_decl.name);
   }
 
@@ -58,7 +58,9 @@ string compile_call_symbol(Compiler *com, Statement *stmt) {
   // printf("\nCOMPIKLING %d ARG\n", stmt->block->arg_len);
   Statement *args_statement = stmt->right;
   if (args_statement->type != STMT_BLOCK) {
-    Compiler_throw("expected block statement that defines arguments");
+    // Compiler_throw("expected block statement that defines arguments");
+    Compiler_throw_for_stmt(args_statement,
+                            "expected block statement that defines arguments");
   }
 
   StrVec arguments = new_str_vec(1);
@@ -99,6 +101,7 @@ string compile_block_arguments(Compiler *com, BlockStatement *block) {
     string arg_str = concat(3, literal_type_to_str(block->args[i]->type), " ",
                             block->args[i]->name);
 
+    // com_
     str_vector_push(&compiled_args, arg_str);
   }
 
@@ -107,7 +110,7 @@ string compile_block_arguments(Compiler *com, BlockStatement *block) {
 
 string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   if (Compiler_defsym_get(com, def_name)) {
-    Compiler_throw("redecleration of definition'%s'", def_name);
+    Compiler_throw(com, "redecleration of definition'%s'", def_name);
   }
   LiteralType return_type = LiteralType_void;
   Compiler_defsym_declare(com, def_name, stmt, return_type);
@@ -135,7 +138,8 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   // string else_com = "";
   // if (conditional->else_body) {
   //   else_com = concat(3, " else {\n",
-  //                     com_block_statement(com, conditional->else_body), "}");
+  //                     com_block_statement(com, conditional->else_body),
+  //                     "}");
   // }
 
   // return concat(6, "if (", com_statement(com, conditional->condition), ")
@@ -145,6 +149,7 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
 }
 
 string com_statement(Compiler *com, Statement *stmt) {
+  com->current_stmt = stmt;
   switch (stmt->type) {
   case STMT_BLOCK:
     return com_block_statement(com, stmt->block);
@@ -175,7 +180,8 @@ string com_statement(Compiler *com, Statement *stmt) {
     return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
   }
 
-  report_syntax_error(stmt->token, "unsupported token");
+  // report_syntax_error(stmt->token, "unsupported token");
+  Compiler_throw(com, "unsupportd token");
 }
 
 void compile_program(BlockStatement *program, char *filename) {
