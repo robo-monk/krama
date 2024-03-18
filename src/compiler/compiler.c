@@ -51,10 +51,13 @@ Symbol *new_sym(string name) {
   return sym;
 }
 
-Symbol *new_def_symbol(string name, Statement *stmt) {
+Symbol *new_def_symbol(string name, Statement *body) {
   Symbol *sym = new_sym(name);
   DefSymbol *def = malloc(sizeof(DefSymbol));
-  def->stmt = stmt;
+  def->body = body;
+
+  // TODO: infer type
+  def->type = LiteralType_void;
   sym->def = def;
   return sym;
 }
@@ -76,6 +79,27 @@ VariableSymbol *com_get_var_sym(CCompiler *com, string var_name) {
     return NULL;
   }
   return sym->var;
+}
+
+DefSymbol *com_get_def_sym(CCompiler *com, string var_name) {
+  const Symbol *sym = com_get_symbol(com, var_name);
+  if (sym == NULL) {
+    return NULL;
+  }
+  return sym->def;
+}
+
+void com_declare_def_sym(CCompiler *com, string def_name, Statement *body,
+                         LiteralType return_type) {
+
+  printf("   DEFINE %s w/ return type %s \n", def_name,
+         literal_type_to_str(return_type));
+
+  if (com_get_def_sym(com, def_name) != NULL) {
+    throw_compilation_error("redecleration of definition '%s'", def_name);
+  }
+
+  hashmap_set(com->sym_map, new_def_symbol(def_name, body));
 }
 
 void com_declare_var_sym(CCompiler *com, string var_name, LiteralType type) {
@@ -170,6 +194,53 @@ string com_conditional(CCompiler *com, ConditionalStatement *conditional) {
                 com_block_statement(com, conditional->if_body), "}", else_com);
 }
 
+string compile_block_arguments(CCompiler *com, BlockStatement *block) {
+  // string compiled_args = malloc(sizeof(char) * 512);
+  StrVec compiled_args = new_str_vec(1);
+  for (int i = 0; i < block->arg_len; i++) {
+    if (i != 0) {
+      str_vector_push(&compiled_args, ", ");
+    }
+
+    string arg_str = concat(3, literal_type_to_str(block->args[i]->type), " ",
+                            block->args[i]->name);
+
+    str_vector_push(&compiled_args, arg_str);
+  }
+
+  return str_vector_join(&compiled_args);
+}
+
+string com_def_declaration(CCompiler *com, string def_name, Statement *stmt) {
+  if (com_get_def_sym(com, def_name)) {
+    throw_compilation_error("redecleration of definition'%s'", def_name);
+  }
+  LiteralType return_type = LiteralType_void;
+  com_declare_def_sym(com, def_name, stmt, return_type);
+  // body->block->
+  // args parsing
+  string compiled_args = compile_block_arguments(com, stmt->block);
+
+  printf("\n -- compiled args %s\n", compiled_args);
+
+  return concat(6, literal_type_to_str(return_type), " ", def_name, "(",
+                compiled_args, ")");
+
+  // new_def_symbol(char *name, BlockStatement *body)
+  // com_declare_def_sym(com, stmt->sym_decl.name, stmt->, LiteralType
+  // return_type)
+  // string else_com = "";
+  // if (conditional->else_body) {
+  //   else_com = concat(3, " else {\n",
+  //                     com_block_statement(com, conditional->else_body), "}");
+  // }
+
+  // return concat(6, "if (", com_statement(com, conditional->condition), ")
+  // {\n",
+  //               com_block_statement(com, conditional->if_body), "}",
+  //               else_com);
+}
+
 string com_statement(CCompiler *com, Statement *stmt) {
   switch (stmt->type) {
   case STMT_BLOCK:
@@ -190,12 +261,15 @@ string com_statement(CCompiler *com, Statement *stmt) {
   case STMT_VARIABLE_WRITE:
     return com_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                               com_statement(com, stmt->right));
+
   // case STMT_DEF_INVOKE:
   //   return com_call_symbol(com, stmt);
   case STMT_CONDITIONAL:
     // printf("\neval conditional:\n");
     // dbg_stmt(stmt);
     return com_conditional(com, stmt->conditional);
+  case STMT_DEF_DECL:
+    return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
   }
 
   throw_compilation_error("found unsupported token while compiling");

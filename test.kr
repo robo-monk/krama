@@ -1,11 +1,7 @@
-let hello = 200
-let hello = 3
-let bing3 = 3 + 3
+def hello(a: i32, b: i32) {
+    5
+}
 
-bing = hello + 4*34 + bing3
-
-if (bing3 > 5) {
-    hello + 490290
-} else {
-    bing3 * 2 * bing3
+def hello2(abraca: u64, b: i32) {
+    5
 }

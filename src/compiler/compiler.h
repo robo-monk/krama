@@ -8,7 +8,7 @@ typedef struct {
 } VariableSymbol;
 
 typedef struct {
-  Statement *stmt;
+  Statement *body;
   LiteralType type;
 } DefSymbol;
 

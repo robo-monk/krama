@@ -27,6 +27,7 @@ typedef enum {
   LiteralType_f64,
   LiteralType_char,
   LiteralType_bool,
+  LiteralType_void
 } LiteralType;
 
 typedef struct {
