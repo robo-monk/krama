@@ -98,3 +98,15 @@ char *concat(int count, ...) {
 
   return merged;
 }
+
+void throw_hard_error(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  fprintf(stderr, "\033[31m\n");  // Start red text
+  vfprintf(stderr, format, args); // Print formatted output in red
+  fprintf(stderr, "\033[0m\n");   // Reset to default text color
+
+  va_end(args);
+  exit(1);
+}

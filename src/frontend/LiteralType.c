@@ -8,8 +8,7 @@ LiteralType str_to_literal_type(string str) {
       return type_map[i].type;
     }
   }
-  printf("\n Unrecognised type: %s \n", str);
-  return NULL;
+  return -1;
 }
 
 const string literal_type_to_str(LiteralType type) {
@@ -18,6 +17,8 @@ const string literal_type_to_str(LiteralType type) {
       return type_map[i].str;
     }
   }
+
+  // throw_hard_error("Unrecognised Literal Type");
   return NULL;
 }
 
@@ -26,6 +27,12 @@ string literal_val2str(LiteralStatement literal) {
   switch (literal.type) {
   case LiteralType_i32:
     sprintf(str, "%d", literal.i32_value);
+    break;
+  case LiteralType_f64:
+    sprintf(str, "%f", literal.f64_value);
+    break;
+  case LiteralType_void:
+    sprintf(str, "VOID");
     break;
   }
   return str;

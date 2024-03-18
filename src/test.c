@@ -30,32 +30,32 @@ int main() {
   test_eval("if(3 > 2) {5}\n", 5);
 
   // simple expressions
-  test_eval("4 + 4\n", 8);
-  test_eval("4 * 4\n", 16);
-  test_eval("4 + 2*2 + 20 / 2 \n", 18);
-  test_eval("10 - 2 + 3\n", 11);
-  test_eval("(8 / 4) * 2\n", 4);
-  test_eval("1 + 2 * 3\n", 7);
-  test_eval("4 * (2 + 3) - 10 / 2\n", 15);
-  test_eval("2 + 2 * 3 - 1 + (4 / 2) * 3\n", 13);
+  test_eval("4 + 4\0", 8);
+  test_eval("4 * 4\0", 16);
+  test_eval("4 + 2*2 + 20 / 2 \0", 18);
+  test_eval("10 - 2 + 3\0", 11);
+  test_eval("(8 / 4) * 2\0", 4);
+  test_eval("1 + 2 * 3\0", 7);
+  test_eval("4 * (2 + 3) - 10 / 2\0", 15);
+  test_eval("2 + 2 * 3 - 1 + (4 / 2) * 3\0", 13);
 
   // varialbles
   test_eval("let bing = 5;\n", 5);
-  test_eval("let hello = 2\n", 2);
-  test_eval("let a = 8-4; a\n", 4);
-  test_eval("let a = 2; let b = 3; let c = 5; \n", 5);
-  test_eval("let a = 2; let b = 3; let c = 5; a \n", 2);
-  test_eval("let a = 3; 2 + a\n", 5);
-  test_eval("let a = 4; a + 3\n", 7);
+  test_eval("let hello = 2\0", 2);
+  test_eval("let a = 8-4; a\0", 4);
+  test_eval("let a = 2; let b = 3; let c = 5; \0", 5);
+  test_eval("let a = 2; let b = 3; let c = 5; a \0", 2);
+  test_eval("let a = 3; 2 + a\0", 5);
+  test_eval("let a = 4; a + 3\0", 7);
   test_eval("let a = 4; a = 5 + 2;\n", 7);
   test_eval("let a = 4; a = a + 2;\n", 6);
-  test_eval("let a = 4; let b = a + 2; b + 5\n", 11);
+  test_eval("let a = 4; let b = a + 2; b + 5\0", 11);
   test_eval("let b = 99; let c = (5 + 32 + 2 + b);\n", 138);
 
   // impl stuff
-  test_eval("def bing() { 5 }; :bing\n", 5);
-  test_eval("def hello() { 1 } def add1() { 5-:hello }; :add1\n", 4);
-  test_eval("def hello() { 1;2;3 } :hello\n", 3);
+  test_eval("def bing() { 5 }; :bing\0", 5);
+  test_eval("def hello() { 1 } def add1() { 5-:hello }; :add1\0", 4);
+  test_eval("def hello() { 1;2;3 } :hello\0", 3);
   test_eval("def add1(a: i32) { a + 5 }; :add1(1)\n", 6);
   // return 0;
 
@@ -71,10 +71,10 @@ int main() {
             130);
 
   // if
-  test_eval("if (2 < 3) { 8 } \n", 8);
+  test_eval("if (2 < 3) { 8 } \0", 8);
   // nested if
-  test_eval("let b = 5; if (2 < 3) { if (b > 0) {99}} \n", 99);
-  test_eval(" if (0 > 0) {99} else {5} \n", 5);
+  test_eval("let b = 5; if (2 < 3) { if (b > 0) {99}} \0", 99);
+  test_eval(" if (0 > 0) {99} else {5} \0", 5);
 
   test_eval("def factorial(a:i32) {"
             "if (a < 1) {"
@@ -102,7 +102,9 @@ int main() {
             "{a+b+c+d+e+f}; let hello = 5; :add(hello, 2, 3, 4, 5, 6);\n",
             25);
 
+  test_eval("def alfk(a: f90){}", 25);
+
   // this shit ||
-  // test_eval("def |x: i32| incr() {x+1}; 4:incr \n", 5);
+  // test_eval("def |x: i32| incr() {x+1}; 4:incr \0", 5);
   return 0;
 }

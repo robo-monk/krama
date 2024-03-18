@@ -36,6 +36,7 @@ typedef union {
   OpType op_type;
 } TokenValue;
 
+typedef struct Tokeniser Tokeniser;
 typedef struct {
   TokenType type;
   TokenValue value;
@@ -47,6 +48,8 @@ typedef struct {
   int col_idx;
 
   string raw_value;
+
+  const Tokeniser *tokeniser;
 } Token;
 
 #define TOKENISER_INITIAL_TOKEN_ARRAY_LEN 100
@@ -64,7 +67,8 @@ typedef struct {
   unsigned int idx;
 } TokeniserBuffer;
 
-typedef struct {
+struct Tokeniser {
+  string content;
   Token current_token;
   int idx;
 
@@ -83,7 +87,7 @@ typedef struct {
 
   unsigned int len;
   unsigned int max_len;
-} Tokeniser;
+};
 
 Token new_op_token(OpType op_type);
 Token new_token(TokenType type);

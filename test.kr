@@ -1,7 +1,3 @@
-def hello(a: i32, b: i32) {
-    5
-}
-
-def hello2(abraca: u64, b: i32) {
+def hello(a: i32, b: u64) {
     5
 }

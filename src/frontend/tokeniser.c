@@ -72,6 +72,7 @@ void push_token(Token token, Tokeniser *tokeniser) {
   token.end = tokeniser->char_idx;
   token.row_idx = tokeniser->row_idx;
   token.col_idx = tokeniser->col_idx;
+  token.tokeniser = tokeniser;
 
   tokeniser->len += 1;
   _alloc_tokens_array(tokeniser);
@@ -203,7 +204,7 @@ void tokenise_char(char c, Tokeniser *state) {
   }
 }
 
-Tokeniser *new_tokeniser() {
+Tokeniser *new_tokeniser(string content) {
   Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
 
@@ -212,6 +213,7 @@ Tokeniser *new_tokeniser() {
 
   state->char_idx = 0;
   state->_last_char_idx_push = 0;
+  state->content = content;
 
   state->tokens = malloc(sizeof(Token) * TOKENISER_INITIAL_TOKEN_ARRAY_LEN);
   state->len = 0;
@@ -237,10 +239,11 @@ void free_tokeniser(Tokeniser *t) {
 }
 
 Tokeniser *tokenise_str(string str) {
-  Tokeniser *tokeniser = new_tokeniser();
+  Tokeniser *tokeniser = new_tokeniser(str);
   char c;
 
-  while ((c = str[tokeniser->char_idx++]) != '\n') {
+  // while ((c = str[tokeniser->char_idx++]) != '\n') {
+  while ((c = str[tokeniser->char_idx++]) != '\0') {
     tokenise_char(c, tokeniser);
   }
 
@@ -250,25 +253,45 @@ Tokeniser *tokenise_str(string str) {
   return tokeniser;
 }
 
-Tokeniser *tokenise_file(const string filename) {
-  FILE *fptr;
-  fptr = fopen(filename, "r");
+string read_file_to_str(const string filename) {
+  char *buffer = 0;
+  long length;
+  FILE *f = fopen(filename, "rb");
 
-  Tokeniser *tokeniser = new_tokeniser();
-
-  char c;
-  while ((c = fgetc(fptr)) != EOF) {
-    // printf("\nconsum %c", c);
-    tokenise_char(c, tokeniser);
+  if (f) {
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buffer = malloc(length);
+    if (buffer) {
+      fread(buffer, 1, length, f);
+    }
+    fclose(f);
   }
-  close_tokeniser(tokeniser);
+  return buffer;
+}
 
-  fclose(fptr);
+Tokeniser *tokenise_file(const string filename) {
+  // FILE *fptr;
+  // fptr = fopen(filename, "r");
+
+  string file_content = read_file_to_str(filename);
+  printf("filecontent is --- \n%s\n---", file_content);
+  // Tokeniser *tokeniser = new_tokeniser(file_content);
+  Tokeniser *tokeniser = tokenise_str(file_content);
   return tokeniser;
+  // char c;
+  // while ((c = fgetc(fptr)) != EOF) {
+  //   // printf("\nconsum %c", c);
+  //   tokenise_char(c, tokeniser);
+  // }
+  // close_tokeniser(tokeniser);
+
+  // fclose(fptr);
+  // return tokeniser;
 }
 
 void dbg_token(Token token) {
-  printf("[%d:%d] ", token.row_idx + 1, token.col_idx + 1);
   switch (token.type) {
   case TOKEN_OP:
     printf("Operand: %s", optype_to_str(token.value.op_type));

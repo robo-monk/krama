@@ -8,23 +8,51 @@
 
 Statement *parse_statement(Parser *parser);
 
+Token look_behind(Parser *parser) { return parser->tokens[parser->idx - 1]; }
 Token look_ahead(Parser *parser) { return parser->tokens[parser->idx + 1]; }
 
 Token peek(Parser *parser) { return parser->tokens[parser->idx]; }
 
 Token eat(Parser *parser) { return parser->tokens[parser->idx++]; }
 
+string line_of_token(Token token) {
+  string content = token.tokeniser->content;
+  int idx = token.start;
+
+  int start = idx;
+  while (start > 0 && content[start] != '\n') {
+    start--;
+  }
+  int end = idx;
+  while (content[end] != '\n' && content[end] != '\0') {
+    end++;
+  }
+  string line = malloc((end - start) * sizeof(char));
+  for (int i = 0; i < (end - start); i++) {
+    line[i] = content[start + i];
+  }
+
+  int length = token.end - token.start;
+  string pointer = calloc((idx - start) + length, sizeof(char));
+  for (int i = 0; i < idx - start - 1; i++) {
+    pointer[i] = ' ';
+  }
+  for (int i = idx - start - 1; i < idx - start + length; i++) {
+    pointer[i] = '^';
+  }
+  return concat(3, line, "\n", pointer);
+}
+
 void throw_parser_error(Parser *parser, string error_msg) {
-  printf("[1:%d] ", parser->idx);
-  printf("Parser Error: %s \n", error_msg);
-  exit(1);
+  Token current_token = look_behind(parser);
+  string error_line = line_of_token(current_token);
+
+  throw_hard_error("%s\n[%d:%d] Parser error: %s\n", error_line,
+                   current_token.row_idx, current_token.col_idx, error_msg);
 }
 
 void throw_unexpected_token(Parser *parser, string error_msg) {
-  // printf("[_:%d] ", parser->idx);
-  printf("Syntax Error: %s. Got ", error_msg);
-  dbg_token(peek(parser));
-  exit(1);
+  return throw_parser_error(parser, error_msg);
 }
 
 void expect(Parser *parser, TokenType token_type, string error_msg) {
@@ -240,8 +268,9 @@ SymbolStatement *parse_symbol_statement(Parser *parser) {
 
   sym_stmt->name = symbol_identifier.value.str_value;
   sym_stmt->type = str_to_literal_type(type_identifier.value.str_value);
-  if (sym_stmt == NULL)
+  if (sym_stmt->type == -1) {
     throw_parser_error(parser, "unrecognised literal type");
+  }
   return sym_stmt;
 }
 

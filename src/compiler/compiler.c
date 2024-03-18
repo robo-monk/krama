@@ -6,22 +6,6 @@
 #include "stdlib.h"
 #include <complex.h>
 
-// void throw_compilation_error(const char *format, ...) {
-//   va_list args;
-//   va_start(args, format);
-
-//   printf("\n[compiler] Error! ");
-//   vprintf(format, args);
-//   printf("\n");
-
-//   va_end(args);
-//   exit(1);
-// }
-
-// #include <stdarg.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-
 void throw_compilation_error(const char *format, ...) {
   va_list args;
   va_start(args, format);
