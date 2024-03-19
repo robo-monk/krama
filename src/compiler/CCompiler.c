@@ -35,9 +35,10 @@ Symbol *new_sym(string name) {
 }
 
 Symbol *new_def_symbol(string name, Statement *body,
-                       BranchLiteral return_type) {
+                       BranchLiteral *return_type) {
   Symbol *sym = new_sym(name);
   DefSymbol *def = malloc(sizeof(DefSymbol));
+
   def->body = body;
   def->btype = return_type;
   sym->def = def;
@@ -76,10 +77,10 @@ DefSymbol *Compiler_defsym_get(Compiler *com, string def_name) {
 }
 
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
-                             BranchLiteral return_type) {
+                             BranchLiteral *return_type) {
 
   printf("\nDECLARE DEFINITION %s w/ return type", def_name);
-  dbg_branch_literal(&return_type);
+  dbg_branch_literal(return_type);
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw(com, "redecleration of definition '%s'", def_name);

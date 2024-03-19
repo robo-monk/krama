@@ -9,40 +9,26 @@
 
 
 // declerations 
-i32 fib(i32 a);
-i32 fib2(i32 a);
-f64 as_float(f64 a);
-i32 as_int(i32 a);
+i32 sub(i32 a);
+i32 add(i32 a, i32 b);
 i32 main();
 
 
 // implementations 
-i32 fib(i32 a) {
-if ((i32)a<(i32)2) {
-return (i32)1;
-} else {
-return fib((i32)a-(i32)1)+fib((i32)a-(i32)2);
-};
+i32 sub(i32 a) {
+return a;
 
 };
-i32 fib2(i32 a) {
-if ((i32)a>(i32)2) {
-return fib((i32)a-(i32)1)+fib((i32)a-(i32)2);
-} else {
-return (i32)1;
-};
-
-};
-f64 as_float(f64 a) {
-return (i32)a;
-
-};
-i32 as_int(i32 a) {
-return (i32)a;
+i32 add(i32 a, i32 b) {
+return a+sub((i32) 39);
 
 };
 i32 main() {
-return fib2((i32)39)+fib((i32)42);
+if ((i32) 1) {
+return (i32) 1;
+} else {
+return add((i32) 390,(i32) 39)+add((i32) 4892,(i32) 3);
+};
 
 };
 

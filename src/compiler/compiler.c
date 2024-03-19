@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "../frontend/LiteralType.h"
+#include "CCompiler.h"
 #include "inference.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -59,7 +60,8 @@ string compile_read_variable(Compiler *com, string var_name,
     Compiler_throw(com, "tried to read from undeclared variable '%s'",
                    var_name);
   }
-  return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
+  // return concat(4, "(", literal_type_to_str(var_type), ")", var_name);
+  return concat(1, var_name);
 }
 
 string compile_call_symbol(Compiler *com, Statement *stmt) {
@@ -135,10 +137,13 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   scoped_compiler.upper = com;
   string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
+  printf("\n DECLARIN \n");
+  Compiler_defsym_declare(&scoped_compiler, def_name, stmt, NULL);
+
+  printf("\n INFERING \n");
+
   Inferer inf = Inferer_new(&scoped_compiler);
-  Compiler_defsym_declare(&scoped_compiler, def_name, stmt,
-                          new_for_literal(-1));
-  BranchLiteral return_type_branch = infer_statement(&inf, stmt);
+  BranchLiteral *return_type_branch = infer_statement(&inf, stmt);
   // LiteralType return_type = return_type_branch.type;
 
   // printf("\ninfered defsym '%s' to %s\n", def_name,
@@ -148,8 +153,7 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
 
   printf("\n -- compiled args %s\n", compiled_args);
   string decleration_str = concat(
-      6,
-      literal_type_to_str(converge_branch_literal(&inf, &return_type_branch)),
+      6, literal_type_to_str(BranchLiteral_converge(&inf, return_type_branch)),
       " ", def_name, "(", compiled_args, ")");
 
   Compiler_decl_push(com, decleration_str);
@@ -164,7 +168,7 @@ string com_statement(Compiler *com, Statement *stmt) {
   case STMT_BLOCK:
     return compile_block_statement(com, stmt->block);
   case STMT_LITERAL:
-    return concat(4, "(", literal_type_to_str(stmt->literal.type), ")",
+    return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
                   literal_val2str(stmt->literal));
   case STMT_BINARY_OP:
     return com_bin_op(com_statement(com, stmt->left),
