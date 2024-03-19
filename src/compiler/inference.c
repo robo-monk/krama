@@ -42,6 +42,9 @@ BranchLiteral *BranchLiteral_new(LiteralType *lit) {
 }
 
 void *BranchLiteral_merge(BranchLiteral *base, BranchLiteral *other) {
+  if (base == NULL || other == NULL) {
+    return base;
+  }
   for (int i = 0; i < other->size; i++) {
     vector_push(base, vector_at(other, i));
   }
@@ -101,6 +104,7 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
     // for now only infer last stmt in block
     if (i == block->idx) {
       BranchLiteral *branch = infer_statement(inf, block->statements[i]);
+      printf("\nMERGING\n");
       BranchLiteral_merge(base, branch);
     }
   }
@@ -130,9 +134,9 @@ BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
 
 BranchLiteral *infer_conditional(Inferer *inf,
                                  ConditionalStatement *conditional) {
-  BranchLiteral *if_type = infer_block_statement(inf, conditional->if_body);
   printf("\nif type branch literal: ");
-  dbg_branch_literal(if_type);
+  BranchLiteral *if_type = infer_block_statement(inf, conditional->if_body);
+  // dbg_branch_literal(if_type);
 
   printf("\nelse type branch literal: ");
   BranchLiteral *else_type =
@@ -157,8 +161,13 @@ BranchLiteral *infer_def_invoke(Inferer *inf, Statement *stmt) {
 
   printf("\nINFERING DEF INVOKE '%s' \n", stmt->sym_decl.name);
   DefSymbol *defsym = Compiler_defsym_get(inf->com, stmt->sym_decl.name);
+  // defsym->btype
   if (defsym == NULL) {
     Inferer_throw(inf, "did not find symbol %s", stmt->sym_decl.name);
+  }
+
+  if (defsym->btype == NULL) {
+    // Inferer_throw(inf, "symbol %s is recursive", stmt->sym_decl.name);
   }
 
   // printf("\ninfered to ->> %s", literal_type_to_str(defsym->type));

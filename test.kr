@@ -1,14 +1,24 @@
-def sub(a: i32) {
-    a + :sub(2)
+def recursive(a: f64) {
+    if (a > 0) {
+        :recursive(a-1)
+    } else {
+        a
+    }
 }
 
 def add(a: i32, b: i32) {
-    a+:sub(39)
+    a
 }
 
+def sub(a: i32) {
+    a + a
+}
+
+
 def main() {
+
     if (1) {
-        1
+        :sub(390) + :add(4892, 3)
     } else {
         :add(390, 39) + :add(4892, 3)
     }
