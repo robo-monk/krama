@@ -2,6 +2,15 @@ def |x: i32| add(a: i32) {
     x + a
 }
 
-def main() {
-    50:add(42)
+def |x: i32| fac(a: i32) {
+    if (x < 2) {
+        1
+    } else {
+        x*(x-1):fac(0)
+    }
+}
+
+
+def int_main() {
+    5:fac(0)
 }

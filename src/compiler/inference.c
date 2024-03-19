@@ -67,6 +67,8 @@ void dbg_branch_literal(BranchLiteral *b) {
 }
 
 LiteralType BranchLiteral_converge(Inferer *inf, BranchLiteral *b) {
+  if (b == NULL)
+    return -1;
   LiteralType discovered_literal = -1;
   for (int i = 0; i < b->size; i++) {
     LiteralType *current_type = vector_at(b, i);
@@ -92,6 +94,10 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
                                                   BlockStatement *block,
                                                   BranchLiteral *base) {
 
+  if (block == NULL) {
+    Inferer_throw(inf, "cnannot infer null block");
+  }
+
   for (int i = 0; i < block->len; i++) {
     // TODO
     // if statement has potential to return
@@ -104,6 +110,7 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
       BranchLiteral *branch = infer_statement(inf, block->statements[i]);
       printf("\nMERGING\n");
       BranchLiteral_merge(base, branch);
+      printf("\nMERGED\n");
     }
   }
   return base;
@@ -118,10 +125,17 @@ BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
                             BranchLiteral *type_b, OpType op) {
 
   // printf("\nINFERING BIN OP:\n");
-  // dbg_branch_literal(type_a);
-  // printf("\n");
-  // dbg_branch_literal(type_b);
-  // printf("\n----\n");
+  printf("\n ---- INFER OPTYPE --- %s\n", optype_to_str(op));
+  dbg_branch_literal(type_a);
+  printf("\n");
+  dbg_branch_literal(type_b);
+  printf("\n----\n");
+  if (type_a == NULL) {
+    return type_b;
+  }
+  if (type_b == NULL) {
+    return type_a;
+  }
   if (BranchLiteral_converge(inf, type_a) !=
       BranchLiteral_converge(inf, type_b)) {
     Inferer_throw(inf, "ambigious binary operation");
@@ -132,10 +146,17 @@ BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
 
 BranchLiteral *infer_conditional(Inferer *inf,
                                  ConditionalStatement *conditional) {
+  printf("\nINFER CONDITIONAL\n");
   BranchLiteral *if_type = infer_block_statement(inf, conditional->if_body);
+  dbg_branch_literal(if_type);
+  printf("\nINFERED IF\n");
+
   BranchLiteral *else_type =
       infer_block_statement_with_initial(inf, conditional->else_body, if_type);
+
   dbg_branch_literal(else_type);
+  printf("\nINFERED ELSE\n");
+
   return if_type;
 }
 
@@ -174,6 +195,7 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
   case STMT_LITERAL:
     return BranchLiteral_new(&stmt->literal.type);
   case STMT_BINARY_OP:
+    printf("\nBIN OP\n");
     return infer_bin_op(inf, infer_statement(inf, stmt->left),
                         infer_statement(inf, stmt->right),
                         stmt->token.value.op_type);

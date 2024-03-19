@@ -101,6 +101,9 @@ BlockStatement *parse_arg_defs(Parser *parser) {
 
 Statement *parse_impl_call_stmt(Parser *parser) {
 
+  printf("-->current token is \n");
+  dbg_token(peek(parser));
+  printf("\n");
   Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
                                     "expected implementation identifier");
 
@@ -152,7 +155,7 @@ Statement *parse_factor(Parser *parser) {
   } else if (current_token.type == TOKEN_IDENTIFIER) {
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
-  } else if (current_token.type == TOKEN_COLON) {
+  } else if (false && current_token.type == TOKEN_COLON) {
     return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
@@ -189,11 +192,15 @@ Statement *parse_term(Parser *parser) {
       printf("\ndbg current token   ");
       dbg_token(current_token);
       printf("\n");
-      // eat(parser);
-      Statement *right = parse_term(parser);
+      eat(parser);
+
+      // Statement *right = parse_term(parser);
+      Statement *right = parse_impl_call_stmt(parser);
+
       stmt = new_bin_expr_stmt(OpType_Custom, stmt, right, current_token);
       current_token = peek(parser);
-      printf("\ndbg current token   ");
+      // return parse_impl_call_stmt(parser);
+      printf("\nafter dbg current token   ");
       dbg_token(current_token);
       printf("\n");
 

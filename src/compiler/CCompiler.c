@@ -161,6 +161,10 @@ void Compiler_write_to_file(Compiler *com, string filename) {
     // i));
     fprintf(file, "%s\n", (string)vector_at(&com->implementations, i));
   }
+
+  fprintf(file, "%s\n",
+          "#include \"stdio.h\"\nint main() { printf(\"%d\", int_main()); "
+          "return 1;}");
   // Write the text to the file, followed by a newline character
   fclose(file); // Close the file
 }

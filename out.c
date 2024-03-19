@@ -10,7 +10,8 @@
 
 // declerations 
 i32 add(i32 a, i32 x);
-i32 main();
+i32 fac(i32 a, i32 x);
+i32 int_main();
 
 
 // implementations 
@@ -18,8 +19,18 @@ i32 add(i32 a, i32 x) {
 return x+a;
 
 };
-i32 main() {
-return add((i32) 42,(i32) 50);
+i32 fac(i32 a, i32 x) {
+if (x<(i32) 2) {
+return (i32) 1;
+} else {
+return x*fac((i32) 0,x-(i32) 1);
+};
+
+};
+i32 int_main() {
+return fac((i32) 0,(i32) 5);
 
 };
 
+#include "stdio.h"
+int main() { printf("%d", int_main()); return 1;}

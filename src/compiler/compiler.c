@@ -95,11 +95,11 @@ string compile_call_symbol(Compiler *com, Statement *stmt) {
 string com_bin_op(Compiler *com, Statement *left, Statement *right,
                   OpType optype) {
   if (optype == OpType_Custom) {
-    printf("\nLEFT: \n");
-    dbg_stmt(left);
+    // printf("\nLEFT: \n");
+    // dbg_stmt(left);
 
-    printf("\nRIGHT: \n");
-    dbg_stmt(right);
+    // printf("\nRIGHT: \n");
+    // dbg_stmt(right);
 
     push_stmt_to_block(left, right->right->block);
     if (right->right->type != STMT_BLOCK) {
