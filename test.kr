@@ -1,11 +1,10 @@
-def fib(a: i32) {
-    if (a < 2) {
-        1
-    } else {
-        :fib(a-1) + :fib(a-2)
-    }
+def fib(fib_arg: i32) {
+    fib_arg*fib_arg
 }
 
+
+
 def main() {
-    let b = :fib(39)
+    :fib(39)
+    1
 }

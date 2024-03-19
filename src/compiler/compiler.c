@@ -60,8 +60,7 @@ string compile_call_symbol(Compiler *com, Statement *stmt) {
   Statement *args_statement = stmt->right;
   if (args_statement->type != STMT_BLOCK) {
     // Compiler_throw("expected block statement that defines arguments");
-    Compiler_throw_for_stmt(args_statement,
-                            "expected block statement that defines arguments");
+    Compiler_throw(com, "expected block statement that defines arguments");
   }
 
   StrVec arguments = new_str_vec(1);
@@ -115,18 +114,16 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   if (Compiler_defsym_get(com, def_name)) {
     Compiler_throw(com, "redecleration of definition'%s'", def_name);
   }
-  LiteralType return_type = LiteralType_void;
-  Compiler_defsym_declare(com, def_name, stmt, return_type);
 
   Compiler scoped_compiler = Compiler_new();
   scoped_compiler.upper = com;
-  // Compiler_varsym_declare(&scoped_compiler, def_name, stmt, return_type);
-  // body->block->
-  // args parsing
   string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
-  printf("\n -- compiled args %s\n", compiled_args);
+  Inferer inf = Inferer_new(&scoped_compiler);
+  LiteralType return_type = infer_statement(&inf, stmt);
+  Compiler_defsym_declare(com, def_name, stmt, return_type);
 
+  printf("\n -- compiled args %s\n", compiled_args);
   string decleration_str = concat(6, literal_type_to_str(return_type), " ",
                                   def_name, "(", compiled_args, ")");
 

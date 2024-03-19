@@ -40,7 +40,7 @@ string line_of_token(Token token) {
   for (int i = idx - start - 1; i < idx - start + length - 2; i++) {
     pointer[i] = '^';
   }
-  return concat(3, line, "\n", pointer);
+  return concat(4, line, "\n", pointer, "\0");
 }
 
 void report_syntax_error(Token token, string error_msg) {

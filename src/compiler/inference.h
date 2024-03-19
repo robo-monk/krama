@@ -4,5 +4,12 @@
 #include "../utils.h"
 #include "CCompiler.h"
 
-LiteralType infer_statement(Compiler *com, Statement *stmt);
+typedef struct {
+  Compiler *com;
+  Statement *current_stmt;
+} Inferer;
+
+Inferer Inferer_new(Compiler *com);
+LiteralType infer_statement(Inferer *inf, Statement *stmt);
+
 #endif

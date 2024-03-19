@@ -1,3 +1,6 @@
+#ifndef H_CCOMPILER
+#define H_CCOMPILER
+
 #include "../frontend/LiteralType.h"
 #include "../hashmap/hashmap.h"
 #include "stdarg.h"
@@ -44,8 +47,6 @@ struct Compiler {
 
 // void Compiler_throw(const char *format, ...);
 void Compiler_throw(Compiler *com, const char *fmt, ...);
-void Compiler_throw_for_token(Token token, const char *fmt, ...);
-void Compiler_throw_for_stmt(Statement *stmt, const char *fmt, ...);
 
 Symbol *new_sym(string name);
 Symbol *new_def_symbol(string name, Statement *body);
@@ -69,3 +70,5 @@ void Compiler_impl_push(Compiler *com, string impl_str);
 void Compiler_decl_push(Compiler *com, string decl_str);
 void Compiler_header_push(Compiler *com, string head_str);
 void Compiler_write_to_file(Compiler *com, string filename);
+
+#endif

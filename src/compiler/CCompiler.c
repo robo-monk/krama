@@ -1,56 +1,19 @@
-#ifndef H_CCOMPILER
-#define H_CCOMPILER
-
+#include "CCompiler.h"
 #include "../frontend/LiteralType.h"
 #include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
-#include "compiler.h"
 #include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
 
 void Compiler_throw(Compiler *com, const char *fmt, ...) {
-  char buffer[1024]; // Buffer to hold the formatted error message
-  // com->current_stmt->token;
+  char buffer[1024];   // Buffer to hold the formatted error message
   va_list args;        // To handle the variable argument list
   va_start(args, fmt); // Initialize the variable arguments list
   vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
   va_end(args); // Clean up the variable arguments list
 
   report_syntax_error(com->current_stmt->token, buffer);
-  // va_list args;
-  // va_start(args, format);
-
-  // fprintf(stderr, "\033[31m\n[Compiler] Error! "); // Start red text
-  // vfprintf(stderr, format, args); // Print formatted output in red
-  // fprintf(stderr, "\033[0m\n");   // Reset to default text color
-
-  // va_end(args);
-  // exit(1);
-}
-
-void Compiler_throw_for_token(Token token, const char *fmt, ...) {
-  char buffer[1024]; // Buffer to hold the formatted error message
-
-  va_list args;        // To handle the variable argument list
-  va_start(args, fmt); // Initialize the variable arguments list
-  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
-  va_end(args); // Clean up the variable arguments list
-
-  report_syntax_error(
-      token, buffer); // Pass the formatted string to report_syntax_error
-}
-
-void Compiler_throw_for_stmt(Statement *stmt, const char *fmt, ...) {
-  char buffer[1024]; // Buffer to hold the formatted error message
-
-  va_list args;        // To handle the variable argument list
-  va_start(args, fmt); // Initialize the variable arguments list
-  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
-  va_end(args); // Clean up the variable arguments list
-
-  report_syntax_error(
-      stmt->token, buffer); // Pass the formatted string to report_syntax_error
 }
 
 int __sym_compare(const void *a, const void *b, void *udata) {
@@ -119,7 +82,7 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
          literal_type_to_str(return_type));
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
-    Compiler_throw("redecleration of definition '%s'", def_name);
+    Compiler_throw(com, "redecleration of definition '%s'", def_name);
     // Compiler_throw("redecleration of definition '%s'", def_name);
   }
 
@@ -129,7 +92,7 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
 void Compiler_varsym_declare(Compiler *com, string var_name, LiteralType type) {
   printf("\nDECLARE %s of type %s \n", var_name, literal_type_to_str(type));
   if (Compiler_varsym_get(com, var_name) != NULL) {
-    Compiler_throw("redecleration of variable '%s'", var_name);
+    Compiler_throw(com, "redecleration of variable '%s'", var_name);
   }
   hashmap_set(com->sym_map, new_var_symbol(var_name, type));
 }
@@ -200,5 +163,3 @@ void Compiler_write_to_file(Compiler *com, string filename) {
   // Write the text to the file, followed by a newline character
   fclose(file); // Close the file
 }
-
-#endif
