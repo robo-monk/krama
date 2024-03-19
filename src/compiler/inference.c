@@ -106,10 +106,8 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
     return infer_bin_op(inf, infer_statement(inf, stmt->left),
                         infer_statement(inf, stmt->right),
                         stmt->token.value.op_type);
-    // case STMT_VARIABLE_DECL:
-    //   return com_declare_variable(com, stmt->sym_decl.name,
-    //   stmt->sym_decl.type,
-    //                               com_statement(com, stmt->right));
+  case STMT_VARIABLE_DECL:
+    return infer_statement(inf, stmt->right);
 
   case STMT_VARIABLE_READ:
     return infer_var_read(inf, stmt);

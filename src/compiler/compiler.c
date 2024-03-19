@@ -4,10 +4,31 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+string compile_program_block_statement(Compiler *com, BlockStatement *stmt) {
+  StrVec statements = new_str_vec(16);
+  for (int i = 0; i < stmt->len; i++) {
+    printf("\nCOMPILE BLOCK STATEMENT %d\n", i);
+    // if its the last index add the return keyword
+    // if (i == stmt->len - 1) {
+    str_vector_push(&statements, com_statement(com, stmt->statements[i]));
+    str_vector_push(&statements, ";\n");
+  }
+
+  string a = str_vector_join(&statements);
+  printf("\n\nvector join is %s\n\n", a);
+  Compiler_impl_push(com, a);
+  return a;
+}
+
 string compile_block_statement(Compiler *com, BlockStatement *stmt) {
   StrVec statements = new_str_vec(4);
   for (int i = 0; i < stmt->len; i++) {
     printf("\nCOMPILE BLOCK STATEMENT %d\n", i);
+    // if its the last index add the return keyword
+    // if (i == stmt->len - 1) {
+    if (i == stmt->len - 1) {
+      str_vector_push(&statements, "return ");
+    }
     str_vector_push(&statements, com_statement(com, stmt->statements[i]));
     str_vector_push(&statements, ";\n");
   }
@@ -174,6 +195,7 @@ string com_statement(Compiler *com, Statement *stmt) {
 
 void compile_program(BlockStatement *program, char *filename) {
   Compiler com = Compiler_new();
-  compile_block_statement(&com, program);
+  // compile_block_statement(&com, program);
+  compile_program_block_statement(&com, program);
   Compiler_write_to_file(&com, filename);
 }
