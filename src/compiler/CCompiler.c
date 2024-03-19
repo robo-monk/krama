@@ -1,3 +1,6 @@
+#ifndef H_CCOMPILER
+#define H_CCOMPILER
+
 #include "../frontend/LiteralType.h"
 #include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
@@ -197,3 +200,5 @@ void Compiler_write_to_file(Compiler *com, string filename) {
   // Write the text to the file, followed by a newline character
   fclose(file); // Close the file
 }
+
+#endif

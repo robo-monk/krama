@@ -1,12 +1,13 @@
 #include "compiler.h"
 #include "../frontend/LiteralType.h"
+#include "inference.h"
 #include "stdio.h"
 #include "stdlib.h"
 
-string com_block_statement(Compiler *com, BlockStatement *stmt) {
-  StrVec statements = new_str_vec(512);
+string compile_block_statement(Compiler *com, BlockStatement *stmt) {
+  StrVec statements = new_str_vec(4);
   for (int i = 0; i < stmt->len; i++) {
-    printf("\n COM BLOCK ");
+    printf("\nCOMPILE BLOCK STATEMENT %d\n", i);
     str_vector_push(&statements, com_statement(com, stmt->statements[i]));
     str_vector_push(&statements, ";\n");
   }
@@ -81,12 +82,14 @@ string com_bin_op(string left, string right, OpType optype) {
 string com_conditional(Compiler *com, ConditionalStatement *conditional) {
   string else_com = "";
   if (conditional->else_body) {
-    else_com = concat(3, " else {\n",
-                      com_block_statement(com, conditional->else_body), "}");
+    else_com =
+        concat(3, " else {\n",
+               compile_block_statement(com, conditional->else_body), "}");
   }
 
   return concat(6, "if (", com_statement(com, conditional->condition), ") {\n",
-                com_block_statement(com, conditional->if_body), "}", else_com);
+                compile_block_statement(com, conditional->if_body), "}",
+                else_com);
 }
 
 string compile_block_arguments(Compiler *com, BlockStatement *block) {
@@ -128,31 +131,16 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
                                   def_name, "(", compiled_args, ")");
 
   Compiler_decl_push(com, decleration_str);
-  string body = com_block_statement(&scoped_compiler, stmt->block);
+  string body = compile_block_statement(&scoped_compiler, stmt->block);
   Compiler_free(&scoped_compiler);
-  // return decleration_str;
   return concat(4, decleration_str, " {\n", body, "\n}");
-  // new_def_symbol(char *name, BlockStatement *body)
-  // com_declare_def_sym(com, stmt->sym_decl.name, stmt->, LiteralType
-  // return_type)
-  // string else_com = "";
-  // if (conditional->else_body) {
-  //   else_com = concat(3, " else {\n",
-  //                     com_block_statement(com, conditional->else_body),
-  //                     "}");
-  // }
-
-  // return concat(6, "if (", com_statement(com, conditional->condition), ")
-  // {\n",
-  //               com_block_statement(com, conditional->if_body), "}",
-  //               else_com);
 }
 
 string com_statement(Compiler *com, Statement *stmt) {
   com->current_stmt = stmt;
   switch (stmt->type) {
   case STMT_BLOCK:
-    return com_block_statement(com, stmt->block);
+    return compile_block_statement(com, stmt->block);
   case STMT_LITERAL:
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ")",
                   literal_val2str(stmt->literal));
@@ -186,6 +174,6 @@ string com_statement(Compiler *com, Statement *stmt) {
 
 void compile_program(BlockStatement *program, char *filename) {
   Compiler com = Compiler_new();
-  com_block_statement(&com, program);
+  compile_block_statement(&com, program);
   Compiler_write_to_file(&com, filename);
 }

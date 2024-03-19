@@ -1,7 +1,11 @@
-def add(a: i32, b: i32) {
-    a + b + c
+def fib(a: i32) {
+    if (a < 2) {
+        1
+    } else {
+        :fib(a-1) + :fib(a-2)
+    }
 }
 
 def main() {
-    :add(5, 5+3) + :be
+    let b = :fib(39)
 }

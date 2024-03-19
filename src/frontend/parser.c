@@ -243,11 +243,15 @@ Statement *parse_block(Parser *parser) {
     eat(parser);
     BlockStatement *block_stmt = new_block_stmt();
 
-    while (current_token.type != TOKEN_R_BRACKET) {
+    while (true) {
       Statement *stmt = parse_statement(parser);
       push_stmt_to_block(stmt, block_stmt);
-      current_token = eat(parser);
+      dbg_stmt(stmt);
+      if (peek(parser).type == TOKEN_R_BRACKET) {
+        break;
+      }
     }
+    expect_and_eat(parser, TOKEN_R_BRACKET, "Expected r bracket to eat");
 
     Statement *ret_stmt = new_stmt(STMT_BLOCK, NULL, NULL, peek(parser));
     ret_stmt->block = block_stmt;

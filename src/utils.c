@@ -34,7 +34,6 @@ void vector_push(Vec *vec, void *el) {
     vec->capacity *= 2;
     vec->ptr = realloc(vec->ptr, vec->capacity * vec->el_size);
   }
-  printf("\n--pushing %s\n", el);
   vec->ptr[vec->size++] = el;
 }
 
