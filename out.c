@@ -10,6 +10,9 @@
 
 // declerations 
 i32 add(i32 a, i32 x);
+i32 sub(i32 a, i32 x);
+i32 mul(i32 a, i32 x);
+i32 ppow(i32 a, i32 x);
 i32 fac(i32 a, i32 x);
 i32 int_main();
 
@@ -17,6 +20,22 @@ i32 int_main();
 // implementations 
 i32 add(i32 a, i32 x) {
 return x+a;
+
+};
+i32 sub(i32 a, i32 x) {
+return x-a;
+
+};
+i32 mul(i32 a, i32 x) {
+return x*a;
+
+};
+i32 ppow(i32 a, i32 x) {
+if (a>(i32) 0) {
+return mul(ppow(sub((i32) 1,a),x),x);
+} else {
+return (i32) 1;
+};
 
 };
 i32 fac(i32 a, i32 x) {
@@ -28,7 +47,7 @@ return x*fac((i32) 0,x-(i32) 1);
 
 };
 i32 int_main() {
-return fac((i32) 0,(i32) 5);
+return ppow((i32) 50,(i32) 5);
 
 };
 

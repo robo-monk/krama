@@ -2,6 +2,22 @@ def |x: i32| add(a: i32) {
     x + a
 }
 
+def |x: i32| sub(a: i32) {
+    x - a
+}
+
+def |x: i32| mul(a: i32) {
+    x*a
+}
+
+def |x: i32| ppow(a: i32) {
+    if (a > 0){
+        x:mul(x:ppow(a:sub(1)))
+    } else {
+        1
+    }
+}
+
 def |x: i32| fac(a: i32) {
     if (x < 2) {
         1
@@ -12,5 +28,5 @@ def |x: i32| fac(a: i32) {
 
 
 def int_main() {
-    5:fac(0)
+    5:ppow(50)
 }
