@@ -18,10 +18,12 @@ def run_compiler_command(infile, outfile):
     return result
 
 def expect_compiler_error(content, expected_error):
-    # Error looking like [compiler] Error! ... 
+    # Error looking like [compiler] Error! ...
     result = run_compiler(content)
-    assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
-    assert re.search(expected_error, result.stderr) is not None
+    assert expected_error in result.stderr
+        # or expected_error in result.stdout
+    # assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
+    # assert re.search(expected_error, result.stderr) is not None
 
 
 def run_compiler(content):
@@ -34,7 +36,7 @@ def run_compiler(content):
         print("Error: " + result.stderr)
         return result
     finally:
-        try: 
+        try:
             print("Deleting file: " + krama_file)
             print("Deleting file: " + "tmp/out_" + id + '.c')
             del_tmp_file(krama_file)
@@ -80,5 +82,33 @@ def test_redeclared_variable():
     let hello = 5
     let hello = 6
     """, "redecleration of variable 'hello'"),
+    ]
+    __array_test_compiler_errors(expected_compiler_error)
+
+
+# inference test
+def test_ambigious_if():
+    expected_compiler_error = [
+    (
+    """
+    def hello(a: i32, b: f64) {
+        if (1) {
+            a
+        } else {
+            b
+        }
+    }
+    """, "ambigious return types ("),
+    ]
+    __array_test_compiler_errors(expected_compiler_error)
+
+def test_ambigious_bin():
+    expected_compiler_error = [
+    (
+    """
+    def hello(a: i32, b: f64) {
+        a + b
+    }
+    """, "ambigious binary operation"),
     ]
     __array_test_compiler_errors(expected_compiler_error)

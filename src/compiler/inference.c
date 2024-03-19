@@ -1,6 +1,5 @@
 #include "inference.h"
 #include "../frontend/parser.h"
-#include "../hashmap/hashmap.h"
 #include "CCompiler.h"
 #include "stdarg.h"
 #include "stdio.h"
@@ -29,9 +28,9 @@ void Inferer_throw(Inferer *inferer, const char *fmt, ...) {
 }
 
 void BranchLiteral_push_literal(BranchLiteral *base, LiteralType *literal) {
-  printf("\nPUSH\n");
   vector_push(base, literal);
 }
+
 BranchLiteral *BranchLiteral_new(LiteralType *lit) {
   Vec *vec = malloc(sizeof(Vec));
   *vec = new_vec(1, sizeof(LiteralType));
@@ -51,7 +50,6 @@ void *BranchLiteral_merge(BranchLiteral *base, BranchLiteral *other) {
 }
 
 void dbg_branch_literal(BranchLiteral *b) {
-  // return;
   printf("\n Branch literal: ");
   if (b == NULL) {
     printf("NULL");
@@ -61,7 +59,7 @@ void dbg_branch_literal(BranchLiteral *b) {
   for (int i = 0; i < b->size; i++) {
     LiteralType *current_type = vector_at(b, i);
     if (current_type == NULL) {
-      printf("NULL | ");
+      printf("(unknown) | ");
     } else {
       printf("%s | ", literal_type_to_str(*current_type));
     }
@@ -126,7 +124,7 @@ BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
   // printf("\n----\n");
   if (BranchLiteral_converge(inf, type_a) !=
       BranchLiteral_converge(inf, type_b)) {
-    Inferer_throw(inf, "ambgious binary operation");
+    Inferer_throw(inf, "ambigious binary operation");
   }
 
   return type_a;
@@ -134,32 +132,15 @@ BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
 
 BranchLiteral *infer_conditional(Inferer *inf,
                                  ConditionalStatement *conditional) {
-  printf("\nif type branch literal: ");
   BranchLiteral *if_type = infer_block_statement(inf, conditional->if_body);
-  // dbg_branch_literal(if_type);
-
-  printf("\nelse type branch literal: ");
   BranchLiteral *else_type =
       infer_block_statement_with_initial(inf, conditional->else_body, if_type);
   dbg_branch_literal(else_type);
-
-  // if (converge_branch_literal(inf, &if_type) !=
-  //     converge_branch_literal(inf, &else_type)) {
-  //   // return (BranchLiteral){.branch = &else_type,
-  //   //                        .type = converge_branch_literal(inf,
-  //   &if_type)}; Inferer_throw(inf,
-  //                 "ambgious conditional. If statement returns (%s) else
-  //                 stmt " "returns(% s) ",
-  //                 literal_type_to_str(if_type.type),
-  //                 literal_type_to_str(else_type.type));
-  // }
-
   return if_type;
 }
 
 BranchLiteral *infer_def_invoke(Inferer *inf, Statement *stmt) {
 
-  printf("\nINFERING DEF INVOKE '%s' \n", stmt->sym_decl.name);
   DefSymbol *defsym = Compiler_defsym_get(inf->com, stmt->sym_decl.name);
   // defsym->btype
   if (defsym == NULL) {
@@ -176,30 +157,22 @@ BranchLiteral *infer_def_invoke(Inferer *inf, Statement *stmt) {
 }
 
 BranchLiteral *infer_var_read(Inferer *inf, Statement *stmt) {
-  printf("\nINFERING VARIABLE READ\n");
   VariableSymbol *varsym = Compiler_varsym_get(inf->com, stmt->sym_decl.name);
   if (varsym == NULL) {
     Inferer_throw(inf, "did not find varsymbol %s", stmt->sym_decl.name);
   }
-  printf("\ninfered to ->> %s", literal_type_to_str(varsym->type));
-
-  // return new_for_literal(varsym->type);
   return BranchLiteral_new(&varsym->type);
 }
 
 BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
   inf->current_stmt = stmt;
+
   switch (stmt->type) {
   case STMT_BLOCK:
     return infer_block_statement(inf, stmt->block);
     break;
-  //   return compile_block_statement(com, stmt->block);
   case STMT_LITERAL:
-    printf("\n ----- reach base case for inference '%s'",
-           literal_type_to_str(stmt->literal.type));
-    // return stmt->literal.type;
     return BranchLiteral_new(&stmt->literal.type);
-    // return new_for_literal(stmt->literal.type);
   case STMT_BINARY_OP:
     return infer_bin_op(inf, infer_statement(inf, stmt->left),
                         infer_statement(inf, stmt->right),
@@ -209,23 +182,13 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
 
   case STMT_VARIABLE_READ:
     return infer_var_read(inf, stmt);
-    // case STMT_VARIABLE_WRITE:
-    //   return compile_write_variable(com, stmt->sym_decl.name,
-    //   stmt->sym_decl.type,
-    //                                 com_statement(com, stmt->right));
 
   case STMT_DEF_INVOKE:
     return infer_def_invoke(inf, stmt);
   case STMT_CONDITIONAL:
-    // printf("\neval conditional:\n");
-    // dbg_stmt(stmt);
     return infer_conditional(inf, stmt->conditional);
-    // case STMT_DEF_DECL:
-    //   return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
   }
 
-  // report_syntax_error(stmt->token, "unsupported token");
-  // Compiler_throw(com, "unsupportd token");
   Inferer_throw(inf, "could not infer type for expression");
 }
 
