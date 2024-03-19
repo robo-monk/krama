@@ -40,16 +40,23 @@ void dbg_branch_literal(BranchLiteral *b) {
 LiteralType converge_branch_literal(Inferer *inf, BranchLiteral *b) {
   LiteralType discovered_literal = -1;
   BranchLiteral *current = b;
-  while (current->type != -1) {
+  while (current != NULL) {
+    if (current->type != -1) {
+      if (discovered_literal != -1 && (discovered_literal != current->type)) {
+        Inferer_throw(inf,
+                      "could not converge branch literal. ambigious return "
+                      "types (%s, %s)",
+                      literal_type_to_str(discovered_literal),
+                      literal_type_to_str(current->type));
+      }
+      discovered_literal = current->type;
+    }
     current = current->branch;
   }
-  if (b->type != -1)
-    return current->type;
-  if (b->branch != NULL)
-    return converge_branch_literal(inf, b->branch);
-
-  Inferer_throw(inf, "could not converge branch literal");
-  return -1;
+  if (discovered_literal == -1) {
+    Inferer_throw(inf, "could not converge branch literal");
+  }
+  return discovered_literal;
 }
 
 BranchLiteral new_for_literal(LiteralType lit) {
