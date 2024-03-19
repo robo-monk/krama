@@ -5,6 +5,8 @@
 // #include "../ast/AbstractSyntaxTree.h"
 
 typedef enum {
+
+  OpType_Custom,
   OpType_ADD,
   OpType_SUB,
   OpType_MUL,
@@ -23,6 +25,7 @@ typedef enum {
   OpType_BW_AND,
   OpType_BW_OR,
   OpType_BW_XOR,
+
 } OpType;
 
 typedef struct {
@@ -31,11 +34,12 @@ typedef struct {
 } OpMap;
 
 static const OpMap op_map[] = {
-    {"+", OpType_ADD},  //
-    {"-", OpType_SUB},  //
-    {"*", OpType_MUL},  //
-    {"/", OpType_DIV},  //
-    {"%%", OpType_MOD}, //
+    {"+", OpType_ADD},                //
+    {"-", OpType_SUB},                //
+    {"*", OpType_MUL},                //
+    {"/", OpType_DIV},                //
+    {"%", OpType_MOD},                //
+    {"OpType_Custom", OpType_Custom}, //
 
     {"<", OpType_LT},   //
     {"<=", OpType_LTE}, //

@@ -98,7 +98,7 @@ def test_ambigious_if():
             b
         }
     }
-    """, "ambigious return types ("),
+    """, "ambigious return types"),
     ]
     __array_test_compiler_errors(expected_compiler_error)
 

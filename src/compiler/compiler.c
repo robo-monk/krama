@@ -92,8 +92,24 @@ string compile_call_symbol(Compiler *com, Statement *stmt) {
   return concat(4, stmt->sym_decl.name, "(", str_vector_join(&arguments), ")");
 }
 
-string com_bin_op(string left, string right, OpType optype) {
-  return concat(3, left, optype_to_str(optype), right);
+string com_bin_op(Compiler *com, Statement *left, Statement *right,
+                  OpType optype) {
+  if (optype == OpType_Custom) {
+    printf("\nLEFT: \n");
+    dbg_stmt(left);
+
+    printf("\nRIGHT: \n");
+    dbg_stmt(right);
+
+    push_stmt_to_block(left, right->right->block);
+    if (right->right->type != STMT_BLOCK) {
+      Compiler_throw(com, "expected block statement that defines arguments");
+    }
+
+    return com_statement(com, right);
+  }
+  return concat(3, com_statement(com, left), optype_to_str(optype),
+                com_statement(com, right));
 }
 
 string com_conditional(Compiler *com, ConditionalStatement *conditional) {
@@ -171,9 +187,7 @@ string com_statement(Compiler *com, Statement *stmt) {
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
                   literal_val2str(stmt->literal));
   case STMT_BINARY_OP:
-    return com_bin_op(com_statement(com, stmt->left),
-                      com_statement(com, stmt->right),
-                      stmt->token.value.op_type);
+    return com_bin_op(com, stmt->left, stmt->right, stmt->token.value.op_type);
   case STMT_VARIABLE_DECL:
     return com_declare_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                                 com_statement(com, stmt->right));

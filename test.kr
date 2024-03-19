@@ -1,7 +1,7 @@
-def |a: i32| add(b: i32) {
-    a + b
+def |x: i32| add(a: i32) {
+    x + a
 }
 
 def main() {
-    5:add(2)
+    50:add(42)
 }

@@ -169,7 +169,8 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   switch (stmt->type) {
   case STMT_BINARY_OP:
     snprintf(buffer, sizeof(buffer), "Statement Type: Binary Operation\n");
-    // dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
+    dbg_token(stmt->token); // Note: You may need to adjust dbg_token to work
+    printf("\n");
     // with this approach
     break;
   case STMT_LITERAL:
@@ -221,9 +222,11 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   // Recursively print left and right child statements with increased
   // indentation
   if (stmt->left) {
+    snprintf(buffer, sizeof(buffer), "Left: ");
     dbg_stmt_with_indent(stmt->left, indent + 1);
   }
   if (stmt->right) {
+    snprintf(buffer, sizeof(buffer), "Right: ");
     dbg_stmt_with_indent(stmt->right, indent + 1);
   }
 }

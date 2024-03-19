@@ -9,26 +9,17 @@
 
 
 // declerations 
-i32 add(i32 a, i32 b);
-i32 sub(i32 a);
+i32 add(i32 a, i32 x);
 i32 main();
 
 
 // implementations 
-i32 add(i32 a, i32 b) {
-return a+b;
-
-};
-i32 sub(i32 a) {
-return a+a;
+i32 add(i32 a, i32 x) {
+return x+a;
 
 };
 i32 main() {
-if ((i32) 1) {
-return add((i32) 390,(i32) 90)+add((i32) 4892,(i32) 3);
-} else {
-return add((i32) 390,(i32) 39)+add((i32) 4892,(i32) 3);
-};
+return add((i32) 42,(i32) 50);
 
 };
 
