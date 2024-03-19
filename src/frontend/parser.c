@@ -78,12 +78,7 @@ Parser new_parser(Token *tokens) {
   return p;
 }
 
-Statement *parse_impl_call_stmt(Parser *parser) {
-
-  Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
-                                    "expected implementation identifier");
-
-  Statement *arg_value = NULL;
+BlockStatement *parse_arg_defs(Parser *parser) {
 
   BlockStatement *arg_defs = new_block_stmt();
   // Argument arg
@@ -99,12 +94,18 @@ Statement *parse_impl_call_stmt(Parser *parser) {
       }
     } while (peek(parser).type != TOKEN_R_PAR);
 
-    expect_and_eat(parser, TOKEN_R_PAR,
-                   "expected r paren, multiple args not yet supported");
+    expect_and_eat(parser, TOKEN_R_PAR, "expected r paren");
   }
+  return arg_defs;
+}
+
+Statement *parse_impl_call_stmt(Parser *parser) {
+
+  Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
+                                    "expected implementation identifier");
 
   return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value,
-                            arg_defs, identifier);
+                            parse_arg_defs(parser), identifier);
 }
 
 Statement *parse_conditional_stmt(Parser *parser) {
@@ -280,48 +281,66 @@ SymbolStatement *parse_symbol_statement(Parser *parser) {
   return sym_stmt;
 }
 
-int parse_symbol_statements(Parser *parser, SymbolStatement **syms) {
+void parse_symbol_statements(Parser *parser, Vec syms) {
   int len = 0;
   while (peek(parser).type == TOKEN_IDENTIFIER) {
-    syms[len] = parse_symbol_statement(parser);
-    len += 1;
+    vector_push(&syms, parse_symbol_statement(parser));
+    // syms[len] = parse_symbol_statement(parser);
+    // len += 1;
     if (peek(parser).type == TOKEN_COMMA) {
       eat(parser);
     }
   }
-  return len;
+  // return len;
 }
 
 Statement *parse_def(Parser *parser) {
   expect_and_eat(parser, TOKEN_DEF,
                  "parse_def expected current token to be DEF");
 
+  SymbolStatement *namespace = NULL;
   if (peek(parser).type == TOKEN_PIPE) {
     eat(parser);
     // throw_parser_error(parser, "not implemented");
-    SymbolStatement *sym_stmt = parse_symbol_statement(parser);
+    namespace = parse_symbol_statement(parser);
     printf("\n DEFINE for type %s (defed as: %s) \n",
-           literal_type_to_str(sym_stmt->type), sym_stmt->name);
+           literal_type_to_str(namespace->type), namespace->name);
+
+    expect_and_eat(parser, TOKEN_PIPE, "expected closing pipe");
   }
 
-  Token identifier =
-      expect_and_eat(parser, TOKEN_IDENTIFIER, "expected impl identifier");
+  Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
+                                    "expected definition identifier");
 
   printf("\nexpected: %d | GOT %d\n", TOKEN_L_PAR, peek(parser).type);
   expect_and_eat(parser, TOKEN_L_PAR,
                  "expected open parenthesis to define arguments");
 
   // TODO: this should be a dynamic array
-  SymbolStatement **args = malloc(sizeof(SymbolStatement) * 100);
-  int arg_len = parse_symbol_statements(parser, args);
+  // SymbolStatement **args = malloc(sizeof(SymbolStatement) * 100);
+  Vec args = new_vec(1, sizeof(SymbolStatement));
+  parse_symbol_statements(parser, args);
+
   expect_and_eat(parser, TOKEN_R_PAR, "expected closing parenthesis");
   expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
 
   Statement *block_stmt = parse_statement(parser);
-  printf("\nhere\n");
-  block_stmt->block->args = args;
-  block_stmt->block->arg_len = arg_len;
-  return new_impl_decl_stmt(LiteralType_i32, identifier.value.str_value,
+
+  block_stmt->block->args = calloc(args.size, sizeof(SymbolStatement));
+
+  for (int i = 0; i < args.size; i++) {
+    block_stmt->block->args[i] = vector_at(&args, i);
+  }
+
+  block_stmt->block->arg_len = args.size;
+
+  LiteralType namespace_type = -1;
+
+  if (namespace != NULL) {
+    namespace_type = namespace->type;
+  }
+
+  return new_impl_decl_stmt(namespace_type, identifier.value.str_value,
                             block_stmt, identifier);
 }
 

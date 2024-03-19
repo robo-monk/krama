@@ -112,3 +112,15 @@ def test_ambigious_bin():
     """, "ambigious binary operation"),
     ]
     __array_test_compiler_errors(expected_compiler_error)
+
+
+
+# def test_inf_recursion_bin():
+#     expected_compiler_error = [
+#     (
+#     """
+#     def hello() {
+#     }
+#     """, "ambigious binary operation"),
+#     ]
+#     __array_test_compiler_errors(expected_compiler_error)

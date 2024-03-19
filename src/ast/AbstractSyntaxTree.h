@@ -46,6 +46,7 @@ typedef struct {
 
 typedef struct {
   LiteralType type;
+  LiteralType obj;
   string name;
 } SymbolStatement;
 
