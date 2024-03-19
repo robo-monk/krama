@@ -1,5 +1,4 @@
 #include "inference.h"
-#include "../frontend/LiteralType.h"
 #include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
 #include "CCompiler.h"
@@ -29,46 +28,116 @@ void Inferer_throw(Inferer *inferer, const char *fmt, ...) {
   report_inference_error(inferer->current_stmt->token, buffer);
 }
 
-LiteralType infer_block_statement(Inferer *inf, BlockStatement *block) {
-  LiteralType previous_return_type = -1;
+void dbg_branch_literal(BranchLiteral *b) {
+  printf("\n Branch literal: ");
+  BranchLiteral *upper = b;
+  while (upper != NULL) {
+    printf("%s | ", literal_type_to_str(upper->type));
+    upper = upper->branch;
+  }
+}
+
+LiteralType converge_branch_literal(Inferer *inf, BranchLiteral *b) {
+  LiteralType discovered_literal = -1;
+  BranchLiteral *current = b;
+  while (current->type != -1) {
+    current = current->branch;
+  }
+  if (b->type != -1)
+    return current->type;
+  if (b->branch != NULL)
+    return converge_branch_literal(inf, b->branch);
+
+  Inferer_throw(inf, "could not converge branch literal");
+  return -1;
+}
+
+BranchLiteral new_for_literal(LiteralType lit) {
+  return (BranchLiteral){.type = lit, .branch = NULL};
+}
+
+BranchLiteral *BranchLiteral_push_branch(BranchLiteral *base,
+                                         BranchLiteral *branch) {
+  if (base->branch == NULL) {
+    base->branch = branch;
+    return base;
+  }
+  return BranchLiteral_push_branch(base->branch, branch);
+}
+
+BranchLiteral
+infer_block_statement_with_initial(Inferer *inf, BlockStatement *block,
+                                   BranchLiteral *branch_literal) {
+
   for (int i = 0; i < block->len; i++) {
     // TODO
     // if statement has potential to return
     // infer its type
-    // if its different throw error that block statement has ambigious return
-    // type
+    // if its different throw error that block statement has ambigious
+    // return type
 
     // for now only infer last stmt in block
     if (i == block->idx) {
-      previous_return_type = infer_statement(inf, block->statements[i]);
+      BranchLiteral branch = infer_statement(inf, block->statements[i]);
+      BranchLiteral *bb = malloc(sizeof(BranchLiteral));
+      bb->branch = branch.branch;
+      bb->type = branch.type;
+      BranchLiteral_push_branch(branch_literal, bb);
     }
   }
-  return previous_return_type;
+  return *branch_literal;
 }
 
-LiteralType infer_bin_op(Inferer *inf, LiteralType type_a, LiteralType type_b,
-                         OpType op) {
-  if (type_a != type_b) {
-    Inferer_throw(inf, "ambgious binary operation");
-  }
+BranchLiteral infer_block_statement(Inferer *inf, BlockStatement *block) {
+  BranchLiteral *previous_return_type = malloc(sizeof(BranchLiteral));
+  previous_return_type->branch = NULL;
+  previous_return_type->type = -1;
+  return infer_block_statement_with_initial(inf, block, previous_return_type);
+}
+
+BranchLiteral infer_bin_op(Inferer *inf, BranchLiteral type_a,
+                           BranchLiteral type_b, OpType op) {
+
+  printf("\nINFERING BIN OP:\n");
+  dbg_branch_literal(&type_a);
+  printf("\n");
+  dbg_branch_literal(&type_b);
+  printf("\n----\n");
+  // if (converge_branch_literal(inf, &type_a) !=
+  //     converge_branch_literal(inf, &type_b)) {
+  //   Inferer_throw(inf, "ambgious binary operation");
+  // }
+
   return type_a;
 }
 
-LiteralType infer_conditional(Inferer *inf, ConditionalStatement *conditional) {
-  LiteralType if_type = infer_block_statement(inf, conditional->if_body);
+BranchLiteral infer_conditional(Inferer *inf,
+                                ConditionalStatement *conditional) {
+  BranchLiteral if_type = infer_block_statement(inf, conditional->if_body);
+  printf("\nif type branch literal: ");
+  dbg_branch_literal(&if_type);
 
-  LiteralType else_type = infer_block_statement(inf, conditional->else_body);
-  if (if_type != else_type) {
-    Inferer_throw(inf,
-                  "ambgious conditional. If statement returns (%s) else stmt "
-                  "returns (%s)",
-                  literal_type_to_str(if_type), literal_type_to_str(else_type));
-  }
+  printf("\nelse type branch literal: ");
+
+  BranchLiteral else_type =
+      infer_block_statement_with_initial(inf, conditional->else_body, &if_type);
+  dbg_branch_literal(&else_type);
+
+  // if (converge_branch_literal(inf, &if_type) !=
+  //     converge_branch_literal(inf, &else_type)) {
+  //   // return (BranchLiteral){.branch = &else_type,
+  //   //                        .type = converge_branch_literal(inf,
+  //   &if_type)}; Inferer_throw(inf,
+  //                 "ambgious conditional. If statement returns (%s) else
+  //                 stmt " "returns(% s) ",
+  //                 literal_type_to_str(if_type.type),
+  //                 literal_type_to_str(else_type.type));
+  // }
 
   return if_type;
 }
 
-LiteralType infer_def_invoke(Inferer *inf, Statement *stmt) {
+BranchLiteral infer_def_invoke(Inferer *inf, Statement *stmt) {
 
   printf("\nINFERING DEF INVOKE '%s' \n", stmt->sym_decl.name);
   DefSymbol *defsym = Compiler_defsym_get(inf->com, stmt->sym_decl.name);
@@ -76,11 +145,12 @@ LiteralType infer_def_invoke(Inferer *inf, Statement *stmt) {
     Inferer_throw(inf, "did not find symbol %s", stmt->sym_decl.name);
   }
 
-  printf("\ninfered to ->> %s", literal_type_to_str(defsym->type));
-  return defsym->type;
+  // printf("\ninfered to ->> %s", literal_type_to_str(defsym->type));
+  // return new_for_literal(defsym->type);
+  return defsym->btype;
 }
 
-LiteralType infer_var_read(Inferer *inf, Statement *stmt) {
+BranchLiteral infer_var_read(Inferer *inf, Statement *stmt) {
   printf("\nINFERING VARIABLE READ\n");
   VariableSymbol *varsym = Compiler_varsym_get(inf->com, stmt->sym_decl.name);
   if (varsym == NULL) {
@@ -88,10 +158,10 @@ LiteralType infer_var_read(Inferer *inf, Statement *stmt) {
   }
   printf("\ninfered to ->> %s", literal_type_to_str(varsym->type));
 
-  return varsym->type;
+  return new_for_literal(varsym->type);
 }
 
-LiteralType infer_statement(Inferer *inf, Statement *stmt) {
+BranchLiteral infer_statement(Inferer *inf, Statement *stmt) {
   inf->current_stmt = stmt;
   switch (stmt->type) {
   case STMT_BLOCK:
@@ -101,7 +171,8 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
   case STMT_LITERAL:
     printf("\n ----- reach base case for inference '%s'",
            literal_type_to_str(stmt->literal.type));
-    return stmt->literal.type;
+    // return stmt->literal.type;
+    return new_for_literal(stmt->literal.type);
   case STMT_BINARY_OP:
     return infer_bin_op(inf, infer_statement(inf, stmt->left),
                         infer_statement(inf, stmt->right),

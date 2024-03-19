@@ -21,7 +21,8 @@ typedef struct {
 
 typedef struct {
   Statement *body;
-  LiteralType type;
+  // LiteralType type;
+  BranchLiteral btype;
 } DefSymbol;
 
 typedef struct {
@@ -49,7 +50,9 @@ struct Compiler {
 void Compiler_throw(Compiler *com, const char *fmt, ...);
 
 Symbol *new_sym(string name);
-Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type);
+// Symbol *new_def_symbol(string name, Statement *body, LiteralType
+// return_type);
+Symbol *new_def_symbol(string name, Statement *body, BranchLiteral return_type);
 Symbol *new_var_symbol(string name, LiteralType type);
 
 Symbol const *Compiler_symbol_get(Compiler *com, string sym_name);
@@ -59,7 +62,7 @@ VariableSymbol *Compiler_varsym_get(Compiler *com, string var_name);
 DefSymbol *Compiler_defsym_get(Compiler *com, string def_name);
 
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
-                             LiteralType return_type);
+                             BranchLiteral return_type);
 
 void Compiler_varsym_declare(Compiler *com, string var_name, LiteralType type);
 

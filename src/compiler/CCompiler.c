@@ -2,6 +2,7 @@
 #include "../frontend/LiteralType.h"
 #include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
+#include "inference.h"
 #include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -33,11 +34,12 @@ Symbol *new_sym(string name) {
   return sym;
 }
 
-Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type) {
+Symbol *new_def_symbol(string name, Statement *body,
+                       BranchLiteral return_type) {
   Symbol *sym = new_sym(name);
   DefSymbol *def = malloc(sizeof(DefSymbol));
   def->body = body;
-  def->type = return_type;
+  def->btype = return_type;
   sym->def = def;
   return sym;
 }
@@ -74,10 +76,10 @@ DefSymbol *Compiler_defsym_get(Compiler *com, string def_name) {
 }
 
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
-                             LiteralType return_type) {
+                             BranchLiteral return_type) {
 
-  printf("\nDECLARE DEFINITION %s w/ return type %s \n", def_name,
-         literal_type_to_str(return_type));
+  printf("\nDECLARE DEFINITION %s w/ return type", def_name);
+  dbg_branch_literal(&return_type);
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw(com, "redecleration of definition '%s'", def_name);

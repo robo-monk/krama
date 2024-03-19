@@ -1,4 +1,4 @@
-// headers
+// headers 
 #define i32 int
 #define i64 long
 #define u32 unsigned int
@@ -6,14 +6,38 @@
 #define f32 float
 #define f64 double
 
-// declerations
-i32 fib(i32 fib_arg);
-i32 main();
 
-// implementations
-i32 fib(i32 fib_arg) { return (i32)fib_arg * (i32)fib_arg; };
-i32 main() {
-  i32 b = (i32)42;
-  i32 c = (i32)300;
-  return fib((i32)b + (i32)c);
+
+// declerations 
+i32 fib(i32 a);
+f64 as_float(f64 a);
+i32 as_int(i32 a);
+f64 main();
+
+
+// implementations 
+i32 fib(i32 a) {
+return if ((i32)a<(i32)2) {
+return (i32)1;
+} else {
+return fib((i32)a-(i32)1)+fib((i32)a-(i32)2);
 };
+
+};
+f64 as_float(f64 a) {
+return (i32)a;
+
+};
+i32 as_int(i32 a) {
+return (i32)a;
+
+};
+f64 main() {
+return if ((i32)1) {
+return as_float((i32)5);
+} else {
+return as_int((i32)5);
+};
+
+};
+

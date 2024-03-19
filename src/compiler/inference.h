@@ -10,6 +10,9 @@ typedef struct {
 } Inferer;
 
 Inferer Inferer_new(Compiler *com);
-LiteralType infer_statement(Inferer *inf, Statement *stmt);
+BranchLiteral infer_statement(Inferer *inf, Statement *stmt);
+void dbg_branch_literal(BranchLiteral *b);
+LiteralType converge_branch_literal(Inferer *inf, BranchLiteral *b);
+BranchLiteral new_for_literal(LiteralType lit);
 
 #endif

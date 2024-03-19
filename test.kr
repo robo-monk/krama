@@ -6,7 +6,20 @@ def fib(a: i32) {
     }
 }
 
+def as_float(a: f64) {
+    a
+}
+
+def as_int(a: i32) {
+    a
+}
+
+
 
 def main() {
-    fib(42)
+    if (1) {
+        :as_float(5)
+    } else {
+        :as_int(5)
+    }
 }

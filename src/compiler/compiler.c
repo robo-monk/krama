@@ -4,6 +4,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 
+// TODO this is needed becasue otherwiese the whole program returns somethign
+// which is just terrible
 string compile_program_block_statement(Compiler *com, BlockStatement *stmt) {
   StrVec statements = new_str_vec(16);
   for (int i = 0; i < stmt->len; i++) {
@@ -15,7 +17,6 @@ string compile_program_block_statement(Compiler *com, BlockStatement *stmt) {
   }
 
   string a = str_vector_join(&statements);
-  printf("\n\nvector join is %s\n\n", a);
   Compiler_impl_push(com, a);
   return a;
 }
@@ -34,7 +35,6 @@ string compile_block_statement(Compiler *com, BlockStatement *stmt) {
   }
 
   string a = str_vector_join(&statements);
-  printf("\n\nvector join is %s\n\n", a);
   Compiler_impl_push(com, a);
   return a;
 }
@@ -141,15 +141,21 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
   Inferer inf = Inferer_new(&scoped_compiler);
-  LiteralType return_type = infer_statement(&inf, stmt);
-  printf("\ninfered defsym '%s' to %s\n", def_name,
-         literal_type_to_str(return_type));
+  Compiler_defsym_declare(&scoped_compiler, def_name, stmt,
+                          new_for_literal(-1));
+  BranchLiteral return_type_branch = infer_statement(&inf, stmt);
+  // LiteralType return_type = return_type_branch.type;
 
-  Compiler_defsym_declare(com, def_name, stmt, return_type);
+  // printf("\ninfered defsym '%s' to %s\n", def_name,
+  // literal_type_to_str(return_type));
+
+  Compiler_defsym_declare(com, def_name, stmt, return_type_branch);
 
   printf("\n -- compiled args %s\n", compiled_args);
-  string decleration_str = concat(6, literal_type_to_str(return_type), " ",
-                                  def_name, "(", compiled_args, ")");
+  string decleration_str = concat(
+      6,
+      literal_type_to_str(converge_branch_literal(&inf, &return_type_branch)),
+      " ", def_name, "(", compiled_args, ")");
 
   Compiler_decl_push(com, decleration_str);
   string body = compile_block_statement(&scoped_compiler, stmt->block);
