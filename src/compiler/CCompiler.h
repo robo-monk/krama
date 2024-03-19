@@ -49,7 +49,7 @@ struct Compiler {
 void Compiler_throw(Compiler *com, const char *fmt, ...);
 
 Symbol *new_sym(string name);
-Symbol *new_def_symbol(string name, Statement *body);
+Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type);
 Symbol *new_var_symbol(string name, LiteralType type);
 
 Symbol const *Compiler_symbol_get(Compiler *com, string sym_name);

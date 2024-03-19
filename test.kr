@@ -3,8 +3,6 @@ def fib(fib_arg: i32) {
 }
 
 
-
 def main() {
     :fib(39)
-    1
 }

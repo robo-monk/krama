@@ -33,13 +33,11 @@ Symbol *new_sym(string name) {
   return sym;
 }
 
-Symbol *new_def_symbol(string name, Statement *body) {
+Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type) {
   Symbol *sym = new_sym(name);
   DefSymbol *def = malloc(sizeof(DefSymbol));
   def->body = body;
-
-  // TODO: infer type
-  def->type = LiteralType_void;
+  def->type = return_type;
   sym->def = def;
   return sym;
 }
@@ -86,7 +84,7 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
     // Compiler_throw("redecleration of definition '%s'", def_name);
   }
 
-  hashmap_set(com->sym_map, new_def_symbol(def_name, body));
+  hashmap_set(com->sym_map, new_def_symbol(def_name, body, return_type));
 }
 
 void Compiler_varsym_declare(Compiler *com, string var_name, LiteralType type) {

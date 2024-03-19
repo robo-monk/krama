@@ -69,18 +69,25 @@ LiteralType infer_conditional(Inferer *inf, ConditionalStatement *conditional) {
 }
 
 LiteralType infer_def_invoke(Inferer *inf, Statement *stmt) {
+
+  printf("\nINFERING DEF INVOKE '%s' \n", stmt->sym_decl.name);
   DefSymbol *defsym = Compiler_defsym_get(inf->com, stmt->sym_decl.name);
   if (defsym == NULL) {
     Inferer_throw(inf, "did not find symbol %s", stmt->sym_decl.name);
   }
+
+  printf("\ninfered to ->> %s", literal_type_to_str(defsym->type));
   return defsym->type;
 }
 
 LiteralType infer_var_read(Inferer *inf, Statement *stmt) {
+  printf("\nINFERING VARIABLE READ\n");
   VariableSymbol *varsym = Compiler_varsym_get(inf->com, stmt->sym_decl.name);
   if (varsym == NULL) {
     Inferer_throw(inf, "did not find varsymbol %s", stmt->sym_decl.name);
   }
+  printf("\ninfered to ->> %s", literal_type_to_str(varsym->type));
+
   return varsym->type;
 }
 
@@ -92,6 +99,8 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
     break;
   //   return compile_block_statement(com, stmt->block);
   case STMT_LITERAL:
+    printf("\n ----- reach base case for inference '%s'",
+           literal_type_to_str(stmt->literal.type));
     return stmt->literal.type;
   case STMT_BINARY_OP:
     return infer_bin_op(inf, infer_statement(inf, stmt->left),

@@ -121,6 +121,9 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
 
   Inferer inf = Inferer_new(&scoped_compiler);
   LiteralType return_type = infer_statement(&inf, stmt);
+  printf("\ninfered defsym '%s' to %s\n", def_name,
+         literal_type_to_str(return_type));
+
   Compiler_defsym_declare(com, def_name, stmt, return_type);
 
   printf("\n -- compiled args %s\n", compiled_args);

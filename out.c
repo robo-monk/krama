@@ -10,7 +10,7 @@
 
 // declerations 
 i32 fib(i32 fib_arg);
-void main();
+i32 main();
 
 
 // implementations 
@@ -18,9 +18,8 @@ i32 fib(i32 fib_arg) {
 (i32)fib_arg*(i32)fib_arg;
 
 };
-void main() {
+i32 main() {
 fib((i32)39);
-(i32)1;
 
 };
 
