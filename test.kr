@@ -1,8 +1,18 @@
+
+
 def fib(a: i32) {
     if (a < 2) {
         1
     } else {
         :fib(a-1) + :fib(a-2)
+    }
+}
+
+def fib2(a: i32) {
+    if (a > 2) {
+        :fib(a-1) + :fib(a-2)
+    } else {
+        1
     }
 }
 
@@ -15,11 +25,6 @@ def as_int(a: i32) {
 }
 
 
-
 def main() {
-    if (1) {
-        :as_float(5)
-    } else {
-        :as_int(5)
-    }
+    :fib2(39) + :fib(42)
 }
