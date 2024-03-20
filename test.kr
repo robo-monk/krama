@@ -10,6 +10,10 @@ def |x: i32| mul(a: i32) {
     x*a
 }
 
+def |x: i32| to_f64() {
+    x
+}
+
 def |x: i32| ppow(a: i32) {
     if (a > 0){
         x:mul(x:ppow(a:sub(1)))
@@ -28,5 +32,5 @@ def |x: i32| fac(a: i32) {
 
 
 def int_main() {
-    5:ppow(50)
+    5:ppow(50):to_f64()
 }

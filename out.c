@@ -12,6 +12,7 @@
 i32 add(i32 a, i32 x);
 i32 sub(i32 a, i32 x);
 i32 mul(i32 a, i32 x);
+i32 to_f64(i32 x);
 i32 ppow(i32 a, i32 x);
 i32 fac(i32 a, i32 x);
 i32 int_main();
@@ -28,6 +29,10 @@ return x-a;
 };
 i32 mul(i32 a, i32 x) {
 return x*a;
+
+};
+i32 to_f64(i32 x) {
+return x;
 
 };
 i32 ppow(i32 a, i32 x) {
@@ -47,7 +52,7 @@ return x*fac((i32) 0,x-(i32) 1);
 
 };
 i32 int_main() {
-return ppow((i32) 50,(i32) 5);
+return to_f64(ppow((i32) 50,(i32) 5));
 
 };
 

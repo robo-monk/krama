@@ -84,15 +84,17 @@ BlockStatement *parse_arg_defs(Parser *parser) {
   // Argument arg
   if (peek(parser).type == TOKEN_L_PAR) {
     expect_and_eat(parser, TOKEN_L_PAR, "expected Left paren");
-    do {
+    while (peek(parser).type != TOKEN_R_PAR) {
       Statement *arg_stmt = parse_expression(parser);
-      dbg_stmt(arg_stmt);
+
+      // dbg_stmt(arg_stmt);
+      printf("-\n");
       push_stmt_to_block(arg_stmt, arg_defs);
       if (peek(parser).type == TOKEN_COMMA) {
         printf("\nEATING COMMA\n");
         eat(parser);
       }
-    } while (peek(parser).type != TOKEN_R_PAR);
+    }
 
     expect_and_eat(parser, TOKEN_R_PAR, "expected r paren");
   }
@@ -406,8 +408,9 @@ Statement *parse_statement(Parser *parser) {
     }
   }
 
-  if (current_token.type == TOKEN_PROGRAM_END)
+  if (current_token.type == TOKEN_PROGRAM_END) {
     return NULL;
+  }
 
   // return parse_block(parser);
   return parse_expression(parser);
