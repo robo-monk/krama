@@ -111,10 +111,11 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
 
     // for now only infer last stmt in block
     if (i == block->idx) {
+      printf("\nINFERNIG BLOCK using last statement: ");
+      dbg_stmt(block->statements[i]);
+      printf("\n");
       BranchLiteral *branch = infer_statement(inf, block->statements[i]);
-      printf("\nMERGING\n");
       BranchLiteral_merge(base, branch);
-      printf("\nMERGED\n");
     }
   }
   return base;
@@ -197,6 +198,7 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
     return infer_block_statement(inf, stmt->block);
     break;
   case STMT_LITERAL:
+    // Inferer_throw(inf, "could not infer type for expression");
     return BranchLiteral_new(&stmt->literal.type);
   case STMT_BINARY_OP:
     printf("\nBIN OP\n");
@@ -204,7 +206,8 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
                         infer_statement(inf, stmt->right),
                         stmt->token.value.op_type);
   case STMT_VARIABLE_DECL:
-    return infer_statement(inf, stmt->right);
+    return BranchLiteral_new(&stmt->sym_decl.type);
+    // return infer_statement(inf, stmt->right);
 
   case STMT_VARIABLE_READ:
     return infer_var_read(inf, stmt);

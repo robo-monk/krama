@@ -179,5 +179,47 @@ def test_recursive_inference():
         }
     }
     """, "f64 fac("),
+    (
+    """
+        def tricky(b: i32) {
+            let c: f64 = 0
+            c
+        }
+    """, "f64 tricky(")
+    ]
+    __array_test_compiler_inference(e)
+
+
+
+def test_special_inference():
+    e = [
+    (
+    """
+    def nothing() {
+        #c printf
+    }
+    """, "void nothing("),
+    (
+    """
+    def aloc(size: i32) {
+        let adr: ptr = 0
+        #c adr = malloc(adr)
+    }
+    """, "ptr aloc(i32 size"
+    )
+    ]
+    __array_test_compiler_inference(e)
+
+def test_namespace_inference():
+    e = [
+    (
+    """
+    def |x: i32| add(a: i32) {
+        x + a
+    }
+
+    let one: i32 = 1
+    one:add(5)
+    """, "i32 add("),
     ]
     __array_test_compiler_inference(e)
