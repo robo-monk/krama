@@ -1,5 +1,9 @@
-# hello
+def print(x: i32) {
+    #c printf("%d", x)
+}
+
 def main() {
     let c: i32 = 550
-    #c printf("%d", c)
+    print(c)
+    c
 }

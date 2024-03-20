@@ -219,6 +219,10 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
     // printf("    [BODY]:\n");
     dbg_block_stmt_with_indent(stmt->conditional->if_body, indent + 1);
     break;
+  case STMT_COMMENT:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Comment: %s\n",
+             stmt->token.value.str_value);
+    break;
   }
 
   print_indented(buffer, indent);

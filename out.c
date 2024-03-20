@@ -9,14 +9,19 @@
 
 
 // declerations 
+void print(i32 x);
 i32 main();
 
 
 // implementations 
-//# hello;
+void print(i32 x) {
+printf("%d", x);
+
+};
 i32 main() {
 i32 c = (i32) 550;
-printf("%d", c);
+print(c);
+return c;
 
 };
 

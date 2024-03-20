@@ -67,6 +67,9 @@ void dbg_branch_literal(BranchLiteral *b) {
 }
 
 LiteralType BranchLiteral_converge(Inferer *inf, BranchLiteral *b) {
+  dbg_stmt(inf->current_stmt);
+  printf("\n CONVERGING:");
+  dbg_branch_literal(b);
   if (b == NULL)
     return -1;
   LiteralType discovered_literal = -1;
@@ -85,7 +88,8 @@ LiteralType BranchLiteral_converge(Inferer *inf, BranchLiteral *b) {
   }
 
   if (discovered_literal == -1) {
-    Inferer_throw(inf, "could not converge branch literal");
+    // Inferer_throw(inf, "could not converge branch literal");
+    return LiteralType_void;
   }
   return discovered_literal;
 }
@@ -209,6 +213,8 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
     return infer_def_invoke(inf, stmt);
   case STMT_CONDITIONAL:
     return infer_conditional(inf, stmt->conditional);
+  case STMT_COMMENT:
+    return BranchLiteral_new(NULL);
   }
 
   Inferer_throw(inf, "could not infer type for expression");

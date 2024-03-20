@@ -167,7 +167,7 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
 
   Compiler_defsym_declare(com, def_name, stmt, return_type_branch);
 
-  printf("\n -- compiled args %s\n", compiled_args);
+  printf("\n -- compiled args <%s>\n", compiled_args);
   string decleration_str = concat(
       6, literal_type_to_str(BranchLiteral_converge(&inf, return_type_branch)),
       " ", def_name, "(", compiled_args, ")");

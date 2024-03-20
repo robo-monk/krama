@@ -20,6 +20,7 @@ string line_of_token(Token token) {
   int idx = token.start;
 
   int start = idx;
+  // while (start > 0 && content[start] != '\n') {
   while (start > 0 && content[start] != '\n') {
     start--;
   }
