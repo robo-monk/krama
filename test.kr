@@ -22,15 +22,21 @@ def |x: i32| ppow(a: i32) {
     }
 }
 
-def |x: i32| fac(a: i32) {
+def |x: i32| fac() {
     if (x < 2) {
         1
     } else {
-        x*(x-1):fac(0)
+        x*(x-1):fac()
     }
+}
+
+def hello() {
+    let a: i32 = 4
+    let b: i32 = 2:fac()
+    a:ppow(b):fac()
 }
 
 
 def int_main() {
-    let b: f64 = 4
+    hello()
 }

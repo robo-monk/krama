@@ -14,7 +14,8 @@ i32 sub(i32 a, i32 x);
 i32 mul(i32 a, i32 x);
 i32 to_f64(i32 x);
 i32 ppow(i32 a, i32 x);
-i32 fac(i32 a, i32 x);
+i32 fac(i32 x);
+i32 hello();
 i32 int_main();
 
 
@@ -43,17 +44,22 @@ return (i32) 1;
 };
 
 };
-i32 fac(i32 a, i32 x) {
+i32 fac(i32 x) {
 if (x<(i32) 2) {
 return (i32) 1;
 } else {
-return x*fac((i32) 0,x-(i32) 1);
+return x*fac(x-(i32) 1);
 };
 
 };
+i32 hello() {
+i32 a = (i32) 4;
+i32 b = fac((i32) 2);
+return fac(ppow(b,a));
+
+};
 i32 int_main() {
-f64 b = (i32) 4;
-return b+(i32) 4;
+return hello();
 
 };
 

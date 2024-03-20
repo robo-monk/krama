@@ -150,20 +150,29 @@ void expect_one_of(Parser *parser, TokenType *types, int len) {
 }
 
 Statement *parse_factor(Parser *parser) {
-  Token current_token = eat(parser);
+  Token current_token = peek(parser);
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
   if (current_token.type == TOKEN_IF) {
+    eat(parser);
     Statement *stmt = parse_conditional_stmt(parser);
     return stmt;
   } else if (current_token.type == TOKEN_IDENTIFIER) {
+    if (look_ahead(parser).type == TOKEN_L_PAR) {
+      return parse_impl_call_stmt(parser);
+    }
+    eat(parser);
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
   } else if (false && current_token.type == TOKEN_COLON) {
+
     return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
+    eat(parser);
     return new_i32_literal_stmt(current_token.value.i32_value, current_token);
   } else if (current_token.type == TOKEN_L_PAR) {
+    eat(parser);
+
     // Statement *node = parse_expression(parser);
     Statement *node = parse_statement(parser);
     expect(parser, TOKEN_R_PAR, "Expected closing paren");
@@ -359,31 +368,12 @@ Statement *parse_definition_stmt(Parser *parser) {
                             block_stmt, identifier);
 }
 
-Statement *__parse_let(Parser *parser) {
-  expect_and_eat(parser, TOKEN_LET,
-                 "parse_def expected current token to be LET");
-  expect(parser, TOKEN_IDENTIFIER, "expected identifier");
-  Token identifier = eat(parser);
-
-  expect(parser, TOKEN_EQ, "expected assigment");
-  eat(parser);
-
-  Statement *decl =
-      new_var_decl_stmt(LiteralType_i32, identifier.value.str_value,
-                        parse_expression(parser), identifier);
-  return decl;
-}
-
 Statement *parse_let(Parser *parser) {
   Token let_token = expect_and_eat(
       parser, TOKEN_LET, "parse_def expected current token to be LET");
 
   SymbolStatement *sym = parse_symbol_statement(parser);
-  // expect(parser, TOKEN_IDENTIFIER, "expected identifier");
-  // Token identifier = eat(parser);
-
-  expect(parser, TOKEN_EQ, "expected assigment");
-  eat(parser);
+  expect_and_eat(parser, TOKEN_EQ, "expected assigment");
 
   Statement *decl = new_var_decl_stmt(sym->type, sym->name,
                                       parse_expression(parser), let_token);
