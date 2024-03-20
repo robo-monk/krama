@@ -20,7 +20,8 @@ typedef enum {
   STMT_DEF_DECL,
   STMT_DEF_INVOKE,
 
-  STMT_CONDITIONAL
+  STMT_CONDITIONAL,
+  STMT_COMMENT
 } StatementType;
 
 typedef enum {
@@ -98,6 +99,8 @@ void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token);
+
+Statement *new_comment_stmt(Token token);
 
 Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
                                 BlockStatement *else_body, Token token);

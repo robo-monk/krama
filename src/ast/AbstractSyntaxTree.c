@@ -12,6 +12,10 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
+Statement *new_comment_stmt(Token token) {
+  return new_stmt(STMT_COMMENT, NULL, NULL, token);
+}
+
 Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
                              string name, Statement *expr, Token token) {
   Statement *s = new_stmt(stmt_type, NULL, expr, token);
@@ -221,11 +225,11 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
 
   // Recursively print left and right child statements with increased
   // indentation
-  if (stmt->left) {
+  if (stmt->left != NULL) {
     snprintf(buffer, sizeof(buffer), "Left: ");
     dbg_stmt_with_indent(stmt->left, indent + 1);
   }
-  if (stmt->right) {
+  if (stmt->right != NULL) {
     snprintf(buffer, sizeof(buffer), "Right: ");
     dbg_stmt_with_indent(stmt->right, indent + 1);
   }

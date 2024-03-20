@@ -22,7 +22,8 @@ typedef enum {
   TOKEN_R_SQ_BRACKET = ']',
   TOKEN_COLON = ':',
   TOKEN_PIPE = '|',
-  TOKEN_IF = 222,    // if
+  TOKEN_IF = 222, // if
+  TOKEN_COMMENT,
   TOKEN_RIGHT_ARROW, // ->
   TOKEN_ELSE,        // else
   TOKEN_RETURN,      // return
@@ -57,6 +58,7 @@ typedef struct {
 
 typedef enum {
   TokeniserBufferType_string,
+  TokeniserBufferType_comment,
   TokeniserBufferType_decimal_base10,
 } TokeniserBufferType;
 
@@ -75,6 +77,7 @@ struct Tokeniser {
   int row_idx;
   int col_idx;
 
+  bool escape;
   Token *tokens;
 
   TokeniserBuffer buffer;

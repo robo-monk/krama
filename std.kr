@@ -1,0 +1,33 @@
+def |x: i32| mul(a: i32) {
+    x*a
+}
+
+def |x: i32| to_f64() {
+    x
+}
+
+def |x: i32| ppow(a: i32) {
+    if (a > 0){
+        x:mul(x:ppow(a:sub(1)))
+    } else {
+        1
+    }
+}
+
+def |x: i32| fac() {
+    if (x < 2) {
+        1
+    } else {
+        x*(x-1):fac()
+    }
+}
+
+def hello() {
+    let a: i32 = 4
+    let b: i32 = 2:fac()
+    a:ppow(b):fac()
+}
+
+def int_main() {
+    hello()
+}

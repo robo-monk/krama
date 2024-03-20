@@ -397,6 +397,9 @@ Statement *parse_statement(Parser *parser) {
       return new_var_write_stmt(LiteralType_i32, identifier.value.str_value,
                                 parse_expression(parser), identifier);
     }
+  } else if (current_token.type == TOKEN_COMMENT) {
+    eat(parser);
+    return new_comment_stmt(current_token);
   }
 
   if (current_token.type == TOKEN_PROGRAM_END) {

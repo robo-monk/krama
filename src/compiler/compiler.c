@@ -206,8 +206,9 @@ string com_statement(Compiler *com, Statement *stmt) {
     return com_conditional(com, stmt->conditional);
   case STMT_DEF_DECL:
     return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
+  case STMT_COMMENT:
+    return concat(3, "//", stmt->token.value.str_value);
   }
-
   // report_syntax_error(stmt->token, "unsupported token");
   Compiler_throw(com, "unsupportd token");
 }
