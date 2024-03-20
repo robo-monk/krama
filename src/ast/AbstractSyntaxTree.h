@@ -30,6 +30,7 @@ typedef enum {
   LiteralType_char,
   LiteralType_bool,
   LiteralType_void,
+  LiteralType_ptr
 } LiteralType;
 
 typedef struct {

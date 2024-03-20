@@ -84,7 +84,6 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw(com, "redecleration of definition '%s'", def_name);
-    // Compiler_throw("redecleration of definition '%s'", def_name);
   }
 
   hashmap_set(com->sym_map, new_def_symbol(def_name, body, return_type));
@@ -109,13 +108,15 @@ Compiler Compiler_new() {
   com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
                             __sym_compare, NULL, NULL);
 
-  str_vector_push(&com.headers, "#define i32 int\n"
+  str_vector_push(&com.headers, "#include <stdio.h>\n"
+                                "#include <stdlib.h>\n"
+                                "#define i32 int\n"
                                 "#define i64 long\n"
                                 "#define u32 unsigned int\n"
                                 "#define u64 unsigned long\n"
                                 "#define f32 float\n"
                                 "#define f64 double\n"
-                                "#include <stdio.h>");
+                                "#define ptr void*\n");
   return com;
 }
 

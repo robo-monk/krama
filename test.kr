@@ -1,9 +1,38 @@
+# #include <stdio.h>
+# #include <stdlib.h>
+
+def alloc(size: i32) {
+    let b: ptr = 0
+    #c b = malloc(size);
+
+    let c: f64 = 0
+    c
+
+}
+
+def drop(address: ptr) {
+    #c free(address);
+
+}
+
 def print(x: i32) {
     #c printf("%d", x)
 }
 
+def array(size: i32) {
+    alloc(size)
+}
+
+def |ary: ptr| at(idx: i32) {
+    let el: i32 = 0
+    #c el = ary[idx];
+    el
+}
+
+
 def main() {
     let c: i32 = 550
     print(c)
-    c
+
+    let ary: ptr = array(10)
 }

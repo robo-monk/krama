@@ -8,11 +8,12 @@ typedef struct {
   LiteralType type;
 } TypeMap;
 
-static const TypeMap type_map[] = {{"i32", LiteralType_i32},
-                                   {"f64", LiteralType_f64},   //
-                                   {"char", LiteralType_char}, //
-                                   {"bool", LiteralType_bool}, //
-                                   {"void", LiteralType_void}};
+static const TypeMap type_map[] = {
+    {"i32", LiteralType_i32},   {"f64", LiteralType_f64}, //
+    {"char", LiteralType_char},                           //
+    {"bool", LiteralType_bool},                           //
+    {"void", LiteralType_void}, {"ptr", LiteralType_ptr}  //
+};
 
 #define TYPE_MAP_SIZE (sizeof(type_map) / sizeof(TypeMap))
 

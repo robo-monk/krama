@@ -19,8 +19,16 @@ def run_compiler_command(infile, outfile):
 
 def expect_compiler_error(content, expected_error):
     # Error looking like [compiler] Error! ...
-    result = run_compiler(content)
+    result, file_content = run_compiler(content)
     assert expected_error in result.stderr
+        # or expected_error in result.stdout
+    # assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
+    # assert re.search(expected_error, result.stderr) is not None
+
+def expect_in_outc(content, expected):
+    # Error looking like [compiler] Error! ...
+    result, file_content = run_compiler(content)
+    assert expected in file_content
         # or expected_error in result.stdout
     # assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
     # assert re.search(expected_error, result.stderr) is not None
@@ -34,7 +42,12 @@ def run_compiler(content):
         result = run_compiler_command(krama_file, "./tmp/out_" + id + '.c')
         print(result.stdout)
         print("Error: " + result.stderr)
-        return result
+        outc_content = ""
+        if result.returncode == 0:
+            with open("tmp/out_" + id + '.c', 'r') as f:
+                outc_content = f.read()
+
+        return result, outc_content
     finally:
         try:
             print("Deleting file: " + krama_file)
@@ -58,7 +71,7 @@ def test_undeclared_variable_write():
     """, "tried to write an undeclared variable 'a'"),
 
     ("""
-    let a = 5
+    let a: i32 = 5
     a + b
     """, "tried to read from undeclared variable 'b'"),
 
@@ -69,7 +82,7 @@ def test_undeclared_variable_write():
 def test_undeclared_variable_read():
     expected_compiler_error = [
     ("""
-    let a = 5
+    let a: i32 = 5
     a + b
     """, "tried to read from undeclared variable 'b'"),
     ]
@@ -79,8 +92,8 @@ def test_redeclared_variable():
     expected_compiler_error = [
     (
     """
-    let hello = 5
-    let hello = 6
+    let hello: i32 = 5
+    let hello: f64 = 6
     """, "redecleration of variable 'hello'"),
     ]
     __array_test_compiler_errors(expected_compiler_error)
@@ -114,13 +127,57 @@ def test_ambigious_bin():
     __array_test_compiler_errors(expected_compiler_error)
 
 
+def __array_test_compiler_inference(expected_inference_content):
+    for content, expected in expected_inference_content:
+        expect_in_outc(content, expected)
 
-# def test_inf_recursion_bin():
-#     expected_compiler_error = [
-#     (
-#     """
-#     def hello() {
-#     }
-#     """, "ambigious binary operation"),
-#     ]
-#     __array_test_compiler_errors(expected_compiler_error)
+
+def test_basic_inference():
+    e = [
+    (
+    """
+    def hello(x: i32) {
+       x
+    }
+    """, "i32 hello(i32"),
+
+    (
+    """
+    def hello(x: f64) {
+       x
+    }
+    """, "f64 hello("),
+    ]
+    __array_test_compiler_inference(e)
+
+
+
+def test_binop_inference():
+    e = [
+    (
+    """
+    def add(a: i32, b: i32) {
+        a+b
+    }
+    """, "i32 add("),
+    ]
+    __array_test_compiler_inference(e)
+
+
+def test_recursive_inference():
+    e = [
+    (
+    """
+    def as_f64(a: f64) {
+        a
+    }
+    def fac(a: f64) {
+        if (a < 2) {
+            as_f64(1)
+        } else {
+            a * fac(a-1)
+        }
+    }
+    """, "f64 fac("),
+    ]
+    __array_test_compiler_inference(e)
