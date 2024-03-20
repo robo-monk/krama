@@ -114,7 +114,8 @@ Compiler Compiler_new() {
                                 "#define u32 unsigned int\n"
                                 "#define u64 unsigned long\n"
                                 "#define f32 float\n"
-                                "#define f64 double\n");
+                                "#define f64 double\n"
+                                "#include <stdio.h>");
   return com;
 }
 
@@ -162,9 +163,9 @@ void Compiler_write_to_file(Compiler *com, string filename) {
     fprintf(file, "%s\n", (string)vector_at(&com->implementations, i));
   }
 
-  fprintf(file, "%s\n",
-          "#include \"stdio.h\"\nint main() { printf(\"%d\", int_main()); "
-          "return 1;}");
-  // Write the text to the file, followed by a newline character
+  // fprintf(file, "%s\n",
+  //         "#include \"stdio.h\"\nint main() { printf(\"%d\", int_main()); "
+  //         "return 1;}");
+
   fclose(file); // Close the file
 }

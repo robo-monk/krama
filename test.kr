@@ -1,4 +1,5 @@
 # hello
-def int_main() {
-    1 + 4
+def main() {
+    let c: i32 = 550
+    #c printf("%d", c)
 }

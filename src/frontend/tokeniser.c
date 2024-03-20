@@ -102,12 +102,14 @@ void push_to_tokeniser_buffer(char c, Tokeniser *tokeniser) {
 }
 
 void commit_buffer_as_number(Tokeniser *tokeniser) {
+
   int n = str2int(tokeniser->buffer.str, tokeniser->buffer.idx);
   push_token(new_number_token(n), tokeniser);
 }
 
 void commit_buffer_as_comment(Tokeniser *tokeniser) {
   printf("\n***COMMIting COMMENT\n");
+  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
   push_token(new_str_token(TOKEN_COMMENT, tokeniser->buffer.str,
                            tokeniser->buffer.idx),
              tokeniser);

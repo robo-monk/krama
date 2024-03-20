@@ -178,6 +178,24 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   return concat(4, decleration_str, " {\n", body, "\n}");
 }
 
+string compile_comment(Compiler *com, Token token_comment) {
+  // check if its a magic comment $
+  printf("\ncompiling comment, is magic?? %c",
+         token_comment.value.str_value[1]);
+  if (token_comment.value.str_value[1] == 'c') {
+    printf("\n yes it is magic %c", token_comment.value.str_value[1]);
+    int i = 3;
+    string c_command = calloc(512, sizeof(char));
+    while (token_comment.value.str_value[i] != '\0') {
+      c_command[i - 3] = token_comment.value.str_value[i];
+      i++;
+    }
+    return c_command;
+  }
+
+  return concat(2, "//", token_comment.value.str_value);
+}
+
 string com_statement(Compiler *com, Statement *stmt) {
   com->current_stmt = stmt;
   switch (stmt->type) {
@@ -207,7 +225,7 @@ string com_statement(Compiler *com, Statement *stmt) {
   case STMT_DEF_DECL:
     return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
   case STMT_COMMENT:
-    return concat(3, "//", stmt->token.value.str_value);
+    return compile_comment(com, stmt->token);
   }
   // report_syntax_error(stmt->token, "unsupported token");
   Compiler_throw(com, "unsupportd token");

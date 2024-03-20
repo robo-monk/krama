@@ -5,20 +5,18 @@
 #define u64 unsigned long
 #define f32 float
 #define f64 double
-
+#include <stdio.h>
 
 
 // declerations 
-i32 int_main();
+i32 main();
 
 
 // implementations 
-// # hello
-;
-i32 int_main() {
-return (i32) 1+(i32) 4;
+//# hello;
+i32 main() {
+i32 c = (i32) 550;
+printf("%d", c);
 
 };
 
-#include "stdio.h"
-int main() { printf("%d", int_main()); return 1;}
