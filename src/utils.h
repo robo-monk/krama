@@ -27,6 +27,7 @@ Vec new_vec(size_t capacity, size_t el_size);
 StrVec new_str_vec(size_t capacity);
 
 void vector_push(Vec *vec, void *el);
+void **vector_alloc_to_array(Vec *vec);
 void *vector_at(Vec *vec, int idx);
 char *concat(int count, ...);
 void throw_hard_error(const char *format, ...);

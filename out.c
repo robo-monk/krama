@@ -52,7 +52,8 @@ return x*fac((i32) 0,x-(i32) 1);
 
 };
 i32 int_main() {
-return to_f64(ppow((i32) 50,(i32) 5));
+f64 b = (i32) 4;
+return b+(i32) 4;
 
 };
 

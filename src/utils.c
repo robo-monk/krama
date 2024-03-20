@@ -45,6 +45,15 @@ void *vector_at(Vec *vec, int idx) {
   return vec->ptr[idx];
 }
 
+void **vector_alloc_to_array(Vec *vec) {
+  void **ary_ptr = calloc(vec->size, vec->el_size);
+
+  for (int i = 0; i < vec->size; i++) {
+    ary_ptr[i] = vector_at(vec, i);
+  }
+  return ary_ptr;
+}
+
 string str_vec_at(StrVec *vec, int idx) { return vector_at(vec, idx); }
 void str_vector_push(Vec *vec, string el) { vector_push(vec, el); }
 

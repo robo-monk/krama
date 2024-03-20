@@ -32,5 +32,5 @@ def |x: i32| fac(a: i32) {
 
 
 def int_main() {
-    5:ppow(50):to_f64()
+    let b: f64 = 4
 }

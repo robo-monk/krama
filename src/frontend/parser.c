@@ -78,24 +78,26 @@ Parser new_parser(Token *tokens) {
   return p;
 }
 
-BlockStatement *parse_arg_defs(Parser *parser) {
+void parse_args_until(Parser *parser, BlockStatement *arg_defs,
+                      TokenType until) {
+  while (peek(parser).type != until) {
+    Statement *arg_stmt = parse_expression(parser);
 
+    printf("-\n");
+    push_stmt_to_block(arg_stmt, arg_defs);
+    if (peek(parser).type == TOKEN_COMMA) {
+      printf("\nEATING COMMA\n");
+      eat(parser);
+    }
+  }
+}
+
+BlockStatement *parse_arg_defs(Parser *parser) {
   BlockStatement *arg_defs = new_block_stmt();
   // Argument arg
   if (peek(parser).type == TOKEN_L_PAR) {
     expect_and_eat(parser, TOKEN_L_PAR, "expected Left paren");
-    while (peek(parser).type != TOKEN_R_PAR) {
-      Statement *arg_stmt = parse_expression(parser);
-
-      // dbg_stmt(arg_stmt);
-      printf("-\n");
-      push_stmt_to_block(arg_stmt, arg_defs);
-      if (peek(parser).type == TOKEN_COMMA) {
-        printf("\nEATING COMMA\n");
-        eat(parser);
-      }
-    }
-
+    parse_args_until(parser, arg_defs, TOKEN_R_PAR);
     expect_and_eat(parser, TOKEN_R_PAR, "expected r paren");
   }
   return arg_defs;
@@ -310,23 +312,19 @@ void parse_symbol_statements(Parser *parser, Vec *syms) {
   int len = 0;
   while (peek(parser).type == TOKEN_IDENTIFIER) {
     vector_push(syms, parse_symbol_statement(parser));
-    // syms[len] = parse_symbol_statement(parser);
-    // len += 1;
     if (peek(parser).type == TOKEN_COMMA) {
       eat(parser);
     }
   }
-  // return len;
 }
 
-Statement *parse_def(Parser *parser) {
+Statement *parse_definition_stmt(Parser *parser) {
   expect_and_eat(parser, TOKEN_DEF,
                  "parse_def expected current token to be DEF");
 
   SymbolStatement *namespace = NULL;
   if (peek(parser).type == TOKEN_PIPE) {
     eat(parser);
-    // throw_parser_error(parser, "not implemented");
     namespace = parse_symbol_statement(parser);
     printf("\n|--DEFINE for type %s (defed as: %s) \n",
            literal_type_to_str(namespace->type), namespace->name);
@@ -340,46 +338,33 @@ Statement *parse_def(Parser *parser) {
   expect_and_eat(parser, TOKEN_L_PAR,
                  "expected open parenthesis to define arguments");
 
-  // TODO: this should be a dynamic array
-  // SymbolStatement **args = malloc(sizeof(SymbolStatement) * 100);
   Vec args = new_vec(1, sizeof(SymbolStatement));
-
   parse_symbol_statements(parser, &args);
 
+  LiteralType namespace_type = -1;
   // append the namespace in the end
   if (namespace != NULL) {
     vector_push(&args, namespace);
+    namespace_type = namespace->type;
   }
 
   expect_and_eat(parser, TOKEN_R_PAR, "expected closing parenthesis");
   expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
 
   Statement *block_stmt = parse_statement(parser);
-  block_stmt->block->args = calloc(args.size, sizeof(SymbolStatement));
-
-  for (int i = 0; i < args.size; i++) {
-    block_stmt->block->args[i] = vector_at(&args, i);
-  }
-
+  block_stmt->block->args = vector_alloc_to_array(&args);
   block_stmt->block->arg_len = args.size;
-
-  LiteralType namespace_type = -1;
-
-  if (namespace != NULL) {
-    namespace_type = namespace->type;
-  }
 
   return new_impl_decl_stmt(namespace_type, identifier.value.str_value,
                             block_stmt, identifier);
 }
 
-Statement *parse_let(Parser *parser) {
+Statement *__parse_let(Parser *parser) {
   expect_and_eat(parser, TOKEN_LET,
                  "parse_def expected current token to be LET");
   expect(parser, TOKEN_IDENTIFIER, "expected identifier");
   Token identifier = eat(parser);
 
-  // dbg_token(identifier);
   expect(parser, TOKEN_EQ, "expected assigment");
   eat(parser);
 
@@ -389,13 +374,29 @@ Statement *parse_let(Parser *parser) {
   return decl;
 }
 
+Statement *parse_let(Parser *parser) {
+  Token let_token = expect_and_eat(
+      parser, TOKEN_LET, "parse_def expected current token to be LET");
+
+  SymbolStatement *sym = parse_symbol_statement(parser);
+  // expect(parser, TOKEN_IDENTIFIER, "expected identifier");
+  // Token identifier = eat(parser);
+
+  expect(parser, TOKEN_EQ, "expected assigment");
+  eat(parser);
+
+  Statement *decl = new_var_decl_stmt(sym->type, sym->name,
+                                      parse_expression(parser), let_token);
+  return decl;
+}
+
 Statement *parse_statement(Parser *parser) {
   Token current_token = peek(parser);
 
   if (current_token.type == TOKEN_L_BRACKET) {
     return parse_block(parser);
   } else if (current_token.type == TOKEN_DEF) {
-    return parse_def(parser);
+    return parse_definition_stmt(parser);
   } else if (current_token.type == TOKEN_LET) {
     return parse_let(parser);
   } else if (current_token.type == TOKEN_IDENTIFIER) {
