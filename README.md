@@ -2,6 +2,11 @@
 
 A toy programming language bootstrapped in C.
 
+## TODOs
+
+- [ ] inference to variable declerations
+- [ ] can't assign f64 to i32 symbol
+
 ## Roadmap
 
 - [x] Expression Parsing (2 \* 2 + 4)

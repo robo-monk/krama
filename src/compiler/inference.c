@@ -98,22 +98,33 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
                                                   BlockStatement *block,
                                                   BranchLiteral *base) {
 
-  if (block == NULL) {
-    Inferer_throw(inf, "cnannot infer null block");
+  if (block == NULL || block->len == 0) {
+    // Inferer_throw(inf, "cnannot infer null block");
+    return base;
   }
 
+  printf("BLOCK Len is %d\n", block->len);
+  printf("\ninfering block using last statement (block->len-1 is %d)",
+         block->len - 1);
+  dbg_stmt(block->statements[block->len - 1]);
+  printf("--\n");
+  BranchLiteral *branch =
+      infer_statement(inf, block->statements[block->len - 1]);
+  BranchLiteral_merge(base, branch);
   for (int i = 0; i < block->len; i++) {
+    continue;
     // TODO
     // if statement has potential to return
     // infer its type
     // if its different throw error that block statement has ambigious
     // return type
 
+    // TODO this also breaks for empty blocks
     // for now only infer last stmt in block
-    if (i == block->idx) {
-      printf("\nINFERNIG BLOCK using last statement: ");
+    if (i == block->len - 1) {
+      printf("\ninfering block using last statement (%d): ", i);
       dbg_stmt(block->statements[i]);
-      printf("\n");
+      printf("--\n");
       BranchLiteral *branch = infer_statement(inf, block->statements[i]);
       BranchLiteral_merge(base, branch);
     }
@@ -126,23 +137,33 @@ BranchLiteral *infer_block_statement(Inferer *inf, BlockStatement *block) {
                                             BranchLiteral_new(NULL));
 }
 
-BranchLiteral *infer_bin_op(Inferer *inf, BranchLiteral *type_a,
-                            BranchLiteral *type_b, OpType op) {
+BranchLiteral *infer_bin_op(Inferer *inf, Statement *stmt_a, Statement *stmt_b,
+                            OpType op) {
 
   // printf("\nINFERING BIN OP:\n");
-  printf("\n ---- INFER OPTYPE --- %s\n", optype_to_str(op));
-  dbg_branch_literal(type_a);
-  printf("\n");
-  dbg_branch_literal(type_b);
-  printf("\n----\n");
-  if (type_a == NULL) {
+  // printf("\n ---- INFER OPTYPE --- %s\n", optype_to_str(op));
+  // dbg_branch_literal(type_a);
+  // printf("\n");
+  // dbg_branch_literal(type_b);
+  // printf("\n----\n");
+  if (op == OpType_Custom) {
+    return infer_statement(inf, stmt_b);
+  }
+
+  BranchLiteral *type_a = infer_statement(inf, stmt_a);
+  BranchLiteral *type_b = infer_statement(inf, stmt_b);
+  if (type_a == NULL || type_a->size == 0) {
     return type_b;
   }
-  if (type_b == NULL) {
+  if (type_b == NULL || type_b->size == 0) {
     return type_a;
   }
   if (BranchLiteral_converge(inf, type_a) !=
       BranchLiteral_converge(inf, type_b)) {
+    printf("Type A is: ");
+    dbg_branch_literal(type_a);
+    printf("\nType B is: ");
+    dbg_branch_literal(type_a);
     Inferer_throw(inf, "ambigious binary operation");
   }
 
@@ -202,9 +223,13 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
     return BranchLiteral_new(&stmt->literal.type);
   case STMT_BINARY_OP:
     printf("\nBIN OP\n");
-    return infer_bin_op(inf, infer_statement(inf, stmt->left),
-                        infer_statement(inf, stmt->right),
+    return infer_bin_op(inf, stmt->left, stmt->right,
                         stmt->token.value.op_type);
+
+    // return infer_bin_op(inf, infer_statement(inf, stmt->left),
+    //                     infer_statement(inf, stmt->right),
+    //                     stmt->token.value.op_type);
+
   case STMT_VARIABLE_DECL:
     return BranchLiteral_new(&stmt->sym_decl.type);
     // return infer_statement(inf, stmt->right);

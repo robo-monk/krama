@@ -68,7 +68,6 @@ struct BlockStatement {
   unsigned int arg_len;
 
   Statement **statements;
-  unsigned int idx;
   unsigned int len;
   unsigned int max_len;
 };

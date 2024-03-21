@@ -104,7 +104,6 @@ void _alloc_statement_array(BlockStatement *program) {
 #define DEFAULT_PROGRAM_LEN 1;
 BlockStatement *new_block_stmt() {
   BlockStatement *program = malloc(sizeof(BlockStatement));
-  program->idx = 0;
   program->len = 0;
   program->max_len = DEFAULT_PROGRAM_LEN;
   program->arg_len = 0;
@@ -113,6 +112,11 @@ BlockStatement *new_block_stmt() {
 }
 
 void push_stmt_to_block(Statement *stmt, BlockStatement *program) {
+  if (!stmt) {
+    // printf("\n pushing null block??\n");
+    // exit(1);
+    return;
+  }
   program->len += 1;
   // optionally alloc more memory
   _alloc_statement_array(program);
@@ -165,7 +169,8 @@ void dbg_block_stmt_with_indent(const BlockStatement *block, int indent) {
 
 void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   if (!stmt)
-    return;
+    printf("\n NULL STMT \n");
+  return;
 
   char buffer[1024]; // Adjust size as needed, considering maximum expected
                      // output length

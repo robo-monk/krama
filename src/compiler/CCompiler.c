@@ -116,7 +116,7 @@ Compiler Compiler_new() {
                                 "#define u64 unsigned long\n"
                                 "#define f32 float\n"
                                 "#define f64 double\n"
-                                "#define ptr void*\n");
+                                "#define ptr int*\n");
   return com;
 }
 

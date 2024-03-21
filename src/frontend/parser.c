@@ -85,6 +85,7 @@ void parse_args_until(Parser *parser, BlockStatement *arg_defs,
     Statement *arg_stmt = parse_expression(parser);
 
     printf("-\n");
+    printf("\n parser.c 89 \n");
     push_stmt_to_block(arg_stmt, arg_defs);
     if (peek(parser).type == TOKEN_COMMA) {
       printf("\nEATING COMMA\n");
@@ -283,6 +284,8 @@ Statement *parse_block(Parser *parser) {
 
     while (true) {
       Statement *stmt = parse_statement(parser);
+
+      printf("\n parser.c 289 \n");
       push_stmt_to_block(stmt, block_stmt);
       dbg_stmt(stmt);
       if (peek(parser).type == TOKEN_R_BRACKET) {
@@ -434,6 +437,7 @@ BlockStatement *parse_tokens(Token *tokens) {
       printf("--|END STATEMENT|\n");
     }
 
+    printf("\n parser.c 442 \n");
     push_stmt_to_block(stmt, program);
     stmt = parse(&parser);
   } while (stmt != NULL);

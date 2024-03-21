@@ -101,6 +101,7 @@ string com_bin_op(Compiler *com, Statement *left, Statement *right,
     // printf("\nRIGHT: \n");
     // dbg_stmt(right);
 
+    printf("\n compiler.c\n");
     push_stmt_to_block(left, right->right->block);
     if (right->right->type != STMT_BLOCK) {
       Compiler_throw(com, "expected block statement that defines arguments");
@@ -153,13 +154,17 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   scoped_compiler.upper = com;
   string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
-  printf("\n DECLARIN \n");
   Compiler_defsym_declare(&scoped_compiler, def_name, stmt, NULL);
 
-  printf("\n INFERING \n");
+  printf("\n------ *** INFERING def '%s' *** --------\n", def_name);
 
   Inferer inf = Inferer_new(&scoped_compiler);
+  string body = compile_block_statement(&scoped_compiler, stmt->block);
   BranchLiteral *return_type_branch = infer_statement(&inf, stmt);
+
+  printf("\n---- *** INFERED def '%s' TO ", def_name);
+  dbg_branch_literal(return_type_branch);
+  printf(" *** \n");
   // LiteralType return_type = return_type_branch.type;
 
   // printf("\ninfered defsym '%s' to %s\n", def_name,
@@ -167,23 +172,18 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
 
   Compiler_defsym_declare(com, def_name, stmt, return_type_branch);
 
-  printf("\n -- compiled args <%s>\n", compiled_args);
   string decleration_str = concat(
       6, literal_type_to_str(BranchLiteral_converge(&inf, return_type_branch)),
       " ", def_name, "(", compiled_args, ")");
 
   Compiler_decl_push(com, decleration_str);
-  string body = compile_block_statement(&scoped_compiler, stmt->block);
   Compiler_free(&scoped_compiler);
   return concat(4, decleration_str, " {\n", body, "\n}");
 }
 
 string compile_comment(Compiler *com, Token token_comment) {
   // check if its a magic comment $
-  printf("\ncompiling comment, is magic?? %c",
-         token_comment.value.str_value[1]);
   if (token_comment.value.str_value[1] == 'c') {
-    printf("\n yes it is magic %c", token_comment.value.str_value[1]);
     int i = 3;
     string c_command = calloc(512, sizeof(char));
     while (token_comment.value.str_value[i] != '\0') {
