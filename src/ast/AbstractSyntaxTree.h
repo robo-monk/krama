@@ -21,7 +21,8 @@ typedef enum {
   STMT_DEF_INVOKE,
 
   STMT_CONDITIONAL,
-  STMT_COMMENT
+  STMT_COMMENT,
+  STMT_TREE
 } StatementType;
 
 typedef enum {
@@ -63,6 +64,15 @@ typedef SymbolStatement Argument;
 //   BlockStatement *stmts;
 // } BlockStatement;
 
+typedef struct {
+  Statement *condition;
+  Statement *body;
+} Branch;
+
+typedef struct {
+  Vec branches;
+} TreeStatement;
+
 struct BlockStatement {
   Argument **args;
   unsigned int arg_len;
@@ -86,6 +96,7 @@ struct Statement {
     SymbolStatement sym_decl;
     BlockStatement *block;
     ConditionalStatement *conditional;
+    TreeStatement *tree;
   };
   StatementType type;
   Statement *left;
@@ -96,6 +107,10 @@ struct Statement {
 
 BlockStatement *new_block_stmt();
 void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
+
+Branch *Branch_new(Statement *body, Statement *condition);
+Statement *TreeStatement_new(Token token);
+void TreeStatement_push(TreeStatement *tree, Branch *branch);
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token);

@@ -137,6 +137,7 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
   case TOKEN_RETURN:
   case TOKEN_RIGHT_ARROW:
   case TOKEN_IF:
+  case TOKEN_BRANCH:
     return push_token(new_token(token_type), tokeniser);
   default:
     throw_tokeniser_err("unreachable?");
@@ -213,7 +214,7 @@ void tokenise_char(char c, Tokeniser *state) {
 
   switch (c) {
   case '+':
-  case '-':
+  // case '-':
   case '/':
   case '*':
     commit_multichar_token(state);
@@ -342,7 +343,7 @@ Tokeniser *tokenise_file(const string filename) {
 void dbg_token(Token token) {
   switch (token.type) {
   case TOKEN_OP:
-    printf("Operand: %s", optype_to_str(token.value.op_type));
+    printf("Operand: '%s'", optype_to_str(token.value.op_type));
     break;
   case TOKEN_NUMBER:
     printf("Number: %d", token.value.i32_value);

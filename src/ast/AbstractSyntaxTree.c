@@ -12,6 +12,23 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
+Statement *TreeStatement_new(Token token) {
+  Statement *s = new_stmt(STMT_TREE, NULL, NULL, token);
+  s->tree->branches = new_vec(1, sizeof(Branch));
+  return s;
+}
+
+void TreeStatement_push(TreeStatement *tree, Branch *branch) {
+  vector_push(&tree->branches, branch);
+}
+
+Branch *Branch_new(Statement *body, Statement *condition) {
+  Branch *b = malloc(sizeof(Branch));
+  b->body = body;
+  b->condition = condition;
+  return b;
+}
+
 Statement *new_comment_stmt(Token token) {
   return new_stmt(STMT_COMMENT, NULL, NULL, token);
 }

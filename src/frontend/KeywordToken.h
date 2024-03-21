@@ -28,6 +28,7 @@ static const KeywordTokenMap kw_token_map[] = {
     {"shape", TOKEN_SHAPE}, //
 
     {"if", TOKEN_IF},         //
+    {"branch", TOKEN_BRANCH}, //
     {"else", TOKEN_ELSE},     //
     {"return", TOKEN_RETURN}, //
 

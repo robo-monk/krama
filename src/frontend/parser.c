@@ -51,7 +51,14 @@ void report_syntax_error(Token token, string error_msg) {
 }
 
 void throw_parser_error(Parser *parser, string error_msg) {
-  return report_syntax_error(look_behind(parser), error_msg);
+  // string error_line1 = line_of_token(look_behind(parser));
+  // string error_line2 = line_of_token(peek(parser));
+  // string error_line3 = line_of_token(look_ahead(parser));
+
+  // throw_hard_error("%s%s%s\n[%d:%d] Syntax error: %s\n", error_line1,
+  //                  error_line2, error_line3, peek(parser).row_idx,
+  //                  peek(parser).col_idx, error_msg);
+  return report_syntax_error(peek(parser), error_msg);
 }
 
 void throw_unexpected_token(Parser *parser, string error_msg) {
@@ -60,17 +67,16 @@ void throw_unexpected_token(Parser *parser, string error_msg) {
 
 void expect(Parser *parser, TokenType token_type, string error_msg) {
   if (peek(parser).type != token_type) {
-    // throw_parser_error(parser, error_msg);
+    printf("Got token:");
+    dbg_token(peek(parser));
+    printf(" - ");
     throw_unexpected_token(parser, error_msg);
   }
 }
 
 Token expect_and_eat(Parser *parser, TokenType token_type, string error_msg) {
-  Token t = eat(parser);
-  if (t.type != token_type) {
-    throw_unexpected_token(parser, error_msg);
-  }
-  return t;
+  expect(parser, token_type, error_msg);
+  return eat(parser);
 }
 
 Parser new_parser(Token *tokens) {
@@ -151,11 +157,45 @@ void expect_one_of(Parser *parser, TokenType *types, int len) {
   throw_unexpected_token(parser, "Expected one of");
 }
 
+Branch *parse_branch(Parser *parser) {
+
+  expect_and_eat(parser, TOKEN_L_PAR,
+                 "expect left bracket to define branch conditions");
+
+  Statement *condition = parse_statement(parser);
+
+  expect_and_eat(parser, TOKEN_R_PAR, "Expected closing paren");
+
+  Token arrow = expect_and_eat(parser, TOKEN_RIGHT_ARROW,
+                               "expected right arrow to define branch body");
+
+  Statement *body = parse_block(parser);
+  return Branch_new(body, condition);
+}
+
+Statement *parse_branch_stmt(Parser *parser) {
+  Token branch_token =
+      expect_and_eat(parser, TOKEN_BRANCH, "expectd branch statement to eat");
+  expect_and_eat(parser, TOKEN_L_BRACKET,
+                 "expectd left bracket to define branch conditions");
+
+  // BlockStatement *block = new_block_stmt();
+  Statement *tree_stmt = TreeStatement_new(branch_token);
+  while (peek(parser).type == TOKEN_L_PAR) {
+    Branch *branch = parse_branch(parser);
+    TreeStatement_push(tree_stmt->tree, branch);
+  }
+
+  return tree_stmt;
+}
+
 Statement *parse_factor(Parser *parser) {
   Token current_token = peek(parser);
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
-  if (current_token.type == TOKEN_IF) {
+  if (current_token.type == TOKEN_BRANCH) {
+    return parse_branch_stmt(parser);
+  } else if (current_token.type == TOKEN_IF) {
     eat(parser);
     Statement *stmt = parse_conditional_stmt(parser);
     return stmt;
@@ -178,6 +218,7 @@ Statement *parse_factor(Parser *parser) {
     // Statement *node = parse_expression(parser);
     Statement *node = parse_statement(parser);
     expect(parser, TOKEN_R_PAR, "Expected closing paren");
+
     eat(parser);
     return node;
   }

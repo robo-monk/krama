@@ -25,7 +25,7 @@ void set(i32 idx, i32 el, ptr ary);
 void initialise(i32 value, i32 start_idx, ptr ary);
 void array_print(i32 start, ptr ary);
 i32 is_alive(i32 idx, ptr ary);
-void rule110(i32 idx, ptr ary);
+i32 rule110(i32 idx, ptr ary);
 i32 main();
 
 
@@ -98,6 +98,12 @@ initialise(value,start_idx+(i32) 1,ary);
 
 };
 void array_print(i32 start, ptr ary) {
+//#branch {;
+//#(start < ary:length()) -> {;
+//#print(ary:at(start));
+//#ary:array_print(start+1);
+//#};
+//#};
 if (start<length(ary)) {
 print(at(start,ary));
 return array_print(start+(i32) 1,ary);
@@ -105,6 +111,15 @@ return array_print(start+(i32) 1,ary);
 
 };
 i32 is_alive(i32 idx, ptr ary) {
+//# match |idx| {;
+//# (idx < 0 || idx > ary:length()) -> 0;
+//# () -> ary:at(idx);
+//# };
+//#branch {;
+//#(idx < 0) -> 0,#};
+//#(idx > ary:length()) -> 0,;
+//#() -> ary:at(idx);
+//#};
 if (idx<(i32) 0) {
 return (i32) 0;
 } else {
@@ -116,7 +131,11 @@ return at(idx,ary);
 };
 
 };
-void rule110(i32 idx, ptr ary) {
+i32 rule110(i32 idx, ptr ary) {
+i32 lcell = is_alive(idx-(i32) 1,ary);
+i32 ccell = is_alive(idx,ary);
+i32 rcell = is_alive(idx+(i32) 1,ary);
+return (i32) 1;
 
 };
 i32 main() {

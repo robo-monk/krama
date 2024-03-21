@@ -201,6 +201,9 @@ string com_statement(Compiler *com, Statement *stmt) {
   switch (stmt->type) {
   case STMT_BLOCK:
     return compile_block_statement(com, stmt->block);
+  case STMT_TREE:
+    Compiler_throw(com, "unsupported tree");
+    return NULL;
   case STMT_LITERAL:
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
                   literal_val2str(stmt->literal));

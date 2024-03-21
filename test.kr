@@ -69,6 +69,13 @@ def |ary: ptr| initialise(value: i32, start_idx: i32) {
 }
 
 def |ary: ptr| array_print(start: i32) {
+    #branch {
+        #(start < ary:length()) -> {
+            #print(ary:at(start))
+            #ary:array_print(start+1)
+        #}
+    #}
+
     if (start < ary:length()) {
         print(ary:at(start))
         ary:array_print(start+1)
@@ -76,6 +83,16 @@ def |ary: ptr| array_print(start: i32) {
 }
 
 def |ary: ptr| is_alive(idx: i32) {
+    # match |idx| {
+        # (idx < 0 || idx > ary:length()) -> 0
+        # () -> ary:at(idx)
+    # }
+    #branch {
+        #(idx < 0) -> 0,
+        #(idx > ary:length()) -> 0,
+        #() -> ary:at(idx)
+    #}
+
     if (idx < 0) {
         0
     } else {
@@ -88,6 +105,16 @@ def |ary: ptr| is_alive(idx: i32) {
 }
 
 def |ary: ptr| rule110(idx: i32) {
+    let lcell: i32 = ary:is_alive(idx-1)
+    let ccell: i32 = ary:is_alive(idx)
+    let rcell: i32 = ary:is_alive(idx+1)
+
+    branch {
+        (lcell && ccell && rcell) -> { 0 }
+        (lcell && ccell && !rcell) -> { 0 }
+    }
+
+    1
 }
 
 def main() {
@@ -96,6 +123,5 @@ def main() {
     ary:set(0, 1)
     #c printf("\ndone printing array\n")
     ary:array_print(0)
-
     1
 }
