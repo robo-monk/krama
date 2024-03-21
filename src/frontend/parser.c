@@ -180,6 +180,7 @@ Statement *parse_branch_stmt(Parser *parser) {
                  "expectd left bracket to define branch conditions");
 
   // BlockStatement *block = new_block_stmt();
+  printf("\n bing bong\n");
   Statement *tree_stmt = TreeStatement_new(branch_token);
   while (peek(parser).type == TOKEN_L_PAR) {
     Branch *branch = parse_branch(parser);
@@ -194,6 +195,7 @@ Statement *parse_factor(Parser *parser) {
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
   if (current_token.type == TOKEN_BRANCH) {
+    printf("\n +++parse branch\n");
     return parse_branch_stmt(parser);
   } else if (current_token.type == TOKEN_IF) {
     eat(parser);
@@ -324,6 +326,8 @@ Statement *parse_block(Parser *parser) {
     BlockStatement *block_stmt = new_block_stmt();
 
     while (true) {
+
+      printf("\n ---parsing sttm \n");
       Statement *stmt = parse_statement(parser);
 
       printf("\n parser.c 289 \n");
@@ -332,6 +336,7 @@ Statement *parse_block(Parser *parser) {
       if (peek(parser).type == TOKEN_R_BRACKET) {
         break;
       }
+      printf("\n ---parser.c 335 \n");
     }
     expect_and_eat(parser, TOKEN_R_BRACKET, "Expected r bracket to eat");
 
@@ -426,7 +431,9 @@ Statement *parse_let(Parser *parser) {
 }
 
 Statement *parse_statement(Parser *parser) {
+  printf("\n ---parsing sttm  432\n");
   Token current_token = peek(parser);
+  printf("\n +++ 434\n");
 
   if (current_token.type == TOKEN_L_BRACKET) {
     return parse_block(parser);
