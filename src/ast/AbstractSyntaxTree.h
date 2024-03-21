@@ -6,7 +6,6 @@
 
 typedef struct BlockStatement BlockStatement;
 typedef struct Statement Statement;
-// typedef struct BranchLiteral BranchLiteral;
 
 typedef enum {
   STMT_BLOCK,
@@ -31,7 +30,8 @@ typedef enum {
   LiteralType_char,
   LiteralType_bool,
   LiteralType_void,
-  LiteralType_ptr
+  LiteralType_ptr,
+  LiteralType_UNKNOWN
 } LiteralType;
 
 typedef struct {

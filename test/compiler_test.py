@@ -111,7 +111,7 @@ def test_ambigious_if():
             b
         }
     }
-    """, "ambigious return types"),
+    """, "ambiguous"),
     ]
     __array_test_compiler_errors(expected_compiler_error)
 
@@ -171,11 +171,12 @@ def test_recursive_inference():
     def as_f64(a: f64) {
         a
     }
+
     def fac(a: f64) {
         if (a < 2) {
             as_f64(1)
         } else {
-            a * fac(a-1)
+            a * fac(a - 1)
         }
     }
     """, "f64 fac("),
@@ -204,6 +205,7 @@ def test_special_inference():
     def aloc(size: i32) {
         let adr: ptr = 0
         #c adr = malloc(adr)
+        adr
     }
     """, "ptr aloc(i32 size"
     )

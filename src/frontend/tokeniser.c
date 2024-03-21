@@ -109,7 +109,6 @@ void commit_buffer_as_number(Tokeniser *tokeniser) {
 
 void commit_buffer_as_comment(Tokeniser *tokeniser) {
   printf("\n***COMMIting COMMENT\n");
-  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
   push_token(new_str_token(TOKEN_COMMENT, tokeniser->buffer.str,
                            tokeniser->buffer.idx),
              tokeniser);
@@ -306,7 +305,7 @@ Tokeniser *tokenise_str(string str) {
 
 string read_file_to_str(const string filename) {
   char *buffer = 0;
-  long length;
+  int length = 0;
   FILE *f = fopen(filename, "rb");
 
   if (f) {

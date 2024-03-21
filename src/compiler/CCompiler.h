@@ -8,7 +8,6 @@
 #include "stdlib.h"
 
 typedef struct Compiler Compiler;
-typedef Vec BranchLiteral;
 
 typedef struct Scope Scope;
 struct Scope {
@@ -22,7 +21,7 @@ typedef struct {
 
 typedef struct {
   Statement *body;
-  BranchLiteral *btype;
+  LiteralType type;
 } DefSymbol;
 
 typedef struct {
@@ -52,8 +51,7 @@ void Compiler_throw(Compiler *com, const char *fmt, ...);
 Symbol *new_sym(string name);
 // Symbol *new_def_symbol(string name, Statement *body, LiteralType
 // return_type);
-Symbol *new_def_symbol(string name, Statement *body,
-                       BranchLiteral *return_type);
+Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type);
 Symbol *new_var_symbol(string name, LiteralType type);
 
 Symbol const *Compiler_symbol_get(Compiler *com, string sym_name);
@@ -63,7 +61,7 @@ VariableSymbol *Compiler_varsym_get(Compiler *com, string var_name);
 DefSymbol *Compiler_defsym_get(Compiler *com, string def_name);
 
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
-                             BranchLiteral *return_type);
+                             LiteralType return_type);
 
 void Compiler_varsym_declare(Compiler *com, string var_name, LiteralType type);
 

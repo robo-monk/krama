@@ -6,6 +6,7 @@ A toy programming language bootstrapped in C.
 
 - [ ] inference to variable declerations
 - [ ] can't assign f64 to i32 symbol
+- [ ] `Vec` is terrible, it is a vector of pointers, there's no point into initialising it with size as all elements are pointers
 
 ## Roadmap
 

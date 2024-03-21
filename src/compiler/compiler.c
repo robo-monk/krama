@@ -83,12 +83,11 @@ string compile_tree_statement(Compiler *com, Statement *stmt) {
   Compiler_defsym_declare(&scope, tree->name, stmt, NULL);
 
   Inferer inf = Inferer_new(&scope);
-  BranchLiteral *return_type = infer_statement(&inf, stmt);
-  LiteralType return_literal = BranchLiteral_converge(&inf, return_type);
+  LiteralType return_literal = infer_statement(&inf, stmt);
   printf("-----\n return literal type is %s\n\n",
          literal_type_to_str(return_literal));
 
-  Compiler_defsym_declare(com, tree->name, stmt, return_type);
+  Compiler_defsym_declare(com, tree->name, stmt, return_literal);
 
   StrVec statements = new_str_vec(tree->branches.size);
   printf("\n arg defs are %s", arg_defs);
@@ -221,30 +220,32 @@ string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   scoped_compiler.upper = com;
   string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
-  Compiler_defsym_declare(&scoped_compiler, def_name, stmt, NULL);
-
-  printf("\n------ *** INFERING def '%s' *** --------\n", def_name);
+  Compiler_defsym_declare(&scoped_compiler, def_name, stmt,
+                          LiteralType_UNKNOWN);
 
   Inferer inf = Inferer_new(&scoped_compiler);
   string body = compile_block_statement(&scoped_compiler, stmt->block);
-  BranchLiteral *return_type_branch = infer_statement(&inf, stmt);
 
-  printf("\n---- *** INFERED def '%s' TO ", def_name);
-  dbg_branch_literal(return_type_branch);
-  printf(" *** \n");
+  LiteralType return_type = LiteralType_UNKNOWN;
+  printf("\n------ *** INFERING def '%s' *** --------\n", def_name);
+  return_type = infer_statement(&inf, stmt);
+  // printf("\n ACTUALLY RETURNED?? %d", infer_var_read(&inf, stmt));
+  printf("\n---- *** INFERED def '%s' TO %s (%d) \n", def_name,
+         literal_type_to_str(return_type), return_type);
+
   // LiteralType return_type = return_type_branch.type;
 
   // printf("\ninfered defsym '%s' to %s\n", def_name,
   // literal_type_to_str(return_type));
 
-  Compiler_defsym_declare(com, def_name, stmt, return_type_branch);
+  Compiler_defsym_declare(com, def_name, stmt, return_type);
+  printf("\nliteral type unfer\n");
 
-  string decleration_str = concat(
-      6, literal_type_to_str(BranchLiteral_converge(&inf, return_type_branch)),
-      " ", def_name, "(", compiled_args, ")");
+  string decleration_str = concat(6, literal_type_to_str(return_type), " ",
+                                  def_name, "(", compiled_args, ")");
 
   Compiler_decl_push(com, decleration_str);
-  Compiler_free(&scoped_compiler);
+  // Compiler_free(&scoped_compiler);
   return concat(4, decleration_str, " {\n", body, "\n}");
 }
 
