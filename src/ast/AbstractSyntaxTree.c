@@ -12,9 +12,11 @@ Statement *new_stmt(StatementType type, Statement *left, Statement *right,
   return s;
 }
 
-Statement *TreeStatement_new(Token token) {
+Statement *TreeStatement_new(string name, Token token, Vec args) {
   Statement *s = new_stmt(STMT_TREE, NULL, NULL, token);
   s->tree = malloc(sizeof(TreeStatement));
+  s->tree->name = name;
+  s->tree->arguments = args;
   s->tree->branches = new_vec(1, sizeof(Branch));
   return s;
 }

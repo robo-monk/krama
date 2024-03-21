@@ -132,6 +132,19 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
   return base;
 }
 
+// all branches should infer to the same type
+BranchLiteral *infer_tree_statement(Inferer *inf, TreeStatement *tree) {
+  if (tree->branches.size == 0) {
+    return BranchLiteral_new(NULL);
+  }
+  BranchLiteral *base = BranchLiteral_new(NULL);
+  for (int i = 0; i < tree->branches.size; i++) {
+    Branch *b = vector_at(&tree->branches, i);
+    BranchLiteral_merge(base, infer_statement(inf, b->body));
+  }
+  return base;
+}
+
 BranchLiteral *infer_block_statement(Inferer *inf, BlockStatement *block) {
   return infer_block_statement_with_initial(inf, block,
                                             BranchLiteral_new(NULL));
@@ -217,7 +230,8 @@ BranchLiteral *infer_statement(Inferer *inf, Statement *stmt) {
   switch (stmt->type) {
   case STMT_BLOCK:
     return infer_block_statement(inf, stmt->block);
-    break;
+  case STMT_TREE:
+    return infer_tree_statement(inf, stmt->tree);
   case STMT_LITERAL:
     // Inferer_throw(inf, "could not infer type for expression");
     return BranchLiteral_new(&stmt->literal.type);

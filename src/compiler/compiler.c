@@ -35,6 +35,83 @@ string compile_block_statement(Compiler *com, BlockStatement *stmt) {
   return a;
 }
 
+string compile_symbol_statements_vector_as_args_def(Compiler *com, Vec *args) {
+  StrVec compiled_args = new_str_vec(1);
+  for (int i = 0; i < args->size; i++) {
+    if (i != 0) {
+      str_vector_push(&compiled_args, ", ");
+    }
+
+    SymbolStatement *sym = vector_at(args, i);
+    Compiler_varsym_declare(com, sym->name, sym->type);
+    string arg_str = concat(3, literal_type_to_str(sym->type), " ", sym->name);
+    str_vector_push(&compiled_args, arg_str);
+  }
+
+  return str_vector_join(&compiled_args);
+}
+
+string compile_block_arguments(Compiler *com, BlockStatement *block) {
+  // string compiled_args = malloc(sizeof(char) * 512);
+  StrVec compiled_args = new_str_vec(1);
+  for (int i = 0; i < block->arg_len; i++) {
+    if (i != 0) {
+      str_vector_push(&compiled_args, ", ");
+    }
+
+    Compiler_varsym_declare(com, block->args[i]->name, block->args[i]->type);
+    string arg_str = concat(3, literal_type_to_str(block->args[i]->type), " ",
+                            block->args[i]->name);
+
+    // com_
+    str_vector_push(&compiled_args, arg_str);
+  }
+
+  return str_vector_join(&compiled_args);
+}
+
+// potential optimisation: if all statements are "compiler time evaluate", make
+// it a swithc statement
+string compile_tree_statement(Compiler *com, Statement *stmt) {
+  TreeStatement *tree = stmt->tree;
+
+  Compiler scope = Compiler_new();
+  scope.upper = com;
+  string arg_defs =
+      compile_symbol_statements_vector_as_args_def(&scope, &tree->arguments);
+
+  Inferer inf = Inferer_new(&scope);
+  BranchLiteral *return_type = infer_statement(&inf, stmt);
+  LiteralType return_literal = BranchLiteral_converge(&inf, return_type);
+  printf("-----\n return literal type is %s\n\n",
+         literal_type_to_str(return_literal));
+
+  StrVec statements = new_str_vec(tree->branches.size);
+  printf("\n arg defs are %s", arg_defs);
+
+  for (int i = 0; i < tree->branches.size; i++) {
+    Branch *branch = vector_at(&tree->branches, i);
+    string condition = "1"; // default condition
+
+    if (branch->condition != NULL) {
+      condition = com_statement(&scope, branch->condition);
+    }
+
+    string body = com_statement(&scope, branch->body);
+    printf("\n condition is [%s] and body is [%s]", condition, body);
+
+    str_vector_push(&statements,
+                    concat(5, "if (", condition, ") {", body, "}"));
+  }
+  printf("\n -- done -- \n");
+
+  string body = str_vector_join(&statements);
+  printf("\n -- body is -- \n %s\n", body);
+  string compiled = concat(8, literal_type_to_str(return_literal), " ",
+                           tree->name, "(", arg_defs, ") {", body, "}");
+  return compiled;
+}
+
 string compile_write_variable(Compiler *com, string var_name,
                               LiteralType var_type, string value) {
 
@@ -126,25 +203,6 @@ string com_conditional(Compiler *com, ConditionalStatement *conditional) {
                 else_com);
 }
 
-string compile_block_arguments(Compiler *com, BlockStatement *block) {
-  // string compiled_args = malloc(sizeof(char) * 512);
-  StrVec compiled_args = new_str_vec(1);
-  for (int i = 0; i < block->arg_len; i++) {
-    if (i != 0) {
-      str_vector_push(&compiled_args, ", ");
-    }
-
-    Compiler_varsym_declare(com, block->args[i]->name, block->args[i]->type);
-    string arg_str = concat(3, literal_type_to_str(block->args[i]->type), " ",
-                            block->args[i]->name);
-
-    // com_
-    str_vector_push(&compiled_args, arg_str);
-  }
-
-  return str_vector_join(&compiled_args);
-}
-
 string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
   if (Compiler_defsym_get(com, def_name)) {
     Compiler_throw(com, "redecleration of definition'%s'", def_name);
@@ -202,8 +260,7 @@ string com_statement(Compiler *com, Statement *stmt) {
   case STMT_BLOCK:
     return compile_block_statement(com, stmt->block);
   case STMT_TREE:
-    Compiler_throw(com, "unsupported tree");
-    return NULL;
+    return compile_tree_statement(com, stmt);
   case STMT_LITERAL:
     return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
                   literal_val2str(stmt->literal));

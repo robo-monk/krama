@@ -70,6 +70,8 @@ typedef struct {
 } Branch;
 
 typedef struct {
+  string name;
+  Vec arguments;
   Vec branches;
 } TreeStatement;
 
@@ -109,7 +111,7 @@ BlockStatement *new_block_stmt();
 void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
 
 Branch *Branch_new(Statement *body, Statement *condition);
-Statement *TreeStatement_new(Token token);
+Statement *TreeStatement_new(string name, Token token, Vec args);
 void TreeStatement_push(TreeStatement *tree, Branch *branch);
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,

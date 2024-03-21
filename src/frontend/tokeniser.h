@@ -23,7 +23,7 @@ typedef enum {
   TOKEN_COLON = ':',
   TOKEN_PIPE = '|',
   TOKEN_IF = 222, // if
-  TOKEN_BRANCH,
+  TOKEN_TREE,
   TOKEN_COMMENT,
   TOKEN_RIGHT_ARROW, // ->
   TOKEN_ELSE,        // else

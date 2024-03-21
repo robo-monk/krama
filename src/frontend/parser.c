@@ -7,6 +7,7 @@
 #include "tokeniser.h"
 
 Statement *parse_statement(Parser *parser);
+void parse_symbol_statements(Parser *parser, Vec *syms);
 
 Token look_behind(Parser *parser) { return parser->tokens[parser->idx - 1]; }
 Token look_ahead(Parser *parser) { return parser->tokens[parser->idx + 1]; }
@@ -158,13 +159,17 @@ void expect_one_of(Parser *parser, TokenType *types, int len) {
 }
 
 Branch *parse_branch(Parser *parser) {
-
   expect_and_eat(parser, TOKEN_L_PAR,
                  "expect left bracket to define branch conditions");
+  Statement *condition = NULL;
 
-  Statement *condition = parse_statement(parser);
-
-  expect_and_eat(parser, TOKEN_R_PAR, "Expected closing paren");
+  if (peek(parser).type == TOKEN_R_PAR) {
+    // throw_parser_error(parser, "empty condition!");
+    eat(parser);
+  } else {
+    condition = parse_statement(parser);
+    expect_and_eat(parser, TOKEN_R_PAR, "Expected closing paren");
+  }
 
   Token arrow = expect_and_eat(parser, TOKEN_RIGHT_ARROW,
                                "expected right arrow to define branch body");
@@ -173,19 +178,35 @@ Branch *parse_branch(Parser *parser) {
   return Branch_new(body, condition);
 }
 
-Statement *parse_branch_stmt(Parser *parser) {
-  Token branch_token =
-      expect_and_eat(parser, TOKEN_BRANCH, "expectd branch statement to eat");
+Statement *parse_tree_stmt(Parser *parser) {
+  Token tree_token =
+      expect_and_eat(parser, TOKEN_TREE, "expectd branch statement to eat");
+
+  Token tree_name_token =
+      expect_and_eat(parser, TOKEN_IDENTIFIER, "expected tree name");
+
+  expect_and_eat(parser, TOKEN_L_PAR,
+                 "expected open parenthesis to define arguments");
+
+  Vec args = new_vec(1, sizeof(SymbolStatement));
+  parse_symbol_statements(parser, &args);
+
+  expect_and_eat(parser, TOKEN_R_PAR, "expected close parenthesis");
   expect_and_eat(parser, TOKEN_L_BRACKET,
-                 "expectd left bracket to define branch conditions");
+                 "expectd left bracket to define tree body");
 
   // BlockStatement *block = new_block_stmt();
   printf("\n bing bong\n");
-  Statement *tree_stmt = TreeStatement_new(branch_token);
+  Statement *tree_stmt =
+      TreeStatement_new(tree_name_token.value.str_value, tree_token, args);
+
   while (peek(parser).type == TOKEN_L_PAR) {
     Branch *branch = parse_branch(parser);
     TreeStatement_push(tree_stmt->tree, branch);
   }
+
+  expect_and_eat(parser, TOKEN_R_BRACKET,
+                 "expectd r bracket to close tree def");
 
   return tree_stmt;
 }
@@ -194,9 +215,9 @@ Statement *parse_factor(Parser *parser) {
   Token current_token = peek(parser);
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
-  if (current_token.type == TOKEN_BRANCH) {
+  if (current_token.type == TOKEN_TREE) {
     printf("\n +++parse branch\n");
-    return parse_branch_stmt(parser);
+    return parse_tree_stmt(parser);
   } else if (current_token.type == TOKEN_IF) {
     eat(parser);
     Statement *stmt = parse_conditional_stmt(parser);
@@ -467,7 +488,7 @@ Statement *parse(Parser *parser) {
   return stmt;
 }
 
-#define DEBUG false
+#define DEBUG true
 
 BlockStatement *parse_tokens(Token *tokens) {
   if (DEBUG) {

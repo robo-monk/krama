@@ -137,7 +137,7 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
   case TOKEN_RETURN:
   case TOKEN_RIGHT_ARROW:
   case TOKEN_IF:
-  case TOKEN_BRANCH:
+  case TOKEN_TREE:
     return push_token(new_token(token_type), tokeniser);
   default:
     throw_tokeniser_err("unreachable?");
