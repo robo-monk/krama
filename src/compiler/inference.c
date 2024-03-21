@@ -32,8 +32,8 @@ void BranchLiteral_push_literal(BranchLiteral *base, LiteralType *literal) {
 }
 
 BranchLiteral *BranchLiteral_new(LiteralType *lit) {
-  Vec *vec = malloc(sizeof(Vec));
-  *vec = new_vec(1, sizeof(LiteralType));
+  Vec *vec = malloc(sizeof(Vec *));
+  *vec = new_vec(1, sizeof(LiteralType *));
   if (lit != NULL) {
     BranchLiteral_push_literal(vec, lit);
   }
@@ -42,21 +42,47 @@ BranchLiteral *BranchLiteral_new(LiteralType *lit) {
 
 void *BranchLiteral_merge(BranchLiteral *base, BranchLiteral *other) {
   if (base == NULL || other == NULL) {
+    printf("\n !one or the other is NULL!\n");
     return base;
   }
+
+  printf("\n MERGE TYPE A: ");
+  dbg_branch_literal(base);
+  printf("\n MERGE TYPE B: ");
+  dbg_branch_literal(other);
+  printf("\n --- \n");
+
+  printf("\n :::other->size %d \n", other->size);
+  printf("\n --- \n");
+
   for (int i = 0; i < other->size; i++) {
-    vector_push(base, vector_at(other, i));
+    printf("i is %d\n other size is %d\n", i, other->size);
+    LiteralType *other_lit = vector_at(other, i);
+
+    if (i > 10) {
+      printf("i is %d\n other size is %d\n", i, other->size);
+      throw_hard_error("bing");
+    }
+
+    if (other_lit == NULL) {
+      printf(
+          "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! skipping appending null\n");
+    } else {
+      vector_push(base, other_lit);
+    }
   }
+  return base;
 }
 
 void dbg_branch_literal(BranchLiteral *b) {
   printf("\n Branch literal: ");
   if (b == NULL) {
-    printf("NULL");
     return;
   }
 
+  printf("b->size is |%d|\n", b->size);
   for (int i = 0; i < b->size; i++) {
+    // printf("|%d|\n", i);
     LiteralType *current_type = vector_at(b, i);
     if (current_type == NULL) {
       printf("(unknown) | ");
@@ -104,31 +130,20 @@ BranchLiteral *infer_block_statement_with_initial(Inferer *inf,
   }
 
   printf("BLOCK Len is %d\n", block->len);
-  printf("\ninfering block using last statement (block->len-1 is %d)",
-         block->len - 1);
   dbg_stmt(block->statements[block->len - 1]);
-  printf("--\n");
+  printf("\n--\n");
   BranchLiteral *branch =
       infer_statement(inf, block->statements[block->len - 1]);
-  BranchLiteral_merge(base, branch);
-  for (int i = 0; i < block->len; i++) {
-    continue;
-    // TODO
-    // if statement has potential to return
-    // infer its type
-    // if its different throw error that block statement has ambigious
-    // return type
 
-    // TODO this also breaks for empty blocks
-    // for now only infer last stmt in block
-    if (i == block->len - 1) {
-      printf("\ninfering block using last statement (%d): ", i);
-      dbg_stmt(block->statements[i]);
-      printf("--\n");
-      BranchLiteral *branch = infer_statement(inf, block->statements[i]);
-      BranchLiteral_merge(base, branch);
-    }
-  }
+  printf("\n>>>>>infered to>>>>>");
+  dbg_branch_literal(branch);
+  printf("\n-========== \n");
+  dbg_branch_literal(base);
+  printf("\n-========== \n");
+
+  BranchLiteral_merge(base, branch);
+
+  printf("\n=======================\nmergeD !\n");
   return base;
 }
 
@@ -140,7 +155,17 @@ BranchLiteral *infer_tree_statement(Inferer *inf, TreeStatement *tree) {
   BranchLiteral *base = BranchLiteral_new(NULL);
   for (int i = 0; i < tree->branches.size; i++) {
     Branch *b = vector_at(&tree->branches, i);
-    BranchLiteral_merge(base, infer_statement(inf, b->body));
+    printf("\ninfer branch #%d\n of", i);
+    dbg_stmt(b->body);
+    if (b->body == NULL) {
+      Inferer_throw(inf, "null body");
+    }
+    printf("\n");
+    printf("\n-done--\n");
+    BranchLiteral *body_return_type = infer_statement(inf, b->body);
+    printf("\n-infered----\n");
+    base = BranchLiteral_merge(base, body_return_type);
+    printf("\n-also merged-\n");
   }
   return base;
 }

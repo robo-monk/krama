@@ -437,7 +437,8 @@ Statement *parse_definition_stmt(Parser *parser) {
   expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
 
   Statement *block_stmt = parse_statement(parser);
-  block_stmt->block->args = vector_alloc_to_array(&args);
+  Argument **argument_array = vector_alloc_to_array(&args);
+  block_stmt->block->args = argument_array;
   block_stmt->block->arg_len = args.size;
 
   return new_impl_decl_stmt(namespace_type, identifier.value.str_value,

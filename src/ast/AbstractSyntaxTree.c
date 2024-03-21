@@ -122,6 +122,7 @@ void _alloc_statement_array(BlockStatement *program) {
 }
 
 #define DEFAULT_PROGRAM_LEN 1;
+
 BlockStatement *new_block_stmt() {
   BlockStatement *program = malloc(sizeof(BlockStatement));
   program->len = 0;
@@ -236,6 +237,8 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
   case STMT_BLOCK:
     dbg_block_stmt_with_indent(stmt->block, indent + 1);
     break;
+  case STMT_TREE:
+    snprintf(buffer, sizeof(buffer), "Statement Type: Tree Stmt\n");
   case STMT_CONDITIONAL:
     // printf("\n\n STMT Type %d", stmt->type);
     snprintf(buffer, sizeof(buffer), "Statement Type: Conditional Stmt\n");

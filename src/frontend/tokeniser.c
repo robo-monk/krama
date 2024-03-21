@@ -148,6 +148,7 @@ void commit_multichar_token(Tokeniser *tokeniser) {
   if (!tokeniser->buffer.constructing) {
     return;
   }
+  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
 
   // if (is_digit(tokeniser->buffer.str[0])) {
   //   commit_buffer_as_number(tokeniser);
@@ -179,6 +180,7 @@ void commit_multichar_token(Tokeniser *tokeniser) {
 void construct_multichar_token(char c, Tokeniser *state) {
   if (!state->buffer.constructing) {
     state->buffer.constructing = true;
+    printf("\n --> this one \n");
     state->buffer.type = detect_buffer_chartype(c);
   } else if (state->buffer.type == TokeniserBufferType_decimal_base10 &&
              state->buffer.type != detect_buffer_chartype(c)) {
@@ -196,7 +198,6 @@ void tokenise_char(char c, Tokeniser *state) {
   case '\n':
     state->row_idx += 1;
     state->col_idx = 0;
-    printf("\n\nCOMMIT [0]->%s\n", state->buffer.str);
     commit_multichar_token(state);
     state->escape = false;
     return;
@@ -291,6 +292,7 @@ Tokeniser *tokenise_str(string str) {
   Tokeniser *tokeniser = new_tokeniser(str);
   char c;
 
+  printf("\n---\n");
   // while ((c = str[tokeniser->char_idx++]) != '\n') {
   while ((c = str[tokeniser->char_idx++]) != '\0') {
     tokenise_char(c, tokeniser);
@@ -311,12 +313,13 @@ string read_file_to_str(const string filename) {
     fseek(f, 0, SEEK_END);
     length = ftell(f);
     fseek(f, 0, SEEK_SET);
-    buffer = malloc(length);
+    buffer = malloc(length + 1);
     if (buffer) {
       fread(buffer, 1, length, f);
     }
     fclose(f);
   }
+  buffer[length] = '\0';
   return buffer;
 }
 
@@ -325,7 +328,7 @@ Tokeniser *tokenise_file(const string filename) {
   // fptr = fopen(filename, "r");
 
   string file_content = read_file_to_str(filename);
-  printf("filecontent is --- \n%s\n---", file_content);
+  // printf("filecontent is --- \n%s\n---", file_content);
   // Tokeniser *tokeniser = new_tokeniser(file_content);
   Tokeniser *tokeniser = tokenise_str(file_content);
   return tokeniser;

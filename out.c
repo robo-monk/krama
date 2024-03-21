@@ -117,7 +117,14 @@ return at(idx,ary);
 };
 
 };
-i32 state_from_neighbours(i32 lcell, i32 ccell, i32 rcell){if (lcell&&ccell&&rcell) {return (i32) 0;
+//#    (lcell && (ccell < 1) && rcell)   -> { 1 };
+//#    (lcell && ccell < 1 && rcell < 1)  -> { 0 }#    (lcell < 1 && ccell && rcell)   -> { 1 };
+//#    (lcell < 1 && ccell && rcell)   -> { 1 };
+//#    (lcell < 1 && ccell && rcell < 1)  -> { 1 }#    (lcell < 1 && ccell < 1 && rcell)  -> { 1 }#c printf("\ndone printing array\n");
+//#    (lcell < 1 && ccell < 1 && rcell)  -> { 1 }#c printf("\ndone printing array\n");
+//#    (lcell < 1 && ccell < 1 && rcell < 1) -> { 0 };
+i32 state_from_neighbours(i32 lcell, i32 ccell, i32 rcell){if (lcell&&ccell&&rcell) {return lcell;
+}if (lcell&&ccell&&rcell<(i32) 1) {return ccell;
 }};
 i32 rule110(i32 idx, ptr ary) {
 i32 lcell = is_alive(idx-(i32) 1,ary);
@@ -127,9 +134,10 @@ return state_from_neighbours(lcell,ccell,rcell);
 
 };
 i32 main() {
-ptr ary = array((i32) 1024*(i32) 10);
+ptr ary = array((i32) 1024*(i32) 1);
 //#ary:initialise(1, 0);
 set((i32) 0,(i32) 1,ary);
+rule110((i32) 0,ary);
 printf("\ndone printing array\n");
 array_print((i32) 0,ary);
 return (i32) 1;
