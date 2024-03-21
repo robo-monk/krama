@@ -80,11 +80,15 @@ string compile_tree_statement(Compiler *com, Statement *stmt) {
   string arg_defs =
       compile_symbol_statements_vector_as_args_def(&scope, &tree->arguments);
 
+  Compiler_defsym_declare(&scope, tree->name, stmt, NULL);
+
   Inferer inf = Inferer_new(&scope);
   BranchLiteral *return_type = infer_statement(&inf, stmt);
   LiteralType return_literal = BranchLiteral_converge(&inf, return_type);
   printf("-----\n return literal type is %s\n\n",
          literal_type_to_str(return_literal));
+
+  Compiler_defsym_declare(com, tree->name, stmt, return_type);
 
   StrVec statements = new_str_vec(tree->branches.size);
   printf("\n arg defs are %s", arg_defs);
@@ -107,8 +111,13 @@ string compile_tree_statement(Compiler *com, Statement *stmt) {
 
   string body = str_vector_join(&statements);
   printf("\n -- body is -- \n %s\n", body);
-  string compiled = concat(8, literal_type_to_str(return_literal), " ",
-                           tree->name, "(", arg_defs, ") {", body, "}");
+  string decl = concat(6, literal_type_to_str(return_literal), " ", tree->name,
+                       "(", arg_defs, ")");
+
+  Compiler_decl_push(com, decl);
+  Compiler_free(&scope);
+  string compiled = concat(4, decl, "{", body, "}");
+
   return compiled;
 }
 

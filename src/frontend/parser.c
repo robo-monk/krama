@@ -67,6 +67,11 @@ void throw_unexpected_token(Parser *parser, string error_msg) {
 }
 
 void expect(Parser *parser, TokenType token_type, string error_msg) {
+  if (peek(parser).type == TOKEN_COMMENT) {
+    eat(parser);
+    return expect(parser, token_type, error_msg);
+  }
+
   if (peek(parser).type != token_type) {
     printf("Got token:");
     dbg_token(peek(parser));

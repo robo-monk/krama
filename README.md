@@ -21,11 +21,42 @@ A toy programming language bootstrapped in C.
 - [ ] Krama -> C Compilation
 - [ ] Krama to be written in Kram
 
+## Trees, Procedures and Shapes
+
+#### Trees
+
+Map an input `X` to an output `F(X)`, based on conditions `G(X)`
+
+```krama
+tree state_from_neighbours (lcell: i32, ccell: i32, rcell: i32) {
+    (lcell && ccell && rcell)    ->  0   // 111 -> 0
+    (lcell && ccell && !rcell)   ->  1   // 110 -> 1
+    (lcell && !ccell && rcell)   ->  1   // 101 -> 1
+    (lcell && !ccell && !rcell)  ->  0   // 100 -> 0
+    (!lcell && ccell && rcell)   ->  1   // 011 -> 1
+    (!lcell && ccell && !rcell)  ->  1   // 010 -> 1
+    (!lcell && !ccell && rcell)  ->  1   // 001 -> 1
+    (!lcell && !ccell && !rcell) ->  0   // 000 -> 0
+}
+```
+
+#### Procedures
+
+Apply procedure `F` on input `x` and get output `F(x)`
+
+```krama
+
+```
+
+### Shapes
+
+````
+
 ## Hello World
 
 ```krama
 :println("Hello World")
-```
+````
 
 ## Variable Declaration
 

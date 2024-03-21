@@ -4,16 +4,5 @@ shape Rule110Grid {
 }
 
 def |grid: Rule110Grid| {
-    tree state_from_neighbours (lcell: i32, ccell: i32, rcell: i32) {
-        (lcell && ccell && rcell)  -> { 0 }
-        (lcell && ccell && !rcell) -> { 0 }
-        (lcell && ccell && !rcell) -> { 0 }
-    }
 
-    tree clamp(num: i32) {
-        (num > 0 && num < grid.size) -> grid.cells:at(num)
-        () -> 0
-    }
-
-    evolve(idx: i32) -> state_from_neighbours(grid:clamp(idx-1), grid:clamp(idx), grid:clamp(idx+1))
 }
