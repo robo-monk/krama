@@ -22,16 +22,21 @@ typedef struct {
 } KeywordTokenMap;
 
 static const KeywordTokenMap kw_token_map[] = {
-    {"mut", TOKEN_MUT},     //
-    {"let", TOKEN_LET},     //
-    {"def", TOKEN_DEF},     //
-    {"shape", TOKEN_SHAPE}, //
+    {"mut", TOKEN_MUT},       //
+    {"let", TOKEN_LET},       //
+    {"def", TOKEN_DEF},       //
+    {"mt", TOKEN_MT},         //
+    {"fn", TOKEN_FN},         //
+    {"target", TOKEN_TARGET}, //
+    {"shape", TOKEN_SHAPE},   //
 
     {"if", TOKEN_IF},         //
+    {"tree", TOKEN_TREE},     //
     {"else", TOKEN_ELSE},     //
     {"return", TOKEN_RETURN}, //
 
     {"->", TOKEN_RIGHT_ARROW}, //
+    {"<-", TOKEN_LEFT_ARROW},  //
 };
 
 #define KW_TOKEN_MAP_SIZE (sizeof(kw_token_map) / sizeof(KeywordTokenMap))

@@ -1,0 +1,8 @@
+shape Rule110Grid {
+    size: i32
+    cells -> Array:new(size)
+}
+
+def |grid: Rule110Grid| {
+
+}

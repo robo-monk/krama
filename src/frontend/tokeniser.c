@@ -16,7 +16,10 @@ Token new_op_token(OpType op_type) {
 }
 
 TokeniserBufferType detect_buffer_chartype(char c) {
-  if (isdigit(c)) {
+  printf("deteting buffer chartype for char '%c'\n", c);
+  if (c == '#') {
+    return TokeniserBufferType_comment;
+  } else if (isdigit(c)) {
     return TokeniserBufferType_decimal_base10;
   } else {
     return TokeniserBufferType_string;
@@ -25,10 +28,11 @@ TokeniserBufferType detect_buffer_chartype(char c) {
 
 Token new_str_token(TokenType type, string value, int len) {
   Token t = {.type = type};
-  t.value.str_value = malloc(len * sizeof(char));
+  t.value.str_value = calloc(sizeof(char), len + 1);
   for (int i = 0; i < len; i++) {
     t.value.str_value[i] = value[i];
   }
+  t.value.str_value[len] = '\0';
   return t;
 }
 
@@ -99,8 +103,16 @@ void push_to_tokeniser_buffer(char c, Tokeniser *tokeniser) {
 }
 
 void commit_buffer_as_number(Tokeniser *tokeniser) {
+
   int n = str2int(tokeniser->buffer.str, tokeniser->buffer.idx);
   push_token(new_number_token(n), tokeniser);
+}
+
+void commit_buffer_as_comment(Tokeniser *tokeniser) {
+  printf("\n***COMMIting COMMENT\n");
+  push_token(new_str_token(TOKEN_COMMENT, tokeniser->buffer.str,
+                           tokeniser->buffer.idx),
+             tokeniser);
 }
 
 void commit_buffer_as_string(Tokeniser *tokeniser) {
@@ -125,6 +137,7 @@ void commit_buffer_as_string(Tokeniser *tokeniser) {
   case TOKEN_RETURN:
   case TOKEN_RIGHT_ARROW:
   case TOKEN_IF:
+  case TOKEN_TREE:
     return push_token(new_token(token_type), tokeniser);
   default:
     throw_tokeniser_err("unreachable?");
@@ -135,11 +148,29 @@ void commit_multichar_token(Tokeniser *tokeniser) {
   if (!tokeniser->buffer.constructing) {
     return;
   }
+  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
 
-  if (is_digit(tokeniser->buffer.str[0])) {
+  // if (is_digit(tokeniser->buffer.str[0])) {
+  //   commit_buffer_as_number(tokeniser);
+  // } else if (false && tokeniser->buffer.str[0] == '#') {
+  //   commit_buffer_as_comment(tokeniser);
+  // } else {
+  //   commit_buffer_as_string(tokeniser);
+  // }
+
+  switch (tokeniser->buffer.type) {
+  case TokeniserBufferType_comment:
+    printf("\nCOMMTING AS COMMENT <------------\n");
+    commit_buffer_as_comment(tokeniser);
+    break;
+  case TokeniserBufferType_decimal_base10:
+    printf("\nCOMMTING AS DIGIT (%s) \n", tokeniser->buffer.str);
     commit_buffer_as_number(tokeniser);
-  } else {
+    break;
+  case TokeniserBufferType_string:
+    printf("\nCOMMTING AS STRIGN (%s) \n", tokeniser->buffer.str);
     commit_buffer_as_string(tokeniser);
+    break;
   }
 
   tokeniser->buffer.constructing = false;
@@ -149,20 +180,42 @@ void commit_multichar_token(Tokeniser *tokeniser) {
 void construct_multichar_token(char c, Tokeniser *state) {
   if (!state->buffer.constructing) {
     state->buffer.constructing = true;
+    printf("\n --> this one \n");
     state->buffer.type = detect_buffer_chartype(c);
-  } else if (state->buffer.type != TokeniserBufferType_string &&
+  } else if (state->buffer.type == TokeniserBufferType_decimal_base10 &&
              state->buffer.type != detect_buffer_chartype(c)) {
-    // printf("detected change in types. commitng buffer");
     commit_multichar_token(state);
     return construct_multichar_token(c, state);
   }
+
   push_to_tokeniser_buffer(c, state);
 }
 
 void tokenise_char(char c, Tokeniser *state) {
+
+  switch (c) {
+  case '\r':
+  case '\n':
+    state->row_idx += 1;
+    state->col_idx = 0;
+    commit_multichar_token(state);
+    state->escape = false;
+    return;
+  case '#':
+    printf("\n\nCOME ACRSOOS COMMEND\n");
+    state->escape = true;
+    construct_multichar_token(c, state);
+    return;
+  }
+
+  if (state->escape) {
+    printf("escaped '%c'\n", c);
+    return construct_multichar_token(c, state);
+  }
+
   switch (c) {
   case '+':
-  case '-':
+  // case '-':
   case '/':
   case '*':
     commit_multichar_token(state);
@@ -186,10 +239,6 @@ void tokenise_char(char c, Tokeniser *state) {
     push_token(new_token(c), state);
     break;
 
-  case '\r':
-  case '\n':
-    state->row_idx += 1;
-    state->col_idx = 0;
   case '\t':
   case '\v':
   case '\f':
@@ -207,6 +256,7 @@ void tokenise_char(char c, Tokeniser *state) {
 Tokeniser *new_tokeniser(string content) {
   Tokeniser *state = malloc(sizeof(Tokeniser));
   state->idx = 0;
+  state->escape = false;
 
   state->row_idx = 0;
   state->col_idx = 0;
@@ -242,6 +292,7 @@ Tokeniser *tokenise_str(string str) {
   Tokeniser *tokeniser = new_tokeniser(str);
   char c;
 
+  printf("\n---\n");
   // while ((c = str[tokeniser->char_idx++]) != '\n') {
   while ((c = str[tokeniser->char_idx++]) != '\0') {
     tokenise_char(c, tokeniser);
@@ -255,19 +306,20 @@ Tokeniser *tokenise_str(string str) {
 
 string read_file_to_str(const string filename) {
   char *buffer = 0;
-  long length;
+  int length = 0;
   FILE *f = fopen(filename, "rb");
 
   if (f) {
     fseek(f, 0, SEEK_END);
     length = ftell(f);
     fseek(f, 0, SEEK_SET);
-    buffer = malloc(length);
+    buffer = malloc(length + 1);
     if (buffer) {
       fread(buffer, 1, length, f);
     }
     fclose(f);
   }
+  buffer[length] = '\0';
   return buffer;
 }
 
@@ -276,7 +328,7 @@ Tokeniser *tokenise_file(const string filename) {
   // fptr = fopen(filename, "r");
 
   string file_content = read_file_to_str(filename);
-  printf("filecontent is --- \n%s\n---", file_content);
+  // printf("filecontent is --- \n%s\n---", file_content);
   // Tokeniser *tokeniser = new_tokeniser(file_content);
   Tokeniser *tokeniser = tokenise_str(file_content);
   return tokeniser;
@@ -294,13 +346,16 @@ Tokeniser *tokenise_file(const string filename) {
 void dbg_token(Token token) {
   switch (token.type) {
   case TOKEN_OP:
-    printf("Operand: %s", optype_to_str(token.value.op_type));
+    printf("Operand: '%s'", optype_to_str(token.value.op_type));
     break;
   case TOKEN_NUMBER:
     printf("Number: %d", token.value.i32_value);
     break;
   case TOKEN_IDENTIFIER:
     printf("Identifier: %s", token.value.str_value);
+    break;
+  case TOKEN_COMMENT:
+    printf("Comment: %s", token.value.str_value);
     break;
   case TOKEN_DEF:
   case TOKEN_RIGHT_ARROW:

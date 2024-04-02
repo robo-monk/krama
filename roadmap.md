@@ -1,0 +1,4 @@
+# ROADMAP
+
+- [ ] implement char type
+- [ ]

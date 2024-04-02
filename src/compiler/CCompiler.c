@@ -34,13 +34,12 @@ Symbol *new_sym(string name) {
   return sym;
 }
 
-Symbol *new_def_symbol(string name, Statement *body,
-                       BranchLiteral *return_type) {
+Symbol *new_def_symbol(string name, Statement *body, LiteralType return_type) {
   Symbol *sym = new_sym(name);
   DefSymbol *def = malloc(sizeof(DefSymbol));
 
   def->body = body;
-  def->btype = return_type;
+  def->type = return_type;
   sym->def = def;
   return sym;
 }
@@ -77,14 +76,13 @@ DefSymbol *Compiler_defsym_get(Compiler *com, string def_name) {
 }
 
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
-                             BranchLiteral *return_type) {
+                             LiteralType return_type) {
 
-  printf("\nDECLARE DEFINITION %s w/ return type", def_name);
-  dbg_branch_literal(return_type);
+  printf("\nDECLARE DEFINITION %s w/ return type %s", def_name,
+         literal_type_to_str(return_type));
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw(com, "redecleration of definition '%s'", def_name);
-    // Compiler_throw("redecleration of definition '%s'", def_name);
   }
 
   hashmap_set(com->sym_map, new_def_symbol(def_name, body, return_type));
@@ -109,12 +107,15 @@ Compiler Compiler_new() {
   com.sym_map = hashmap_new(sizeof(SymbolStatement), 0, 0, 0, __sym_hash,
                             __sym_compare, NULL, NULL);
 
-  str_vector_push(&com.headers, "#define i32 int\n"
+  str_vector_push(&com.headers, "#include <stdio.h>\n"
+                                "#include <stdlib.h>\n"
+                                "#define i32 int\n"
                                 "#define i64 long\n"
                                 "#define u32 unsigned int\n"
                                 "#define u64 unsigned long\n"
                                 "#define f32 float\n"
-                                "#define f64 double\n");
+                                "#define f64 double\n"
+                                "#define ptr int*\n");
   return com;
 }
 
@@ -162,9 +163,9 @@ void Compiler_write_to_file(Compiler *com, string filename) {
     fprintf(file, "%s\n", (string)vector_at(&com->implementations, i));
   }
 
-  fprintf(file, "%s\n",
-          "#include \"stdio.h\"\nint main() { printf(\"%d\", int_main()); "
-          "return 1;}");
-  // Write the text to the file, followed by a newline character
+  // fprintf(file, "%s\n",
+  //         "#include \"stdio.h\"\nint main() { printf(\"%d\", int_main()); "
+  //         "return 1;}");
+
   fclose(file); // Close the file
 }

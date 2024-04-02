@@ -1,32 +1,35 @@
-def |x: i32| add(a: i32) {
-    x + a
+def println(x: i32) {
+    #c printf("%d\n", x);
 }
 
-def |x: i32| sub(a: i32) {
-    x - a
+def |x: i32| as_i32() {
+    x
 }
 
-def |x: i32| mul(a: i32) {
-    x*a
+def |x: f64| as_f64() {
+    x
 }
 
-def |x: i32| ppow(a: i32) {
-    if (a > 0){
-        x:mul(x:ppow(a:sub(1)))
+def fac(a: i32) {
+    if (a < 2) {
+        1:as_i32()
     } else {
-        1
+        a * fac(a - 1)
     }
 }
 
-def |x: i32| fac(a: i32) {
-    if (x < 2) {
-        1
-    } else {
-        x*(x-1):fac(0)
-    }
+def exit_success() {
+    1:as_i32()
 }
 
+def tricky(b: i32) {
+    10:as_i32() + b:as_i32()
+}
 
-def int_main() {
-    5:ppow(50)
+def main() {
+    let bing = tricky(4)
+    let bong = fac(5)
+    println(bing + bong)
+
+    exit_success()
 }

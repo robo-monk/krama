@@ -6,7 +6,6 @@
 
 typedef struct BlockStatement BlockStatement;
 typedef struct Statement Statement;
-// typedef struct BranchLiteral BranchLiteral;
 
 typedef enum {
   STMT_BLOCK,
@@ -20,7 +19,9 @@ typedef enum {
   STMT_DEF_DECL,
   STMT_DEF_INVOKE,
 
-  STMT_CONDITIONAL
+  STMT_CONDITIONAL,
+  STMT_COMMENT,
+  STMT_TREE
 } StatementType;
 
 typedef enum {
@@ -29,6 +30,9 @@ typedef enum {
   LiteralType_char,
   LiteralType_bool,
   LiteralType_void,
+  LiteralType_ptr,
+  LiteralType_UNKNOWN,
+  LiteralType_NUMERAL
 } LiteralType;
 
 typedef struct {
@@ -61,12 +65,22 @@ typedef SymbolStatement Argument;
 //   BlockStatement *stmts;
 // } BlockStatement;
 
+typedef struct {
+  Statement *condition;
+  Statement *body;
+} Branch;
+
+typedef struct {
+  string name;
+  Vec arguments;
+  Vec branches;
+} TreeStatement;
+
 struct BlockStatement {
   Argument **args;
   unsigned int arg_len;
 
   Statement **statements;
-  unsigned int idx;
   unsigned int len;
   unsigned int max_len;
 };
@@ -85,6 +99,7 @@ struct Statement {
     SymbolStatement sym_decl;
     BlockStatement *block;
     ConditionalStatement *conditional;
+    TreeStatement *tree;
   };
   StatementType type;
   Statement *left;
@@ -96,8 +111,14 @@ struct Statement {
 BlockStatement *new_block_stmt();
 void push_stmt_to_block(Statement *stmt, BlockStatement *block_stmt);
 
+Branch *Branch_new(Statement *body, Statement *condition);
+Statement *TreeStatement_new(string name, Token token, Vec args);
+void TreeStatement_push(TreeStatement *tree, Branch *branch);
+
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token);
+
+Statement *new_comment_stmt(Token token);
 
 Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
                                 BlockStatement *else_body, Token token);
@@ -105,6 +126,8 @@ Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
 Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
 
                              Token token);
+
+Statement *new_numerical_literal_stmt(long value, Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);
 Statement *new_var_read_stmt(LiteralType type, string name, Token token);

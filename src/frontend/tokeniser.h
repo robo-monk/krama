@@ -10,9 +10,14 @@ typedef enum {
   TOKEN_LET,    // let
   TOKEN_MUT,    // mut
   TOKEN_DEF,    // def
+  TOKEN_FN,     // fn
+  TOKEN_MT,     // mt
   TOKEN_SHAPE,  // shape
+  TOKEN_TARGET, // target
   TOKEN_IDENTIFIER,
   TOKEN_COMMA = ',',
+  TOKEN_SINGLE_QUOTE = '\'',
+  TOKEN_DOUBLE_QUOTE = '"',
   TOKEN_EQ = '=',
   TOKEN_L_PAR = '(',
   TOKEN_R_PAR = ')',
@@ -22,8 +27,11 @@ typedef enum {
   TOKEN_R_SQ_BRACKET = ']',
   TOKEN_COLON = ':',
   TOKEN_PIPE = '|',
-  TOKEN_IF = 222,    // if
+  TOKEN_IF = 222, // if
+  TOKEN_TREE,
+  TOKEN_COMMENT,
   TOKEN_RIGHT_ARROW, // ->
+  TOKEN_LEFT_ARROW,  // <-
   TOKEN_ELSE,        // else
   TOKEN_RETURN,      // return
   TOKEN_PROGRAM_END,
@@ -57,6 +65,7 @@ typedef struct {
 
 typedef enum {
   TokeniserBufferType_string,
+  TokeniserBufferType_comment,
   TokeniserBufferType_decimal_base10,
 } TokeniserBufferType;
 
@@ -75,6 +84,7 @@ struct Tokeniser {
   int row_idx;
   int col_idx;
 
+  bool escape;
   Token *tokens;
 
   TokeniserBuffer buffer;

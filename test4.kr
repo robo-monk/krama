@@ -1,0 +1,170 @@
+def i32memsize() {
+    let s: i32 = 0
+    #c s = sizeof(i32);
+    s
+}
+
+def alloc(size: i32) {
+    let b: ptr = 0
+    #c b = malloc(size);
+    b
+}
+
+def drop(address: ptr) {
+    #c free(address);
+}
+
+def throw() {
+    #c printf("Error")
+    #c exit(1)
+}
+
+
+def print(x: i32) {
+    #xc printf("[%d]\n", x)
+    #c printf("%d", x)
+}
+
+def array(length: i32) {
+
+    let pointer: ptr = alloc((length) * i32memsize() + i32memsize())
+    #c pointer[0] = length
+    pointer
+}
+
+def |idx: i32| array_idx() {
+    idx + 1
+}
+
+def |ary: ptr| at(idx: i32) {
+    let el: i32 = 0
+    idx = idx:array_idx
+    #c el = (i32) ary[idx];
+    el
+}
+
+def |ary: ptr| length() {
+    let len: i32 = 0
+    #c len = ary[0]
+    len
+}
+
+
+def |ary: ptr| set(idx: i32, el: i32) {
+    if (idx - 1 > ary:length()) {
+        throw()
+        #
+    }
+    #c ary[idx+1] = el;
+}
+
+def |ary: ptr| initialise(value: i32, start_idx: i32) {
+    if (start_idx < ary:length()) {
+        ary:set(start_idx, value)
+        ary:initialise(value, start_idx+1)
+        #
+    } else {
+        #
+    }
+}
+
+def |ary: ptr| array_print(start: i32) {
+    if (start < ary:length()) {
+        print(ary:at(start))
+        ary:array_print(start+1)
+    }
+    #
+}
+
+def |ary: ptr| is_alive(idx: i32) {
+    if (idx < 0) {
+        0
+    } else {
+        if (idx > ary:length()) {
+            0
+        } else {
+            ary:at(idx)
+        }
+    }
+}
+
+tree state_from_neighbours (lcell: i32, ccell: i32, rcell: i32) {
+    (lcell && ccell && rcell)       -> { 0 }
+    (lcell && ccell && (rcell < 1))   -> { 1 }
+    (lcell && (ccell < 1) && rcell)   -> { 1 }
+    (lcell && (ccell < 1) && (rcell < 1))  -> { 0 }
+    ((lcell < 1) && ccell && rcell)   -> { 1 }
+    ((lcell < 1) && ccell && rcell < 1)  -> { 1 }
+    ((lcell < 1) && (ccell < 1) && rcell)  -> { 1 }
+    ((lcell < 1) && (ccell < 1) && (rcell < 1)) -> { 0 }
+    () -> { throw(); 0 }
+}
+
+def |ary: ptr| rule110_for_idx(idx: i32, buffer: ptr) {
+    let lcell: i32 = ary:is_alive(idx - 1)
+    let ccell: i32 = ary:is_alive(idx)
+    let rcell: i32 = ary:is_alive(idx + 1)
+    let new_state: i32 = state_from_neighbours(lcell, ccell, rcell)
+    ##c printf("set %d to %d", idx, new_state);
+    buffer:set(idx, new_state)
+}
+
+def |ary: ptr| rule110(idx: i32, buffer: ptr) {
+    if (idx < ary:length()) {
+        ary:rule110_for_idx(idx, buffer)
+        ary:rule110(idx + 1, buffer)
+        #
+    } else {
+        #
+    }
+    buffer
+}
+
+def |ary: ptr| rule110_print(idx: i32) {
+    if (idx < ary:length()) {
+        if (ary:is_alive(idx)) {
+            #c printf("#");
+        } else {
+            #c printf(" ");
+        }
+
+        ary:rule110_print(idx+1)
+        #
+    }
+}
+
+def |ary: ptr| iterate_rule110(times: i32) {
+    let buffer: ptr = array(ary:length())
+    if (times > 0) {
+        ary:rule110(0, buffer):iterate_rule110(times - 1)
+    } else {
+        ary:rule110(0, buffer)
+    }
+    drop(ary)
+    buffer
+}
+
+def main() {
+    let size: i32 = 5000
+    let ary: ptr = array(size)
+    #ary:set(400, 1)
+    #ary:set(6, 1)
+    ary:set(7, 1)
+    ary:set(9, 1)
+    ary:set(10, 1)
+    ary:set(11, 1)
+    ary:set(12, 1)
+    ary:set(13, 1)
+    ary:set(1000, 1)
+    ary:set(1500, 1)
+    ary:set(1201, 1)
+    # ary:set(8000, 1)
+    # ary:set(9000, 1)
+
+    #ary:rule110(0)
+    let buffer: ptr = ary:iterate_rule110(32)
+    #c printf("--------------\n");
+    buffer:rule110_print(0)
+    #c printf("--------------\n");
+    1
+}

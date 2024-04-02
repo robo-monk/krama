@@ -1,0 +1,117 @@
+def i32memsize() {
+    let s: i32 = 0
+    #c s = sizeof(i32);
+    s
+}
+
+def alloc(size: i32) {
+    let b: ptr = 0
+    #c b = malloc(size);
+    b
+}
+
+def drop(address: ptr) {
+    #c free(address);
+}
+
+def throw() {
+    #c printf("Error")
+    #c exit(1)
+}
+
+
+def print(x: i32) {
+    #xc printf("[%d]\n", x)
+    #c printf("%d", x)
+}
+
+def array(length: i32) {
+
+    let pointer: ptr = alloc((length) * i32memsize() + i32memsize())
+    #c pointer[0] = length
+    pointer
+}
+
+def |idx: i32| array_idx() {
+    idx + 1
+}
+
+def |ary: ptr| at(idx: i32) {
+    let el: i32 = 0
+    idx = idx:array_idx
+    #c el = (i32) ary[idx];
+    el
+}
+
+def |ary: ptr| length() {
+    let len: i32 = 0
+    #c len = ary[0]
+    len
+}
+
+
+def |ary: ptr| set(idx: i32, el: i32) {
+    if (idx > ary:length()) {
+        throw()
+        #
+    }
+    #c ary[idx+1] = el;
+}
+
+def |ary: ptr| initialise(value: i32, start_idx: i32) {
+    if (start_idx < ary:length()) {
+        ary:set(start_idx, value)
+        ary:initialise(value, start_idx+1)
+        #
+    } else {
+        #
+    }
+}
+
+def |ary: ptr| array_print(start: i32) {
+    if (start < ary:length()) {
+        print(ary:at(start))
+        ary:array_print(start+1)
+    }
+}
+
+def |ary: ptr| is_alive(idx: i32) {
+    if (idx < 0) {
+        0
+    } else {
+        if (idx > ary:length()) {
+            0
+        } else {
+            ary:at(idx)
+        }
+    }
+}
+
+#    (lcell && (ccell < 1) && rcell)   -> { 1 }
+#    (lcell && ccell < 1 && rcell < 1)  -> { 0 }
+#    (lcell < 1 && ccell && rcell)   -> { 1 }
+#    (lcell < 1 && ccell && rcell < 1)  -> { 1 }
+#    (lcell < 1 && ccell < 1 && rcell)  -> { 1 }
+#    (lcell < 1 && ccell < 1 && rcell < 1) -> { 0 }
+
+tree state_from_neighbours (lcell: i32, ccell: i32, rcell: i32) {
+    (lcell && ccell && rcell)       -> { lcell }
+    (lcell && ccell && (rcell < 1))   -> { ccell }
+}
+
+  def |ary: ptr| rule110(idx: i32) {
+    let lcell: i32 = ary:is_alive(idx - 1)
+    let ccell: i32 = ary:is_alive(idx)
+    let rcell: i32 = ary:is_alive(idx + 1)
+    state_from_neighbours(lcell, ccell, rcell)
+}
+
+def main() {
+    let ary: ptr = array(1024*1)
+    #ary:initialise(1, 0)
+    ary:set(0, 1)
+    ary:rule110(0)
+    #c printf("\ndone printing array\n")
+    ary:array_print(0)
+    1
+}
