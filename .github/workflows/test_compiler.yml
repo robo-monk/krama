@@ -20,4 +20,4 @@ jobs:
           pip install pytest subprocess32
 
       - name: Run tests
-        run: ./scripts/compiler_test.sh
+        run: ./scripts/build.sh && cd test && pytest
