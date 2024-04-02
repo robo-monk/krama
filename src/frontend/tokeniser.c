@@ -147,7 +147,7 @@ void commit_multichar_token(Tokeniser *tokeniser) {
   if (!tokeniser->buffer.constructing) {
     return;
   }
-  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
+  tokeniser->buffer.str[tokeniser->buffer.idx++] = '\0';
 
   // if (is_digit(tokeniser->buffer.str[0])) {
   //   commit_buffer_as_number(tokeniser);
