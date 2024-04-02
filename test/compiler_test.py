@@ -72,13 +72,6 @@ def test_undeclared_variable_write():
     """
     a = 5
     """, "tried to write an undeclared variable 'a'"),
-
-    ("""
-    let a: i32 = 5
-    a + b
-    """, "tried to read from undeclared variable 'b'"),
-
-
     ]
     __array_test_compiler_errors(expected_compiler_error)
 

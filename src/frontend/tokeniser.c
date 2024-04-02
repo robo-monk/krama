@@ -163,11 +163,11 @@ void commit_multichar_token(Tokeniser *tokeniser) {
     commit_buffer_as_comment(tokeniser);
     break;
   case TokeniserBufferType_decimal_base10:
-    printf("\nCOMMTING AS DIGIT\n");
+    printf("\nCOMMTING AS DIGIT (%s) \n", tokeniser->buffer.str);
     commit_buffer_as_number(tokeniser);
     break;
   case TokeniserBufferType_string:
-    printf("\nCOMMTING AS STRIGN\n");
+    printf("\nCOMMTING AS STRIGN (%s) \n", tokeniser->buffer.str);
     commit_buffer_as_string(tokeniser);
     break;
   }
