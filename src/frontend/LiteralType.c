@@ -26,6 +26,7 @@ string literal_val2str(LiteralStatement literal) {
   string str = malloc(20 * sizeof(char));
   switch (literal.type) {
   case LiteralType_i32:
+  case LiteralType_NUMERAL:
     sprintf(str, "%d", literal.i32_value);
     break;
   case LiteralType_f64:
@@ -33,6 +34,7 @@ string literal_val2str(LiteralStatement literal) {
     break;
   case LiteralType_UNKNOWN:
     sprintf(str, "uknown!", literal.f64_value);
+    break;
   case LiteralType_void:
     sprintf(str, "VOID");
     break;

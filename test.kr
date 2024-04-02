@@ -1,11 +1,4 @@
-def as_f64(a: f64) {
-    a
-}
-
-def fac(a: f64) {
-    if (a < 2) {
-        as_f64(1)
-    } else {
-        a * fac(a - 1)
-    }
+def tricky(b: f64) {
+    let c: i32 = 10
+    c
 }

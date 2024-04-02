@@ -239,7 +239,10 @@ Statement *parse_factor(Parser *parser) {
     return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
     eat(parser);
-    return new_i32_literal_stmt(current_token.value.i32_value, current_token);
+    // return new_i32_literal_stmt(current_token.value.i32_value,
+    // current_token);
+    return new_numerical_literal_stmt(current_token.value.i32_value,
+                                      current_token);
   } else if (current_token.type == TOKEN_L_PAR) {
     eat(parser);
 
@@ -379,17 +382,22 @@ SymbolStatement *parse_symbol_statement(Parser *parser) {
       expect_and_eat(parser, TOKEN_IDENTIFIER,
                      "parse_symbol_statement expected symbol identifier");
   SymbolStatement *sym_stmt = malloc(sizeof(SymbolStatement));
-
-  expect_and_eat(parser, TOKEN_COLON, "expected colon to define symbol type");
-
-  Token type_identifier =
-      expect_and_eat(parser, TOKEN_IDENTIFIER, "expected type identifier");
-
   sym_stmt->name = symbol_identifier.value.str_value;
-  sym_stmt->type = str_to_literal_type(type_identifier.value.str_value);
+
+  if (peek(parser).type == TOKEN_COLON) {
+    expect_and_eat(parser, TOKEN_COLON, "expected colon to define symbol type");
+    Token type_identifier =
+        expect_and_eat(parser, TOKEN_IDENTIFIER, "expected type identifier");
+    sym_stmt->type = str_to_literal_type(type_identifier.value.str_value);
+  } else {
+    sym_stmt->type = LiteralType_UNKNOWN;
+  }
+
   if (sym_stmt->type == -1) {
+    printf("\n[WARN] Infering type...\n");
     throw_parser_error(parser, "unrecognised literal type");
   }
+
   return sym_stmt;
 }
 

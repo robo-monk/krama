@@ -31,7 +31,8 @@ typedef enum {
   LiteralType_bool,
   LiteralType_void,
   LiteralType_ptr,
-  LiteralType_UNKNOWN
+  LiteralType_UNKNOWN,
+  LiteralType_NUMERAL
 } LiteralType;
 
 typedef struct {
@@ -125,6 +126,8 @@ Statement *new_conditional_stmt(Statement *condition, BlockStatement *if_body,
 Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
 
                              Token token);
+
+Statement *new_numerical_literal_stmt(long value, Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);
 Statement *new_var_read_stmt(LiteralType type, string name, Token token);

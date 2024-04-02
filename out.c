@@ -12,21 +12,13 @@
 
 
 // declerations 
-f64 as_f64(f64 a);
-f64 fac(f64 a);
+i32 tricky(f64 b);
 
 
 // implementations 
-f64 as_f64(f64 a) {
-return a;
-
-};
-f64 fac(f64 a) {
-if (a<(i32) 2) {
-return as_f64((i32) 1);
-} else {
-return a*fac(a-(i32) 1);
-};
+i32 tricky(f64 b) {
+i32 c = 10;
+return c;
 
 };
 

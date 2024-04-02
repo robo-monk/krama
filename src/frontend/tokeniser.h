@@ -10,7 +10,10 @@ typedef enum {
   TOKEN_LET,    // let
   TOKEN_MUT,    // mut
   TOKEN_DEF,    // def
+  TOKEN_FN,     // fn
+  TOKEN_MT,     // mt
   TOKEN_SHAPE,  // shape
+  TOKEN_TARGET, // target
   TOKEN_IDENTIFIER,
   TOKEN_COMMA = ',',
   TOKEN_EQ = '=',
@@ -26,6 +29,7 @@ typedef enum {
   TOKEN_TREE,
   TOKEN_COMMENT,
   TOKEN_RIGHT_ARROW, // ->
+  TOKEN_LEFT_ARROW,  // <-
   TOKEN_ELSE,        // else
   TOKEN_RETURN,      // return
   TOKEN_PROGRAM_END,

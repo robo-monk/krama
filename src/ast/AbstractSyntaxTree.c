@@ -92,6 +92,13 @@ Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
   return s;
 }
 
+Statement *new_numerical_literal_stmt(long value, Token token) {
+  Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
+  s->literal.type = LiteralType_NUMERAL;
+  s->literal.i32_value = value;
+  return s;
+}
+
 Statement *new_i32_literal_stmt(int value, Token token) {
   Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
   s->literal.type = LiteralType_i32;

@@ -120,22 +120,55 @@ string compile_tree_statement(Compiler *com, Statement *stmt) {
   return compiled;
 }
 
+void should_be_matching_types(Compiler *com, LiteralType var_type_a,
+                              LiteralType var_type_b) {
+  if (var_type_a != var_type_b) {
+    Compiler_throw(com, "mismatched types: '%s' and '%s'",
+                   literal_type_to_str(var_type_a),
+                   literal_type_to_str(var_type_b));
+  }
+}
+
 string compile_write_variable(Compiler *com, string var_name,
-                              LiteralType var_type, string value) {
+                              LiteralType var_type, Statement *stmt) {
 
   VariableSymbol *varsym = Compiler_varsym_get(com, var_name);
   if (varsym == NULL) {
     Compiler_throw(com, "tried to write an undeclared variable '%s'", var_name);
   }
-  return concat(3, var_name, " = ", value);
+
+  Inferer inf = Inferer_new(com);
+  LiteralType infered_lt = infer_statement(&inf, stmt);
+
+  if (infered_lt == LiteralType_UNKNOWN && var_type == LiteralType_UNKNOWN) {
+    Compiler_throw(com, "cannot infer type this time... %s", var_name);
+  }
+
+  if (infered_lt != LiteralType_NUMERAL) {
+    should_be_matching_types(com, infered_lt, var_type);
+  }
+
+  string compiled_rhs = com_statement(com, stmt);
+  return concat(3, var_name, " = ", compiled_rhs);
 }
 
 string com_declare_variable(Compiler *com, string var_name,
-                            LiteralType var_type, string value) {
-  Compiler_varsym_declare(com, var_name, var_type);
+                            LiteralType var_type, Statement *stmt) {
 
+  if (var_type == LiteralType_UNKNOWN) {
+    Inferer inf = Inferer_new(com);
+    var_type = infer_statement(&inf, stmt);
+  }
+
+  if (var_type == LiteralType_NUMERAL) {
+    // programmer has to specify what type of numeral this is, so this will
+    // break
+    Compiler_throw(com, "specify what time of numeral you want. hint: i64");
+  }
+
+  Compiler_varsym_declare(com, var_name, var_type);
   return concat(3, literal_type_to_str(var_type), " ",
-                compile_write_variable(com, var_name, var_type, value));
+                compile_write_variable(com, var_name, var_type, stmt));
 }
 
 string compile_read_variable(Compiler *com, string var_name,
@@ -272,19 +305,21 @@ string com_statement(Compiler *com, Statement *stmt) {
   case STMT_TREE:
     return compile_tree_statement(com, stmt);
   case STMT_LITERAL:
-    return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
-                  literal_val2str(stmt->literal));
+    return literal_val2str(stmt->literal);
+    // return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
+    // return concat(4, "(", literal_type_to_str(stmt->literal.type), ") ",
+    //               literal_val2str(stmt->literal));
   case STMT_BINARY_OP:
     return com_bin_op(com, stmt->left, stmt->right, stmt->token.value.op_type);
   case STMT_VARIABLE_DECL:
     return com_declare_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
-                                com_statement(com, stmt->right));
+                                stmt->right);
 
   case STMT_VARIABLE_READ:
     return compile_read_variable(com, stmt->sym_decl.name, stmt->sym_decl.type);
   case STMT_VARIABLE_WRITE:
     return compile_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
-                                  com_statement(com, stmt->right));
+                                  stmt->right);
 
   case STMT_DEF_INVOKE:
     return compile_call_symbol(com, stmt);
