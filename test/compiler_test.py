@@ -4,7 +4,7 @@ import os
 import re
 
 def make_tmp_file(content, id, ext):
-    filename = f"tmp/{id}{ext}"
+    filename = f"./tmp/{id}{ext}"
     with open(filename, 'w') as f:
         f.write(content)
     return filename
@@ -44,7 +44,7 @@ def run_compiler(content):
         print("Error: " + result.stderr)
         outc_content = ""
         if result.returncode == 0:
-            with open("tmp/out_" + id + '.c', 'r') as f:
+            with open("./tmp/out_" + id + '.c', 'r') as f:
                 outc_content = f.read()
 
         return result, outc_content
@@ -53,7 +53,7 @@ def run_compiler(content):
             print("Deleting file: " + krama_file)
             print("Deleting file: " + "tmp/out_" + id + '.c')
             del_tmp_file(krama_file)
-            del_tmp_file("tmp/out_" + id + '.c')
+            del_tmp_file("./tmp/out_" + id + '.c')
         except:
             pass
 
