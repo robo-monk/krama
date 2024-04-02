@@ -28,10 +28,11 @@ TokeniserBufferType detect_buffer_chartype(char c) {
 
 Token new_str_token(TokenType type, string value, int len) {
   Token t = {.type = type};
-  t.value.str_value = malloc(len * sizeof(char));
+  t.value.str_value = calloc(sizeof(char), len + 1);
   for (int i = 0; i < len; i++) {
     t.value.str_value[i] = value[i];
   }
+  t.value.str_value[len] = '\0';
   return t;
 }
 
@@ -147,7 +148,7 @@ void commit_multichar_token(Tokeniser *tokeniser) {
   if (!tokeniser->buffer.constructing) {
     return;
   }
-  tokeniser->buffer.str[tokeniser->buffer.idx++] = '\0';
+  tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
 
   // if (is_digit(tokeniser->buffer.str[0])) {
   //   commit_buffer_as_number(tokeniser);
