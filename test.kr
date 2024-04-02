@@ -1,4 +1,35 @@
-def tricky(b: f64) {
-    let c: i32 = 10
-    c
+def println(x: i32) {
+    #c printf("%d\n", x);
+}
+
+def |x: i32| as_i32() {
+    x
+}
+
+def |x: f64| as_f64() {
+    x
+}
+
+def fac(a: i32) {
+    if (a < 2) {
+        1:as_i32()
+    } else {
+        a * fac(a - 1)
+    }
+}
+
+def exit_success() {
+    1:as_i32()
+}
+
+def tricky(b: i32) {
+    10:as_i32() + b:as_i32()
+}
+
+def main() {
+    let bing = tricky(4)
+    let bong = fac(5)
+    println(bing + bong)
+
+    exit_success()
 }

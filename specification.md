@@ -1,9 +1,22 @@
 # Krama Language Specification
 
+`art` -> defines an immutable reference to an artefact
+`mut` -> defines a mutable variable
+`let` -> defines a immutable variable
+`<-` -> binds and assigns a value to an artefact
+`->` -> is a "lazy" opearator. the rhs will get evaluated or returned only when particular circumstances are met depending on the context
+
+`shape` -> is used to define custom data structures
+`target` -> is used to define implementation details for a specific target. The <pattern> can match various variables and artifacts
+`mt` -> defines a mutator. defines a procedure that can mutate the matched target within a target block
+`fn` -> defines a function. defines a procedure that can read the state of the target its defined in and return a value
+
 Shape Definition:
 
-shape is used to define custom data structures or "shapes" in Krama, akin to classes or structs in other programming languages. It allows for the encapsulation of data and behavior within a single, user-defined type.
+`shape` is used to define custom data structures or "shapes" in Krama, akin to classes or structs in other programming languages. It allows for the encapsulation of data and behavior within a single, user-defined type.
+
 Shapes can have properties (data members) and methods (functions or mutators) defined within them, allowing for both data storage and behavior implementation. Properties can be mutable (mut) or immutable (let), and methods are defined as either functions (fn) that do not alter the shape's state or mutators (mt) that do.
+
 Target Definition and Usage:
 
 The target keyword introduces a scope for defining functions (fn) and mutators (mt) that operate on a specific instance of a shape or data structure. It is a way to define behavior that is closely associated with a particular data type.

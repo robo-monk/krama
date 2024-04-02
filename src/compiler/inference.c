@@ -42,8 +42,9 @@ LiteralType infer_block_statement_with_initial(Inferer *inf,
       infer_statement(inf, block->statements[block->len - 1]);
 
   if (base != LiteralType_UNKNOWN && base != branch_return_type) {
-    Inferer_throw(inf, "block is ambiguous. Expected to return (%s)",
-                  literal_type_to_str(base));
+    Inferer_throw(
+        inf, "block is ambiguous. Expected to return '%s' but got '%s'",
+        literal_type_to_str(base), literal_type_to_str(branch_return_type));
   }
   return branch_return_type;
 }
@@ -98,7 +99,8 @@ LiteralType infer_bin_op(Inferer *inf, Statement *stmt_a, Statement *stmt_b,
     return type_a;
   }
   if (type_a != type_b) {
-    Inferer_throw(inf, "ambigious binary operation");
+    Inferer_throw(inf, "ambigious binary operation between '%s' and '%s'",
+                  literal_type_to_str(type_a), literal_type_to_str(type_b));
   }
 
   return type_a;
@@ -152,7 +154,8 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
     return infer_bin_op(inf, stmt->left, stmt->right,
                         stmt->token.value.op_type);
   case STMT_VARIABLE_DECL:
-    return stmt->sym_decl.type;
+    return LiteralType_void;
+    // return stmt->sym_decl.type;
   case STMT_VARIABLE_READ:
     return infer_var_read(inf, stmt);
   case STMT_DEF_INVOKE:

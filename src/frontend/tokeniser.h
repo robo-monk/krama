@@ -16,6 +16,8 @@ typedef enum {
   TOKEN_TARGET, // target
   TOKEN_IDENTIFIER,
   TOKEN_COMMA = ',',
+  TOKEN_SINGLE_QUOTE = '\'',
+  TOKEN_DOUBLE_QUOTE = '"',
   TOKEN_EQ = '=',
   TOKEN_L_PAR = '(',
   TOKEN_R_PAR = ')',
