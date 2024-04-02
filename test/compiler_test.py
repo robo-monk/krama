@@ -14,20 +14,23 @@ def del_tmp_file(filename):
 
 def run_compiler_command(infile, outfile):
     # Assuming '../bin/krama' is the executable and 'compile' is an argument
-    result = sp.run(['../bin/krama', 'compile', infile, outfile], capture_output=True, text=True)
-    return result
+    # result = sp.run(['../bin/krama', 'compile', infile, outfile], capture_output=True, text=True)
+    result = sp.run(['../bin/krama', 'compile', infile, outfile], capture_output=True, text=False)
+    stdout = result.stdout.decode('utf-8', errors='replace')
+    stderr = result.stderr.decode('utf-8', errors='replace')
+    return (stdout, stderr, result)
 
 def expect_compiler_error(content, expected_error):
     # Error looking like [compiler] Error! ...
-    result, file_content = run_compiler(content)
-    assert expected_error in result.stderr
+    (stdout, stderr, result), file_content = run_compiler(content)
+    assert expected_error in stderr
         # or expected_error in result.stdout
     # assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
     # assert re.search(expected_error, result.stderr) is not None
 
 def expect_in_outc(content, expected):
     # Error looking like [compiler] Error! ...
-    result, file_content = run_compiler(content)
+    (stdout, stderr, result), file_content = run_compiler(content)
     assert expected in file_content
         # or expected_error in result.stdout
     # assert re.search(r'\[compiler\] Error!.*', result.stderr) is not None
@@ -39,15 +42,15 @@ def run_compiler(content):
     krama_file = make_tmp_file(content, id, '.kr')
     try:
         print("\n---\n Running compiler with file: " + krama_file + "\n---")
-        result = run_compiler_command(krama_file, "./tmp/out_" + id + '.c')
-        print(result.stdout)
-        print("Error: " + result.stderr)
+        (stdout, stderr, result) = run_compiler_command(krama_file, "./tmp/out_" + id + '.c')
+        print(stdout)
+        print("Error: " + stderr)
         outc_content = ""
         if result.returncode == 0:
             with open("./tmp/out_" + id + '.c', 'r') as f:
                 outc_content = f.read()
 
-        return result, outc_content
+        return (stdout, stderr, result), outc_content
     finally:
         try:
             print("Deleting file: " + krama_file)
