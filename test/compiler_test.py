@@ -5,7 +5,7 @@ import re
 
 def make_tmp_file(content, id, ext):
     filename = f"./tmp/{id}{ext}"
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding="utf-8") as f:
         f.write(content)
     return filename
 
@@ -47,7 +47,7 @@ def run_compiler(content):
         print("Error: " + stderr)
         outc_content = ""
         if result.returncode == 0:
-            with open("./tmp/out_" + id + '.c', 'r') as f:
+            with open("./tmp/out_" + id + '.c', 'r', encoding="utf-8") as f:
                 outc_content = f.read()
 
         return (stdout, stderr, result), outc_content
