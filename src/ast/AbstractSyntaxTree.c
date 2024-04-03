@@ -99,6 +99,13 @@ Statement *new_numerical_literal_stmt(long value, Token token) {
   return s;
 }
 
+Statement *new_char_literal_stmt(char c, Token token) {
+  Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
+  s->literal.type = LiteralType_char;
+  s->literal.cha_value = c;
+  return s;
+}
+
 Statement *new_i32_literal_stmt(int value, Token token) {
   Statement *s = new_stmt(STMT_LITERAL, NULL, NULL, token);
   s->literal.type = LiteralType_i32;

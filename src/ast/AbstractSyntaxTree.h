@@ -128,6 +128,7 @@ Statement *new_bin_expr_stmt(OpType op, Statement *left, Statement *right,
                              Token token);
 
 Statement *new_numerical_literal_stmt(long value, Token token);
+Statement *new_char_literal_stmt(char c, Token token);
 Statement *new_i32_literal_stmt(int value, Token token);
 Statement *new_f64_literal_stmt(double value, Token token);
 Statement *new_var_read_stmt(LiteralType type, string name, Token token);

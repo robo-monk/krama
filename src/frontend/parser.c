@@ -243,6 +243,9 @@ Statement *parse_factor(Parser *parser) {
     // current_token);
     return new_numerical_literal_stmt(current_token.value.i32_value,
                                       current_token);
+  } else if (current_token.type == TOKEN_CHAR) {
+    eat(parser);
+    return new_char_literal_stmt(current_token.value.char_value, current_token);
   } else if (current_token.type == TOKEN_L_PAR) {
     eat(parser);
 
@@ -354,7 +357,11 @@ Statement *parse_block(Parser *parser) {
     eat(parser);
     BlockStatement *block_stmt = new_block_stmt();
 
+    int i = 0;
     while (true) {
+      if (i > 9999) {
+        throw_parser_error(parser, "unclosed token r bracket");
+      }
 
       printf("\n ---parsing sttm \n");
       Statement *stmt = parse_statement(parser);
@@ -366,6 +373,7 @@ Statement *parse_block(Parser *parser) {
         break;
       }
       printf("\n ---parser.c 335 \n");
+      i++;
     }
     expect_and_eat(parser, TOKEN_R_BRACKET, "Expected r bracket to eat");
 

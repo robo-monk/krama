@@ -32,8 +32,11 @@ string literal_val2str(LiteralStatement literal) {
   case LiteralType_f64:
     sprintf(str, "%f", literal.f64_value);
     break;
+  case LiteralType_char:
+    sprintf(str, "'%c'", literal.cha_value);
+    break;
   case LiteralType_UNKNOWN:
-    sprintf(str, "uknown!", literal.f64_value);
+    sprintf(str, "uknown!");
     break;
   case LiteralType_void:
     sprintf(str, "VOID");

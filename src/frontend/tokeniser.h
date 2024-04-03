@@ -6,6 +6,7 @@
 
 typedef enum {
   TOKEN_NUMBER, // number
+  TOKEN_CHAR,   // character
   TOKEN_OP,     // op
   TOKEN_LET,    // let
   TOKEN_MUT,    // mut
@@ -27,7 +28,7 @@ typedef enum {
   TOKEN_R_SQ_BRACKET = ']',
   TOKEN_COLON = ':',
   TOKEN_PIPE = '|',
-  TOKEN_IF = 222, // if
+  TOKEN_IF = 420, // if
   TOKEN_TREE,
   TOKEN_COMMENT,
   TOKEN_RIGHT_ARROW, // ->
@@ -39,6 +40,7 @@ typedef enum {
 
 typedef union {
   int i32_value;
+  char char_value;
   string str_value;
   // TokenOpType op_type;
   OpType op_type;
@@ -85,12 +87,11 @@ struct Tokeniser {
   int col_idx;
 
   bool escape;
+  char starting_esc_char;
+
   Token *tokens;
 
   TokeniserBuffer buffer;
-  // bool is_constructing_multichar_token;
-  // string buffer;
-  // unsigned int buffer_idx;
 
   unsigned int char_idx;
   unsigned int _last_char_idx_push;

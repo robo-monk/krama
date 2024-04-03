@@ -36,6 +36,11 @@ Token new_str_token(TokenType type, string value, int len) {
   return t;
 }
 
+Token new_character_token(char c) {
+  Token t = {.type = TOKEN_CHAR, .value = {.char_value = c}};
+  return t;
+}
+
 Token new_number_token(int num) {
   Token t = {.type = TOKEN_NUMBER, .value = {.i32_value = num}};
   return t;
@@ -50,6 +55,7 @@ void reset_tokeniser_buffer(Tokeniser *tokeniser) {
   free(tokeniser->buffer.str);
   tokeniser->buffer.str = calloc(TOKENISER_BUFFER_LEN, sizeof(char));
   tokeniser->buffer.idx = 0;
+  tokeniser->buffer.constructing = false;
 }
 
 void _alloc_tokens_array(Tokeniser *tokeniser) {
@@ -150,14 +156,6 @@ void commit_multichar_token(Tokeniser *tokeniser) {
   }
   tokeniser->buffer.str[tokeniser->buffer.idx] = '\0';
 
-  // if (is_digit(tokeniser->buffer.str[0])) {
-  //   commit_buffer_as_number(tokeniser);
-  // } else if (false && tokeniser->buffer.str[0] == '#') {
-  //   commit_buffer_as_comment(tokeniser);
-  // } else {
-  //   commit_buffer_as_string(tokeniser);
-  // }
-
   switch (tokeniser->buffer.type) {
   case TokeniserBufferType_comment:
     printf("\nCOMMTING AS COMMENT <------------\n");
@@ -173,7 +171,6 @@ void commit_multichar_token(Tokeniser *tokeniser) {
     break;
   }
 
-  tokeniser->buffer.constructing = false;
   reset_tokeniser_buffer(tokeniser);
 }
 
@@ -203,8 +200,28 @@ void tokenise_char(char c, Tokeniser *state) {
     return;
   case '#':
     printf("\n\nCOME ACRSOOS COMMEND\n");
+    state->starting_esc_char = c;
     state->escape = true;
     construct_multichar_token(c, state);
+    return;
+  case '\'':
+  case '"':
+    printf("\n\n---- COME ACRSOOS QUOTE ----\n");
+    if (state->escape && state->starting_esc_char == c) {
+      // stop escaping
+      if (state->buffer.idx > 1) {
+        throw_tokeniser_err("character can only be 1 char length");
+      }
+
+      printf("\ncommiting char as '%c'\n", state->buffer.str[0]);
+      push_token(new_character_token(state->buffer.str[0]), state);
+      reset_tokeniser_buffer(state);
+      state->escape = false;
+      state->starting_esc_char = '\0';
+    } else {
+      state->starting_esc_char = c;
+      state->escape = true;
+    }
     return;
   }
 
@@ -227,6 +244,8 @@ void tokenise_char(char c, Tokeniser *state) {
     push_token(new_token(TOKEN_EQ), state);
     break;
   case ',':
+  case '\'':
+  case '"':
   case '(':
   case ')':
   case '[':
@@ -238,7 +257,6 @@ void tokenise_char(char c, Tokeniser *state) {
     commit_multichar_token(state);
     push_token(new_token(c), state);
     break;
-
   case '\t':
   case '\v':
   case '\f':
@@ -351,6 +369,9 @@ void dbg_token(Token token) {
   case TOKEN_NUMBER:
     printf("Number: %d", token.value.i32_value);
     break;
+  case TOKEN_CHAR:
+    printf("Character: %c", token.value.char_value);
+    break;
   case TOKEN_IDENTIFIER:
     printf("Identifier: %s", token.value.str_value);
     break;
@@ -358,12 +379,17 @@ void dbg_token(Token token) {
     printf("Comment: %s", token.value.str_value);
     break;
   case TOKEN_DEF:
+  case TOKEN_TREE:
   case TOKEN_RIGHT_ARROW:
+  case TOKEN_LEFT_ARROW:
   case TOKEN_LET:
   case TOKEN_MUT:
   case TOKEN_SHAPE:
   case TOKEN_RETURN:
   case TOKEN_ELSE:
+  case TOKEN_FN:
+  case TOKEN_MT:
+  case TOKEN_TARGET:
     printf("Keyword token: %s", kw_token_to_str(token.type));
     break;
   case TOKEN_R_BRACKET:
@@ -374,6 +400,8 @@ void dbg_token(Token token) {
   case TOKEN_R_SQ_BRACKET:
   case TOKEN_EQ:
   case TOKEN_COLON:
+  case TOKEN_SINGLE_QUOTE:
+  case TOKEN_DOUBLE_QUOTE:
   case TOKEN_PIPE:
   case TOKEN_COMMA:
     printf("Token: '%c'", token.type);
