@@ -20,4 +20,4 @@ jobs:
           pip install pytest subprocess32
 
       - name: Run tests
-        run: ./scripts/build.sh && cd test && mkdir -p tmp && pytest
+        run: ./scripts/build.sh && cd test && mkdir tmp && pytest
