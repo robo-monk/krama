@@ -6,4 +6,7 @@
 
 string com_statement(Compiler *com, Statement *stmt);
 void compile_program(BlockStatement *program, string filename);
+void compile_program_with_std(BlockStatement *program, BlockStatement *std,
+                              string filename);
+
 #endif

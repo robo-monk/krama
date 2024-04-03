@@ -1,57 +1,25 @@
 def |x: i32| mul(a: i32) {
-    x*a
+    x * a
 }
 
-def |x: i32| to_f64() {
-    x
-}
-
-def |x: i32| ppow(a: i32) {
-    if (a > 0){
-        x:mul(x:ppow(a:sub(1)))
-    } else {
-        1
-    }
-}
-
-def |x: i32| fac() {
-    if (x < 2) {
-        1
-    } else {
-        x*(x-1):fac()
-    }
-}
-
-def hello() {
-    let a: i32 = 4
-    let b: i32 = 2:fac()
-    a:ppow(b):fac()
-}
-
-def int_main() {
-    hello()
-}
-
-
-# #include <stdio.h>
-# #include <stdlib.h>
+def |x: i32| as_i32() { x }
 
 def alloc(size: i32) {
-    let b: ptr = 0
-    #c b = malloc(size);
-
-    let c: f64 = 0
-    c
-
+    let x: ptr = 0
+    #c x = malloc(size);
+    x:as_i32()
 }
 
 def drop(address: ptr) {
     #c free(address);
-
 }
 
 def print(x: i32) {
     #c printf("%d", x)
+}
+
+def println(x: i32) {
+    #c printf("%d\n", x)
 }
 
 def array(size: i32) {
@@ -62,12 +30,4 @@ def |ary: ptr| at(idx: i32) {
     let el: i32 = 0
     #c el = ary[idx];
     el
-}
-
-
-def main() {
-    let c: i32 = 550
-    print(c)
-
-    let ary: ptr = array(10)
 }

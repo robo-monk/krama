@@ -205,7 +205,7 @@ void tokenise_char(char c, Tokeniser *state) {
     construct_multichar_token(c, state);
     return;
   case '\'':
-  case '"':
+    // case '"':
     printf("\n\n---- COME ACRSOOS QUOTE ----\n");
     if (state->escape && state->starting_esc_char == c) {
       // stop escaping

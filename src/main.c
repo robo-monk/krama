@@ -19,10 +19,11 @@ void compile_file(const string filename, const string out_filename) {
   printf("\n%s%s > krama compile %s%s\n", style_bold, color_green, filename,
          color_reset);
 
+  BlockStatement *std = program_from_filename("std.kr");
   BlockStatement *program = program_from_filename(filename);
   printf("\ncompiling...\n");
   // ReturnValue ret_value = exec_program(program);
-  compile_program(program, out_filename);
+  compile_program_with_std(program, std, out_filename);
 
   // End timing
   clock_t end_time = clock();

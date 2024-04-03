@@ -336,7 +336,16 @@ string com_statement(Compiler *com, Statement *stmt) {
   Compiler_throw(com, "unsupportd token");
 }
 
+void compile_program_with_std(BlockStatement *program, BlockStatement *std,
+                              char *filename) {
+  Compiler com = Compiler_new();
+  compile_block_statement(&com, std);
+  compile_block_statement(&com, program);
+  Compiler_write_to_file(&com, filename);
+}
+
 void compile_program(BlockStatement *program, char *filename) {
+
   Compiler com = Compiler_new();
   compile_block_statement(&com, program);
   Compiler_write_to_file(&com, filename);
