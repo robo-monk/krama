@@ -1,13 +1,19 @@
-def |x: i32| mul(a: i32) {
-    x * a
+def throw() {
+    #c printf("Error")
+    #c exit(1)
 }
 
 def |x: i32| as_i32() { x }
 
+def |x: i32| memsize() {
+    #c x = sizeof(i32);
+    x
+}
+
 def alloc(size: i32) {
     let x: ptr = 0
     #c x = malloc(size);
-    x:as_i32()
+    x
 }
 
 def drop(address: ptr) {
@@ -22,12 +28,46 @@ def println(x: i32) {
     #c printf("%d\n", x)
 }
 
-def array(size: i32) {
-    alloc(size)
+def array(length: i32) {
+    let pointer: ptr = alloc((length) * length:memsize() + length:memsize())
+    #c pointer[0] = length
+    pointer
 }
 
 def |ary: ptr| at(idx: i32) {
     let el: i32 = 0
-    #c el = ary[idx];
+    #c el = (i32) ary[idx+1];
     el
+}
+
+def |ary: ptr| length() {
+    let len: i32 = 0
+    #c if (ary == NULL) { printf("\nnull pointer exception\n");exit(1); }
+    #c len = ary[0]
+    len
+}
+
+def |ary: ptr| set(idx: i32, el: i32) {
+    if (idx > ary:length()) {
+        throw()
+        #
+    }
+    #c ary[idx+1] = el;
+}
+
+
+def |ary: ptr| fill(value: i32, start_idx: i32) {
+    if (start_idx < ary:length()) {
+        ary:set(start_idx, value)
+        ary:fill(value, start_idx+1)
+    }
+    ary
+}
+
+def |ary: ptr| clone() {
+    let cloned = array(ary:length())
+    let len = ary:length()
+    #c cloned[0] = len
+    #c for (int i=1; i < len; i++) { cloned[i] = ary[i]; };
+    cloned
 }

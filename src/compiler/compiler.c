@@ -120,15 +120,6 @@ string compile_tree_statement(Compiler *com, Statement *stmt) {
   return compiled;
 }
 
-void should_be_matching_types(Compiler *com, LiteralType var_type_a,
-                              LiteralType var_type_b) {
-  if (var_type_a != var_type_b) {
-    Compiler_throw(com, "mismatched types: '%s' and '%s'",
-                   literal_type_to_str(var_type_a),
-                   literal_type_to_str(var_type_b));
-  }
-}
-
 string compile_write_variable(Compiler *com, string var_name,
                               LiteralType var_type, Statement *stmt) {
 
@@ -144,8 +135,10 @@ string compile_write_variable(Compiler *com, string var_name,
     Compiler_throw(com, "cannot infer type this time... %s", var_name);
   }
 
-  if (infered_lt != LiteralType_NUMERAL) {
-    should_be_matching_types(com, infered_lt, var_type);
+  if (infered_lt != LiteralType_NUMERAL && infered_lt != var_type) {
+    Compiler_throw(com, "attampted to assign '%s' to '%s' %s",
+                   literal_type_to_str(infered_lt),
+                   literal_type_to_str(var_type), var_name);
   }
 
   string compiled_rhs = com_statement(com, stmt);
