@@ -48,7 +48,7 @@ def |ary: ptr| length() {
 }
 
 def |ary: ptr| set(idx: i32, el: i32) {
-    if (idx > ary:length()) {
+    if (idx - 1 > ary:length()) {
         throw()
         #
     }

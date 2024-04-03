@@ -53,8 +53,8 @@ def iterate_rule110(ary: ptr, iterations: i32) {
 
 def main() {
     let row = array(31):fill(0, 0)
-		row:set(14, 1)
+		row:set(29, 1)
     row:print_grid()
-		iterate_rule110(row, 15)
+		iterate_rule110(row, 42)
     0:as_i32()
 }

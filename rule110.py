@@ -22,7 +22,7 @@ def simulate_rule110(width, generations):
     """Simulates Rule 110 starting with a single 1 in the middle of the first generation."""
     current_gen = [0] * width
     # Start with a single 1 in the middle
-    current_gen[width // 2] = 1
+    current_gen[width-1] = 1
     print_generation(current_gen)
     
     for _ in range(generations - 1):
@@ -30,5 +30,5 @@ def simulate_rule110(width, generations):
         print_generation(current_gen)
 
 # Simulate Rule 110 with a width of 31 cells for 15 generations
-simulate_rule110(31, 15)
+simulate_rule110(31, 42)
 

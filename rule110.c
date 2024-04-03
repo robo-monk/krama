@@ -87,7 +87,7 @@ return len;
 
 };
 void set(i32 idx, i32 el, ptr ary) {
-if (idx>length(ary)) {
+if (idx-1>length(ary)) {
 throw();
 //#;
 };
@@ -161,9 +161,9 @@ return iterate_rule110(ary,iterations-1);
 };
 i32 main() {
 ptr row = fill(0,0,array(31));
-set(14,1,row);
+set(29,1,row);
 print_grid(row);
-iterate_rule110(row,15);
+iterate_rule110(row,42);
 return as_i32(0);
 
 };
