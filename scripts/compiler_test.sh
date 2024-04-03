@@ -1,2 +1,2 @@
-./scripts/build.sh && cd test && pytest -s
+./scripts/build.sh && cd test && rm -rf tmp && mkdir tmp && pytest -s
 cd ../

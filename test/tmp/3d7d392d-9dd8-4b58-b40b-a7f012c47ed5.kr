@@ -1,0 +1,5 @@
+
+    def hello(a: i32) {
+        let b: f64 = a
+    }
+    

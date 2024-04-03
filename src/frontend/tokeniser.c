@@ -326,18 +326,20 @@ string read_file_to_str(const string filename) {
   char *buffer = 0;
   int length = 0;
   FILE *f = fopen(filename, "rb");
-
   if (f) {
     fseek(f, 0, SEEK_END);
     length = ftell(f);
+    printf("\n\n\nfile %s filename length is %d\n", filename, length);
     fseek(f, 0, SEEK_SET);
     buffer = malloc(length + 1);
     if (buffer) {
       fread(buffer, 1, length, f);
     }
     fclose(f);
+    buffer[length] = '\0';
+  } else {
+    throw_hard_error("cant find file '%s'", filename);
   }
-  buffer[length] = '\0';
   return buffer;
 }
 
