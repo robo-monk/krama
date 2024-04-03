@@ -1,7 +1,0 @@
-
-    def aloc(size: i32) {
-        let adr: ptr = 0
-        #c adr = malloc(adr)
-        adr
-    }
-    

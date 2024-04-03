@@ -1,5 +1,0 @@
-
-    def hello(x: i32) {
-       x
-    }
-    

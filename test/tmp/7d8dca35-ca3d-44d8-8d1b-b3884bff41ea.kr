@@ -1,5 +1,0 @@
-
-    def hello(a: i32, b: f64) {
-        a + b
-    }
-    

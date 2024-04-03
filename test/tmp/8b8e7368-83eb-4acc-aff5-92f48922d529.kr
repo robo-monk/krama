@@ -1,8 +1,0 @@
-
-    def |x: i32| add(a: i32) {
-        x + a
-    }
-
-    let one: i32 = 1
-    one:add(5)
-    
