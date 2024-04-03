@@ -136,9 +136,10 @@ string compile_write_variable(Compiler *com, string var_name,
   }
 
   if (infered_lt != LiteralType_NUMERAL && infered_lt != var_type) {
-    Compiler_throw(com, "attampted to assign '%s' to '%s' %s",
-                   literal_type_to_str(infered_lt),
-                   literal_type_to_str(var_type), var_name);
+    Compiler_throw(
+        com, "attempted to assign '%s' to '%s' while declaring variable '%s'",
+        literal_type_to_str(infered_lt), literal_type_to_str(var_type),
+        var_name);
   }
 
   string compiled_rhs = com_statement(com, stmt);

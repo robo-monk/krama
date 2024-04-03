@@ -34,7 +34,7 @@ def test_wrong_ass():
     def hello(a: i32) {
         let b: f64 = a
     }
-    """, "mismatched types"),
+    """, "attempted to assign 'i32' to 'f64' while declaring variable 'b'"),
     ]
     tu.array_test_compiler_errors(expected_compiler_error)
 
