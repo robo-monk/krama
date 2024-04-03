@@ -133,3 +133,41 @@ def test_namespace_inference():
     """, "i32 add("),
     ]
     tu.array_test_compiler_inference(e)
+
+
+def test_char_inference():
+    e = [
+    (
+    """
+    let one = 'b'
+    """, "char one"),
+    ]
+    tu.array_test_compiler_inference(e)
+
+def test_char_inference2():
+    e = [
+    (
+    """
+    def |c: char| outbing() {
+        c
+    }
+
+    def main() {
+        let test = 'a'
+        test:outbing()
+    }
+
+    """, "char outbing("),
+    (
+    """
+    def |c: char| outbing() {
+        c
+    }
+
+    def main() {
+        let test = 'a':outbing()
+    }
+
+    """, "char test"),
+    ]
+    tu.array_test_compiler_inference(e)
