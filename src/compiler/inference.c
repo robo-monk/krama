@@ -162,6 +162,9 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
     return infer_def_invoke(inf, stmt);
   case STMT_CONDITIONAL:
     return infer_conditional(inf, stmt->conditional);
+
+  case STMT_DEF_DECL:
+  case STMT_VARIABLE_WRITE:
   case STMT_COMMENT:
     return LiteralType_void;
   }

@@ -1,0 +1,65 @@
+target |row: R110_Array| {
+    fn print() {
+			range(1, row:length())
+				:for_each(|i: i32| {
+					(row[i]) 	-> print("%")
+					() 				-> print(".")
+				})
+
+			#c for (int i = 1; i < len; i++) {if(row[i]){printf("#");}else{printf(".");}};
+			#c printf("\n")
+		}
+
+		fn is_alive(idx: i32) {
+			(idx < 0 || idx > (row:length() - 1)) -> { 0:as_i32() }
+			() -> row:at(idx)
+		}
+
+		fn state_from_neighbours (lcell: i32, ccell: i32, rcell: i32) {
+				(lcell && ccell && rcell)		-> 0:as_i32()
+				(lcell && !ccell && !rcell)		-> 0:as_i32()
+				(!lcell && !ccell && !rcell) 	-> 0:as_i32()
+				() -> 1:as_i32()
+		}
+
+		fn rule110(idx: i32) {
+				let lcell: i32 = is_alive(ary, idx - 1)
+				let ccell: i32 = is_alive(ary, idx)
+				let rcell: i32 = is_alive(ary, idx + 1)
+
+				# lcell, ccel, rcell passed by reference
+			 	-> state_from_neighbours(lcell, ccell, rcell)
+
+				# lcell, ccell, rcell going to get dropped here
+		}
+
+		mt apply_rule110(idx: i32, previous: R110_Array) {
+
+			# previous is passed by reference
+			idx < ary:length() -> {
+				let new_state = previous:rule110(idx)
+				ary~set(idx, new_state)
+				ary~apply_rule110(idx + 1:as_i32(), previous)
+			}
+		}
+
+		mt iterate_rule110(count: i32) {
+			# art cloned <- ary:clone() # artefact syntax
+			let cloned = ary:clone() 	# classical syntax
+																			 # pass by reference here
+			count:for_times:do(|idx: i32| -> row~apply_rule110(cloned))
+
+			row:print_grid()
+			# 'cloned' wll be dropped here
+		}
+
+}
+
+fn main() {
+    let row = array(31):fill(0, 0)
+		row:set(29, 1)
+		io~print
+    row:print_grid()
+		iterate_rule110(row, 42)
+    0:as_i32()
+}

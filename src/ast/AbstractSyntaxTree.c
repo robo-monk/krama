@@ -44,11 +44,9 @@ Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
   return s;
 }
 
-Statement *new_impl_decl_stmt(LiteralType obj, string name, Statement *expr,
-                              Token token) {
-  Statement *s =
-      new_sym_decl_stmt(STMT_DEF_DECL, -1, token.value.str_value, expr, token);
-  s->sym_decl.obj = obj;
+Statement *new_impl_decl_stmt(string name, Statement *expr, Token token) {
+  Statement *s = new_sym_decl_stmt(STMT_DEF_DECL, LiteralType_UNKNOWN,
+                                   token.value.str_value, expr, token);
   return s;
 }
 

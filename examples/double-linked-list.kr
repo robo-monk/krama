@@ -1,0 +1,57 @@
+shape Option<T> {
+	pub some: T
+	pub none: bool
+}
+
+# typedef struct {
+# 	(void *) some;
+# 	bool none;
+# } Option;
+
+# Option* new_Option() {
+# 	Option* option = malloc(sizeof(Option));
+#		return option;
+# }
+
+
+shape ListNode<T>(value: T) {
+	pub value: T -> value
+	pub next: Option<ListNode<T>> -> None
+}
+
+# typedef struct {
+# 	(void*) value;
+# } ListNode
+
+
+
+
+target |node: ListNode| {
+	mt set_next(own next: ListNode) {
+											# free(node.next)
+		node.next <- next # node->next = next
+	}
+}
+
+
+shape LinkedList<T> {
+	pub art head: Option<ListNode<T>>
+}
+
+target |self: LinkedList<T>| {
+	mt push(data: T) {
+		art new_node = ListNode(data) # call ListNode_new(data)
+		new_node.next <- self.head 	# new_node.next = self.head (ptr)
+																# self.head = NULL
+
+													# free(self.head)
+		self.head <- new_node # self.head = new_node 
+													# thus now new_node is bound to self.head
+													# drop new_node out of scope
+
+	}
+}
+
+
+let list = LinkedList<i32>
+

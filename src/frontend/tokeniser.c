@@ -89,7 +89,6 @@ void push_token(Token token, Tokeniser *tokeniser) {
 
   tokeniser->tokens[tokeniser->idx++] = token;
   tokeniser->_last_char_idx_push = tokeniser->char_idx;
-  tokeniser->col_idx++;
 }
 
 void dbg_tokeniser_msg(string msg, Tokeniser *t) {
@@ -189,6 +188,7 @@ void construct_multichar_token(char c, Tokeniser *state) {
 }
 
 void tokenise_char(char c, Tokeniser *state) {
+  state->col_idx++;
 
   switch (c) {
   case '\r':

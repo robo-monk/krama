@@ -238,7 +238,8 @@ string com_conditional(Compiler *com, ConditionalStatement *conditional) {
                 else_com);
 }
 
-string com_def_declaration(Compiler *com, string def_name, Statement *stmt) {
+string compile_def_decleration(Compiler *com, string def_name,
+                               Statement *stmt) {
   if (Compiler_defsym_get(com, def_name)) {
     Compiler_throw(com, "redecleration of definition'%s'", def_name);
   }
@@ -322,7 +323,7 @@ string com_statement(Compiler *com, Statement *stmt) {
     // dbg_stmt(stmt);
     return com_conditional(com, stmt->conditional);
   case STMT_DEF_DECL:
-    return com_def_declaration(com, stmt->sym_decl.name, stmt->right);
+    return compile_def_decleration(com, stmt->sym_decl.name, stmt->right);
   case STMT_COMMENT:
     return compile_comment(com, stmt->token);
   }

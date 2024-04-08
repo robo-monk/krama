@@ -5,6 +5,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "tokeniser.h"
+#include <stdio.h>
 
 Statement *parse_statement(Parser *parser);
 void parse_symbol_statements(Parser *parser, Vec *syms);
@@ -15,6 +16,41 @@ Token look_ahead(Parser *parser) { return parser->tokens[parser->idx + 1]; }
 Token peek(Parser *parser) { return parser->tokens[parser->idx]; }
 
 Token eat(Parser *parser) { return parser->tokens[parser->idx++]; }
+
+int get_line_number_of_token(Token token) {
+  int idx = token.start;
+  int line_count = 1;
+  for (int i = 0; i <= idx; i++) {
+    if (token.tokeniser->content[i] == '\n') {
+      line_count++;
+    }
+  }
+  return line_count;
+}
+
+string get_substr_range(string str, int start_idx, int end_idx) {
+  printf("\n start_idx: %d, end_idx: %d \n", start_idx, end_idx);
+  string buffer = calloc(sizeof(char), end_idx - start_idx);
+  for (int i = start_idx; i <= end_idx; i++) {
+    buffer[i - start_idx] = str[i];
+  }
+  return buffer;
+}
+
+string get_line_of_token(Token token) {
+  int idx = token.start;
+  int line_count = 1;
+  int start_idx = token.start;
+  int end_idx = token.end;
+  while (token.tokeniser->content[start_idx] != '\n' && start_idx >= 0) {
+    start_idx--;
+  }
+  while (token.tokeniser->content[end_idx] != '\n' &&
+         end_idx <= token.tokeniser->char_idx) {
+    end_idx++;
+  }
+  return get_substr_range(token.tokeniser->content, start_idx + 1, end_idx - 1);
+}
 
 string line_of_token(Token token) {
   string content = token.tokeniser->content;
@@ -27,6 +63,7 @@ string line_of_token(Token token) {
   }
   int end = idx;
   while (content[end] != '\n' && content[end] != '\0') {
+    printf("\n%c\n", content[end]);
     end++;
   }
   string line = malloc((end - start) * sizeof(char));
@@ -35,14 +72,24 @@ string line_of_token(Token token) {
   }
 
   int length = token.end - token.start;
-  string pointer = calloc((idx - start) + length, sizeof(char));
-  for (int i = 0; i < idx - start - 1; i++) {
+  // string pointer = calloc((idx - start) + length, sizeof(char));
+  string pointer = calloc(512, sizeof(char));
+  // for (int i = 0; i < idx - start - 1; i++) {
+  //   pointer[i] = ' ';
+  // }
+  printf("\ncol_idx: %d\n", token.col_idx);
+  for (int i = 0; i < token.col_idx; i++) {
     pointer[i] = ' ';
   }
-  for (int i = idx - start - 1; i < idx - start + length - 2; i++) {
+  for (int i = token.col_idx; i < (token.end - token.start); i++) {
     pointer[i] = '^';
   }
-  return concat(4, line, "\n", pointer, "\0");
+  // return content;
+  string line_count_str = malloc(512 * sizeof(char));
+  int line_count = get_line_number_of_token(token);
+  sprintf(line_count_str, "%d", line_count);
+  string line_str = get_line_of_token(token);
+  return concat(6, line_count_str, " | ", line_str, "\n", pointer, "\0");
 }
 
 void report_syntax_error(Token token, string error_msg) {
@@ -52,13 +99,6 @@ void report_syntax_error(Token token, string error_msg) {
 }
 
 void throw_parser_error(Parser *parser, string error_msg) {
-  // string error_line1 = line_of_token(look_behind(parser));
-  // string error_line2 = line_of_token(peek(parser));
-  // string error_line3 = line_of_token(look_ahead(parser));
-
-  // throw_hard_error("%s%s%s\n[%d:%d] Syntax error: %s\n", error_line1,
-  //                  error_line2, error_line3, peek(parser).row_idx,
-  //                  peek(parser).col_idx, error_msg);
   return report_syntax_error(peek(parser), error_msg);
 }
 
@@ -87,7 +127,6 @@ Token expect_and_eat(Parser *parser, TokenType token_type, string error_msg) {
 
 Parser new_parser(Token *tokens) {
   Parser p = {.idx = 0, .tokens = tokens};
-
   return p;
 }
 
@@ -96,11 +135,11 @@ void parse_args_until(Parser *parser, BlockStatement *arg_defs,
   while (peek(parser).type != until) {
     Statement *arg_stmt = parse_expression(parser);
 
-    printf("-\n");
-    printf("\n parser.c 89 \n");
+    // printf("-\n");
+    // printf("\n parser.c 89 \n");
     push_stmt_to_block(arg_stmt, arg_defs);
     if (peek(parser).type == TOKEN_COMMA) {
-      printf("\nEATING COMMA\n");
+      // printf("\nEATING COMMA\n");
       eat(parser);
     }
   }
@@ -159,7 +198,6 @@ void expect_one_of(Parser *parser, TokenType *types, int len) {
       return;
     }
   }
-
   throw_unexpected_token(parser, "Expected one of");
 }
 
@@ -169,7 +207,6 @@ Branch *parse_branch(Parser *parser) {
   Statement *condition = NULL;
 
   if (peek(parser).type == TOKEN_R_PAR) {
-    // throw_parser_error(parser, "empty condition!");
     eat(parser);
   } else {
     condition = parse_statement(parser);
@@ -257,14 +294,6 @@ Statement *parse_factor(Parser *parser) {
     return node;
   }
 
-  // return NULL;
-
-  // printf("\n CURRENT TOKEN IS");
-  // dbg_token(current_token);
-  // printf("\n");
-
-  // throw_unexpected_token(
-  //     parser, "Unexpected token: Expected Identifier, Number or Open Par");
   return NULL;
 }
 
@@ -443,6 +472,7 @@ Statement *parse_definition_stmt(Parser *parser) {
   parse_symbol_statements(parser, &args);
 
   LiteralType namespace_type = -1;
+
   // append the namespace in the end
   if (namespace != NULL) {
     vector_push(&args, namespace);
@@ -453,12 +483,11 @@ Statement *parse_definition_stmt(Parser *parser) {
   expect(parser, TOKEN_L_BRACKET, "expected open bracket to define impl body");
 
   Statement *block_stmt = parse_statement(parser);
-  Argument **argument_array = vector_alloc_to_array(&args);
+  Argument **argument_array = (Argument **)vector_alloc_to_array(&args);
   block_stmt->block->args = argument_array;
   block_stmt->block->arg_len = args.size;
 
-  return new_impl_decl_stmt(namespace_type, identifier.value.str_value,
-                            block_stmt, identifier);
+  return new_impl_decl_stmt(identifier.value.str_value, block_stmt, identifier);
 }
 
 Statement *parse_let(Parser *parser) {

@@ -50,7 +50,7 @@ typedef struct {
 
 typedef struct {
   LiteralType type;
-  LiteralType obj;
+  LiteralType target;
   string name;
 } SymbolStatement;
 
@@ -137,8 +137,7 @@ Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
                              Token token);
 
-Statement *new_impl_decl_stmt(LiteralType type, string name, Statement *expr,
-                              Token token);
+Statement *new_impl_decl_stmt(string name, Statement *expr, Token token);
 
 Statement *new_impl_call_stmt(LiteralType type, string name,
                               BlockStatement *args, Token token);
