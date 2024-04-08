@@ -108,7 +108,7 @@ expected_out ="""
 ###...#.##.###...##...##.#.###
 """
 
-# tu.expect_in_out_executed(program, expected_out)
-(stdout, stderr, result) = tu.compile_and_run(program)
-assert stdout is not None
-assert stdout.replace("\n","").strip() == expected_out.replace("\n", "").strip()
+def test_rule110():
+    (stdout, stderr, result) = tu.compile_and_run(program)
+    assert stdout is not None
+    assert stdout.replace("\n","").strip() == expected_out.replace("\n", "").strip()
