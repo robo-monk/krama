@@ -1,7 +1,0 @@
-def |x: i32| as_i32() {
-    x
-}
-
-def main(a: f64) {
-    # let bong = a
-}
