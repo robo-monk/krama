@@ -1,11 +1,20 @@
 #include "parser.h"
 #include "LiteralType.h"
 #include "Op.h"
+#include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 #include "tokeniser.h"
-#include <stdio.h>
+
+void Parser_info(Parser *parser, const char *fmt, ...) {
+  char buffer[1024];   // Buffer to hold the formatted error message
+  va_list args;        // To handle the variable argument list
+  va_start(args, fmt); // Initialize the variable arguments list
+  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
+  va_end(args); // Clean up the variable arguments list
+  printf("\033[1;32m[PARSER_INFO]\033[0m %s\n", buffer);
+}
 
 Statement *parse_statement(Parser *parser);
 void parse_symbol_statements(Parser *parser, Vec *syms);
@@ -30,10 +39,11 @@ int get_line_number_of_token(Token token) {
 
 string get_substr_range(string str, int start_idx, int end_idx) {
   printf("\n start_idx: %d, end_idx: %d \n", start_idx, end_idx);
-  string buffer = calloc(sizeof(char), end_idx - start_idx);
+  string buffer = calloc(sizeof(char), end_idx - start_idx + 1);
   for (int i = start_idx; i <= end_idx; i++) {
     buffer[i - start_idx] = str[i];
   }
+  buffer[end_idx - start_idx + 1] = '\0';
   return buffer;
 }
 
@@ -74,10 +84,6 @@ string line_of_token(Token token) {
   int length = token.end - token.start;
   // string pointer = calloc((idx - start) + length, sizeof(char));
   string pointer = calloc(512, sizeof(char));
-  // for (int i = 0; i < idx - start - 1; i++) {
-  //   pointer[i] = ' ';
-  // }
-  printf("\ncol_idx: %d\n", token.col_idx);
   for (int i = 0; i < token.col_idx; i++) {
     pointer[i] = ' ';
   }
@@ -135,11 +141,8 @@ void parse_args_until(Parser *parser, BlockStatement *arg_defs,
   while (peek(parser).type != until) {
     Statement *arg_stmt = parse_expression(parser);
 
-    // printf("-\n");
-    // printf("\n parser.c 89 \n");
     push_stmt_to_block(arg_stmt, arg_defs);
     if (peek(parser).type == TOKEN_COMMA) {
-      // printf("\nEATING COMMA\n");
       eat(parser);
     }
   }
@@ -158,22 +161,16 @@ BlockStatement *parse_arg_defs(Parser *parser) {
 
 Statement *parse_impl_call_stmt(Parser *parser) {
 
-  printf("-->current token is \n");
-  dbg_token(peek(parser));
-  printf("\n");
   Token identifier = expect_and_eat(parser, TOKEN_IDENTIFIER,
                                     "expected implementation identifier");
 
-  return new_impl_call_stmt(LiteralType_i32, identifier.value.str_value,
+  return new_fn_invoke_stmt(LiteralType_i32, identifier.value.str_value,
                             parse_arg_defs(parser), identifier);
 }
 
 Statement *parse_conditional_stmt(Parser *parser) {
-  // printf("\nparsing if staament\n");
   // conditions
   Statement *condition = parse_expression(parser);
-  // printf("\ncondition is:\n");
-  // dbg_stmt(condition);
 
   Statement *if_body = parse_block(parser);
   // expect_and_eat(parser, TOKEN_ELSE, "Expected ELSE statement");
@@ -189,16 +186,6 @@ Statement *parse_conditional_stmt(Parser *parser) {
 
   return new_conditional_stmt(condition, if_body->block, else_body_block,
                               peek(parser));
-}
-
-void expect_one_of(Parser *parser, TokenType *types, int len) {
-  Token current_token = peek(parser);
-  for (int i = 0; i < len; i++) {
-    if (current_token.type == types[i]) {
-      return;
-    }
-  }
-  throw_unexpected_token(parser, "Expected one of");
 }
 
 Branch *parse_branch(Parser *parser) {
@@ -238,7 +225,6 @@ Statement *parse_tree_stmt(Parser *parser) {
                  "expectd left bracket to define tree body");
 
   // BlockStatement *block = new_block_stmt();
-  printf("\n bing bong\n");
   Statement *tree_stmt =
       TreeStatement_new(tree_name_token.value.str_value, tree_token, args);
 
@@ -258,7 +244,6 @@ Statement *parse_factor(Parser *parser) {
 
   // printf("\n\n %d ? %d \n\n", current_token.type, TOKEN_COLON);
   if (current_token.type == TOKEN_TREE) {
-    printf("\n +++parse branch\n");
     return parse_tree_stmt(parser);
   } else if (current_token.type == TOKEN_IF) {
     eat(parser);
@@ -268,12 +253,10 @@ Statement *parse_factor(Parser *parser) {
     if (look_ahead(parser).type == TOKEN_L_PAR) {
       return parse_impl_call_stmt(parser);
     }
+
     eat(parser);
     return new_var_read_stmt(LiteralType_i32, current_token.value.str_value,
                              current_token);
-  } else if (false && current_token.type == TOKEN_COLON) {
-
-    return parse_impl_call_stmt(parser);
   } else if (current_token.type == TOKEN_NUMBER) {
     eat(parser);
     // return new_i32_literal_stmt(current_token.value.i32_value,
@@ -308,9 +291,6 @@ Statement *parse_term(Parser *parser) {
          current_token.type == TOKEN_COLON) {
 
     if (current_token.type == TOKEN_COLON) {
-      printf("\ndbg current token   ");
-      dbg_token(current_token);
-      printf("\n");
       eat(parser);
 
       // Statement *right = parse_term(parser);
@@ -319,10 +299,6 @@ Statement *parse_term(Parser *parser) {
       stmt = new_bin_expr_stmt(OpType_Custom, stmt, right, current_token);
       current_token = peek(parser);
       // return parse_impl_call_stmt(parser);
-      printf("\nafter dbg current token   ");
-      dbg_token(current_token);
-      printf("\n");
-
       continue;
     }
 
@@ -392,16 +368,14 @@ Statement *parse_block(Parser *parser) {
         throw_parser_error(parser, "unclosed token r bracket");
       }
 
-      printf("\n ---parsing sttm \n");
       Statement *stmt = parse_statement(parser);
 
-      printf("\n parser.c 289 \n");
       push_stmt_to_block(stmt, block_stmt);
-      dbg_stmt(stmt);
+
       if (peek(parser).type == TOKEN_R_BRACKET) {
         break;
       }
-      printf("\n ---parser.c 335 \n");
+
       i++;
     }
     expect_and_eat(parser, TOKEN_R_BRACKET, "Expected r bracket to eat");
@@ -430,7 +404,7 @@ SymbolStatement *parse_symbol_statement(Parser *parser) {
     sym_stmt->type = LiteralType_UNKNOWN;
   }
 
-  if (sym_stmt->type == -1) {
+  if (sym_stmt->type == LiteralType_UNKNOWN) {
     printf("\n[WARN] Infering type...\n");
     throw_parser_error(parser, "unrecognised literal type");
   }
@@ -456,8 +430,8 @@ Statement *parse_definition_stmt(Parser *parser) {
   if (peek(parser).type == TOKEN_PIPE) {
     eat(parser);
     namespace = parse_symbol_statement(parser);
-    printf("\n|--DEFINE for type %s (defed as: %s) \n",
-           literal_type_to_str(namespace->type), namespace->name);
+    Parser_info(parser, "Declare Function '%s' for target %s (defed as: %s)",
+                literal_type_to_str(namespace->type), namespace->name);
 
     expect_and_eat(parser, TOKEN_PIPE, "expected closing pipe");
   }
@@ -471,12 +445,15 @@ Statement *parse_definition_stmt(Parser *parser) {
   Vec args = new_vec(1, sizeof(SymbolStatement));
   parse_symbol_statements(parser, &args);
 
-  LiteralType namespace_type = -1;
+  SymbolTarget symbol_target = (SymbolTarget){.type = SymbolTarget_Global};
 
   // append the namespace in the end
   if (namespace != NULL) {
     vector_push(&args, namespace);
-    namespace_type = namespace->type;
+    symbol_target.type = SymbolTarget_Literal;
+    symbol_target.literal_type = namespace->type;
+    Parser_info(parser, "[%s] namespace type is %s", identifier.value.str_value,
+                literal_type_to_str(namespace->type));
   }
 
   expect_and_eat(parser, TOKEN_R_PAR, "expected closing parenthesis");
@@ -487,7 +464,10 @@ Statement *parse_definition_stmt(Parser *parser) {
   block_stmt->block->args = argument_array;
   block_stmt->block->arg_len = args.size;
 
-  return new_impl_decl_stmt(identifier.value.str_value, block_stmt, identifier);
+  Parser_info(parser, "target is: %s", SymbolTarget_to_string(symbol_target));
+
+  return new_fn_decleration_stmt(symbol_target, identifier.value.str_value,
+                                 block_stmt, identifier);
 }
 
 Statement *parse_let(Parser *parser) {
@@ -503,9 +483,7 @@ Statement *parse_let(Parser *parser) {
 }
 
 Statement *parse_statement(Parser *parser) {
-  printf("\n ---parsing sttm  432\n");
   Token current_token = peek(parser);
-  printf("\n +++ 434\n");
 
   if (current_token.type == TOKEN_L_BRACKET) {
     return parse_block(parser);

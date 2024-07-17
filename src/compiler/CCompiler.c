@@ -1,11 +1,21 @@
+
 #include "CCompiler.h"
 #include "../frontend/LiteralType.h"
 #include "../frontend/parser.h"
 #include "../hashmap/hashmap.h"
-#include "inference.h"
-#include "stdarg.h"
 #include "stdio.h"
 #include "stdlib.h"
+
+void Compiler_info(Compiler *com, const char *fmt, ...) {
+  char buffer[1024];   // Buffer to hold the formatted error message
+  va_list args;        // To handle the variable argument list
+  va_start(args, fmt); // Initialize the variable arguments list
+  vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
+  va_end(args); // Clean up the variable arguments list
+
+  printf("\033[1;35m[COMPILER_INFO]\033[0m %s\n", buffer);
+  // printf("\033[1;35m[PARSER_INFO]\033[0m %s\n", buffer);
+}
 
 void Compiler_throw(Compiler *com, const char *fmt, ...) {
   char buffer[1024];   // Buffer to hold the formatted error message
@@ -14,6 +24,10 @@ void Compiler_throw(Compiler *com, const char *fmt, ...) {
   vsnprintf(buffer, sizeof(buffer), fmt, args); // Create formatted string
   va_end(args); // Clean up the variable arguments list
 
+  if (com->current_stmt == NULL) {
+    printf("[!!!] %s", buffer);
+    exit(1);
+  }
   report_syntax_error(com->current_stmt->token, buffer);
 }
 
@@ -78,8 +92,11 @@ DefSymbol *Compiler_defsym_get(Compiler *com, string def_name) {
 void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
                              LiteralType return_type) {
 
-  printf("\nDECLARE DEFINITION %s w/ return type %s", def_name,
-         literal_type_to_str(return_type));
+  // printf("\nDECLARE DEFINITION %s w/ return type %s", def_name,
+  //        literal_type_to_str(return_type));
+
+  Compiler_info(com, "Declare Definition '%s' for target |%s|", def_name,
+                SymbolTarget_to_string(body->sym_decl.target));
 
   if (Compiler_defsym_get(com, def_name) != NULL) {
     Compiler_throw(com, "redecleration of definition '%s'", def_name);
@@ -89,7 +106,6 @@ void Compiler_defsym_declare(Compiler *com, string def_name, Statement *body,
 }
 
 void Compiler_varsym_declare(Compiler *com, string var_name, LiteralType type) {
-  printf("\nDECLARE %s of type %s \n", var_name, literal_type_to_str(type));
   if (Compiler_varsym_get(com, var_name) != NULL) {
     Compiler_throw(com, "redecleration of variable '%s'", var_name);
   }

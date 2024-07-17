@@ -1,6 +1,23 @@
 #include "./AbstractSyntaxTree.h"
+#include "../frontend/LiteralType.h"
 #include "stdio.h"
 #include "stdlib.h"
+
+const string SymbolTarget_to_string(SymbolTarget st) {
+  switch (st.type) {
+  case SymbolTarget_Global:
+    return "GLOBAL";
+  case SymbolTarget_Literal:
+    return literal_type_to_str(st.literal_type);
+  default:
+    printf("invalid st");
+    exit(1);
+  }
+}
+// SymbolTarget *SymbolTarget_new(SymbolTargetType type) {
+//   SymbolTarget *st = malloc(sizeof(SymbolTarget));
+//   return st;
+// }
 
 Statement *new_stmt(StatementType type, Statement *left, Statement *right,
                     Token token) {
@@ -41,20 +58,24 @@ Statement *new_sym_decl_stmt(StatementType stmt_type, LiteralType lit_type,
   Statement *s = new_stmt(stmt_type, NULL, expr, token);
   s->sym_decl.name = name;
   s->sym_decl.type = lit_type;
+  s->sym_decl.target = (SymbolTarget){.type = SymbolTarget_Global};
   return s;
 }
 
-Statement *new_impl_decl_stmt(string name, Statement *expr, Token token) {
-  Statement *s = new_sym_decl_stmt(STMT_DEF_DECL, LiteralType_UNKNOWN,
+Statement *new_fn_decleration_stmt(SymbolTarget symbol_target, string name,
+                                   Statement *expr, Token token) {
+  Statement *s = new_sym_decl_stmt(STMT_FN_DECL, LiteralType_UNKNOWN,
                                    token.value.str_value, expr, token);
+
+  s->sym_decl.target = symbol_target;
   return s;
 }
 
-Statement *new_impl_call_stmt(LiteralType type, string name,
+Statement *new_fn_invoke_stmt(LiteralType type, string name,
                               BlockStatement *args, Token token) {
   Statement *arg_stmt = new_stmt(STMT_BLOCK, NULL, NULL, token);
   arg_stmt->block = args;
-  Statement *s = new_sym_decl_stmt(STMT_DEF_INVOKE, LiteralType_i32,
+  Statement *s = new_sym_decl_stmt(STMT_FN_INVOKE, LiteralType_UNKNOWN,
                                    token.value.str_value, arg_stmt, token);
   return s;
 }
@@ -238,11 +259,11 @@ void dbg_stmt_with_indent(const Statement *stmt, int indent) {
              stmt->sym_decl.name);
 
     break;
-  case STMT_DEF_DECL:
+  case STMT_FN_DECL:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Implementation Decl: %s\n", stmt->sym_decl.name);
     break;
-  case STMT_DEF_INVOKE:
+  case STMT_FN_INVOKE:
     snprintf(buffer, sizeof(buffer),
              "Statement Type: Implementation Call: %s\n", stmt->sym_decl.name);
     break;

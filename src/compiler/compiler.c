@@ -10,7 +10,7 @@ bool is_returnable_stmt(Statement *stmt) {
   case STMT_VARIABLE_READ:
   case STMT_LITERAL:
   case STMT_BINARY_OP:
-  case STMT_DEF_INVOKE:
+  case STMT_FN_INVOKE:
     return true;
   default:
     return false;
@@ -20,7 +20,6 @@ bool is_returnable_stmt(Statement *stmt) {
 string compile_block_statement(Compiler *com, BlockStatement *stmt) {
   StrVec statements = new_str_vec(4);
   for (int i = 0; i < stmt->len; i++) {
-    printf("\nCOMPILE BLOCK STATEMENT %d\n", i);
     // if its the last index add the return keyword
     // if (i == stmt->len - 1) {
     if (i == stmt->len - 1 && is_returnable_stmt(stmt->statements[i])) {
@@ -177,10 +176,15 @@ string compile_read_variable(Compiler *com, string var_name,
 }
 
 string compile_call_symbol(Compiler *com, Statement *stmt) {
+
   DefSymbol *defsym = Compiler_defsym_get(com, stmt->sym_decl.name);
   if (defsym == NULL) {
     Compiler_throw(com, "tried to invoke undeclared definition '%s'",
                    stmt->sym_decl.name);
+  }
+
+  if (stmt->sym_decl.target.type != SymbolTarget_Global) {
+    Compiler_throw(com, "unsupported scoped");
   }
 
   printf("\n-----\n");
@@ -238,36 +242,44 @@ string com_conditional(Compiler *com, ConditionalStatement *conditional) {
                 else_com);
 }
 
-string compile_def_decleration(Compiler *com, string def_name,
-                               Statement *stmt) {
+string compile_fn_decleration(Compiler *com, SymbolStatement symbol_stmt,
+                              Statement *fn_body) {
+  string def_name = symbol_stmt.name;
+
   if (Compiler_defsym_get(com, def_name)) {
     Compiler_throw(com, "redecleration of definition'%s'", def_name);
   }
 
+  if (symbol_stmt.target.type == SymbolTarget_Literal) {
+    Compiler_info(com, "define '%s' for literal '%s'", def_name,
+                  literal_type_to_str(symbol_stmt.target.literal_type));
+  }
+
   Compiler scoped_compiler = Compiler_new();
   scoped_compiler.upper = com;
-  string compiled_args = compile_block_arguments(&scoped_compiler, stmt->block);
 
-  Compiler_defsym_declare(&scoped_compiler, def_name, stmt,
+  string compiled_args =
+      compile_block_arguments(&scoped_compiler, fn_body->block);
+
+  Compiler_defsym_declare(&scoped_compiler, def_name, fn_body,
                           LiteralType_UNKNOWN);
 
   Inferer inf = Inferer_new(&scoped_compiler);
-  string body = compile_block_statement(&scoped_compiler, stmt->block);
+  string body = compile_block_statement(&scoped_compiler, fn_body->block);
 
   LiteralType return_type = LiteralType_UNKNOWN;
-  printf("\n------ *** INFERING def '%s' *** --------\n", def_name);
-  return_type = infer_statement(&inf, stmt);
-  // printf("\n ACTUALLY RETURNED?? %d", infer_var_read(&inf, stmt));
-  printf("\n---- *** INFERED def '%s' TO %s (%d) \n", def_name,
-         literal_type_to_str(return_type), return_type);
+  // printf("\n------ *** INFERING def '%s' *** --------\n", def_name);
+  Compiler_info(com, "Infering '%s'", def_name);
+  return_type = infer_statement(&inf, fn_body);
 
+  Compiler_info(com, "Infered '%s' to %s", def_name,
+                literal_type_to_str(return_type));
   // LiteralType return_type = return_type_branch.type;
 
   // printf("\ninfered defsym '%s' to %s\n", def_name,
   // literal_type_to_str(return_type));
 
-  Compiler_defsym_declare(com, def_name, stmt, return_type);
-  printf("\nliteral type unfer\n");
+  Compiler_defsym_declare(com, def_name, fn_body, return_type);
 
   string decleration_str = concat(6, literal_type_to_str(return_type), " ",
                                   def_name, "(", compiled_args, ")");
@@ -315,15 +327,15 @@ string com_statement(Compiler *com, Statement *stmt) {
   case STMT_VARIABLE_WRITE:
     return compile_write_variable(com, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
-
-  case STMT_DEF_INVOKE:
+  case STMT_FN_DECL:
+    return compile_fn_decleration(com, stmt->sym_decl, stmt->right);
+  case STMT_FN_INVOKE:
     return compile_call_symbol(com, stmt);
   case STMT_CONDITIONAL:
     // printf("\neval conditional:\n");
     // dbg_stmt(stmt);
     return com_conditional(com, stmt->conditional);
-  case STMT_DEF_DECL:
-    return compile_def_decleration(com, stmt->sym_decl.name, stmt->right);
+
   case STMT_COMMENT:
     return compile_comment(com, stmt->token);
   }

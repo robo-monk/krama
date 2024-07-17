@@ -21,8 +21,13 @@ shape ListNode<T>(value: T) {
 
 # typedef struct {
 # 	(void*) value;
-# } ListNode
+# 	Option* next;
+# } ListNode;
 
+# ListNode* new_ListNode((void*) value) {
+# 	ListNode* list_node = malloc(sizeof(ListNode));
+# 	list_node -> value;
+# }
 
 
 

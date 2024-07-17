@@ -25,8 +25,6 @@ impl<T> LinkedList<T> {
             next: self.head.take(),
 			prev: None
         });
-		self.head.prev = Some(new_node);
-
         self.head = Some(new_node);
     }
 

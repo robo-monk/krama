@@ -2,6 +2,7 @@
 #define _PARSER_H
 
 #include "../ast/AbstractSyntaxTree.h"
+#include "stdarg.h"
 #include "tokeniser.h"
 
 typedef struct {

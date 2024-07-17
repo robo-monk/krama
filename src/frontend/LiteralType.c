@@ -8,7 +8,7 @@ LiteralType str_to_literal_type(string str) {
       return type_map[i].type;
     }
   }
-  return -1;
+  return LiteralType_UNKNOWN;
 }
 
 const string literal_type_to_str(LiteralType type) {
@@ -18,7 +18,7 @@ const string literal_type_to_str(LiteralType type) {
     }
   }
 
-  // throw_hard_error("Unrecognised Literal Type");
+  throw_hard_error("Unrecognised Literal Type");
   return NULL;
 }
 

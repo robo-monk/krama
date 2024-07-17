@@ -1,0 +1,5 @@
+function sum(numbers) {
+	mut sum = 0
+	numbers:each((n) -> sum = sum + n)
+	sum
+}

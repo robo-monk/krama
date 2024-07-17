@@ -129,10 +129,10 @@ ReturnValue evaluate_statement(Interpreter *ipr, Statement *stmt) {
   case STMT_VARIABLE_WRITE:
     return write_variable(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                           evaluate_statement(ipr, stmt->right));
-  case STMT_DEF_DECL:
+  case STMT_FN_DECL:
     return declare_implementation(ipr, stmt->sym_decl.name, stmt->sym_decl.type,
                                   stmt->right);
-  case STMT_DEF_INVOKE:
+  case STMT_FN_INVOKE:
     return call_symbol(ipr, stmt);
   case STMT_CONDITIONAL:
     // printf("\neval conditional:\n");

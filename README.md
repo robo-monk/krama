@@ -1,6 +1,7 @@
 # ㊎ Krama
 
 A toy programming language bootstrapped in C.
+https://chat.openai.com/share/467a9b34-b3fd-4ba3-b565-ac8d9341de76
 
 ## TODOs
 

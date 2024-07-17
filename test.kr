@@ -1,3 +1,7 @@
-def main(a: i32) {
-    let bong = a:as_i32() + 5:as()
+def |x: i32| as_i32() {
+    x
+}
+
+def main(a: f64) {
+    # let bong = a
 }

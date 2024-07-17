@@ -35,7 +35,6 @@ LiteralType infer_block_statement_with_initial(Inferer *inf,
     return LiteralType_void;
   }
 
-  printf("BLOCK Len is %d\n", block->len);
   dbg_stmt(block->statements[block->len - 1]);
   printf("\n--\n");
   LiteralType branch_return_type =
@@ -158,12 +157,12 @@ LiteralType infer_statement(Inferer *inf, Statement *stmt) {
     // return stmt->sym_decl.type;
   case STMT_VARIABLE_READ:
     return infer_var_read(inf, stmt);
-  case STMT_DEF_INVOKE:
+  case STMT_FN_INVOKE:
     return infer_def_invoke(inf, stmt);
   case STMT_CONDITIONAL:
     return infer_conditional(inf, stmt->conditional);
 
-  case STMT_DEF_DECL:
+  case STMT_FN_DECL:
   case STMT_VARIABLE_WRITE:
   case STMT_COMMENT:
     return LiteralType_void;

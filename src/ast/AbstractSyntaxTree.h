@@ -16,8 +16,8 @@ typedef enum {
   STMT_VARIABLE_WRITE,
   STMT_VARIABLE_READ,
 
-  STMT_DEF_DECL,
-  STMT_DEF_INVOKE,
+  STMT_FN_DECL,
+  STMT_FN_INVOKE,
 
   STMT_CONDITIONAL,
   STMT_COMMENT,
@@ -35,6 +35,16 @@ typedef enum {
   LiteralType_NUMERAL
 } LiteralType;
 
+typedef enum { SymbolTarget_Global, SymbolTarget_Literal } SymbolTargetType;
+
+typedef struct {
+  union {
+    LiteralType literal_type;
+  };
+
+  SymbolTargetType type;
+} SymbolTarget;
+
 typedef struct {
   LiteralType type;
   union {
@@ -50,14 +60,9 @@ typedef struct {
 
 typedef struct {
   LiteralType type;
-  LiteralType target;
+  SymbolTarget target;
   string name;
 } SymbolStatement;
-
-typedef struct {
-  SymbolStatement **symbols;
-  unsigned int length;
-} SymbolStatements;
 
 typedef SymbolStatement Argument;
 
@@ -137,9 +142,12 @@ Statement *new_var_write_stmt(LiteralType type, string name, Statement *expr,
 Statement *new_var_decl_stmt(LiteralType type, string name, Statement *expr,
                              Token token);
 
-Statement *new_impl_decl_stmt(string name, Statement *expr, Token token);
+Statement *new_fn_decleration_stmt(SymbolTarget symbol_target, string name,
+                                   Statement *expr, Token token);
 
-Statement *new_impl_call_stmt(LiteralType type, string name,
+Statement *new_fn_invoke_stmt(LiteralType type, string name,
                               BlockStatement *args, Token token);
 void dbg_stmt(const Statement *stmt);
+
+const string SymbolTarget_to_string(SymbolTarget st);
 #endif
