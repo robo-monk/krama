@@ -54,9 +54,13 @@ token_t parser_current(parser_t *parser) {
     return parser->tokens[parser->index];
 }
 
-token_t parser_eat(parser_t *parser) {
-    printf("\n::: ");;
+void parser_debug(parser_t *parser, char* msg) {
+    printf("\n %s ::: ", msg);;
     token_debug(parser_current(parser));
+}
+
+token_t parser_eat(parser_t *parser) {
+    parser_debug(parser, ":: eat");
     return parser->tokens[parser->index++];
 }
 
@@ -96,6 +100,47 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
     };
 }
 
+
+void add_tabs(int count) {
+    for (int i = 0; i < count; i++) {
+        printf("\t");
+    }
+}
+
+void debug_expression(expression_t *expression, int ident) {
+    // printf("%s", ident);
+    switch (expression->type) {
+    case EXPRESSION_TYPE_PREFIX:
+        printf("expr PREFIX (");
+        token_debug(expression->data.prefix.operand);
+        printf(")\n");
+        add_tabs(ident);
+        printf("\tR: ");
+        debug_expression(expression->data.prefix.right, ident+1);
+        break;
+    case EXPRESSION_TYPE_INFIX:
+        printf("expr INFIX (");
+        token_debug(expression->data.infix.operand);
+        printf(")\n");
+        add_tabs(ident);
+        printf("\tL: ");
+        debug_expression(expression->data.infix.left, ident+1);
+        printf(")\t\n");
+        add_tabs(ident);
+        printf("\tR: ");
+        debug_expression(expression->data.infix.right, ident+1);
+        break;
+    case EXPRESSION_TYPE_LITERAL:
+        // add_tabs(ident);
+        printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
+        break;
+    case EXPRESSION_TYPE_IDENTIFIER:
+        // add_tabs(ident);
+        printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
+        break;
+    }
+}
+
 typedef enum {
     PRECEDENCE_LOWEST,
     PRECEDENCE_EQUALS, // ==
@@ -108,32 +153,20 @@ typedef enum {
 
 precedence_t get_precedence(token_type_t token_type) {
     switch (token_type) {
-        case TOKEN_L_BRACKET:
-        case TOKEN_R_BRACKET:
-        case TOKEN_L_PAREN:
-        case TOKEN_R_PAREN:
-        case TOKEN_SEMICOLON:
+        // case TOKEN_L_BRACKET:
+        // case TOKEN_R_BRACKET:
+        // case TOKEN_L_PAREN:
+        // case TOKEN_R_PAREN:
         case TOKEN_COLON:
         case TOKEN_BANG:
-        case TOKEN_SINGLE_QUOTE:
-        case TOKEN_DOUBLE_QUOTE:
-        case TOKEN_BACKTICK:
-        case TOKEN_BACKSLASH:
-        case TOKEN_NEW_LINE:
+            return PRECEDENCE_PREFIX;
         case TOKEN_PLUS:
         case TOKEN_MINUS:
+            return PRECEDENCE_SUM;
         case TOKEN_DIV:
         case TOKEN_MULT:
-        case TOKEN_EQ:
-        case TOKEN_LITERAL:
-        case TOKEN_IDENTIFIER:
-        case TOKEN_DEFER:
-        case TOKEN_IF:
-        case TOKEN_ELSE:
-        case TOKEN_LET:
-        case TOKEN_MUT:
-        case TOKEN_UNKNOWN:
-        case TOKEN_EOF:
+            return PRECEDENCE_PROD;
+        default:
             return PRECEDENCE_LOWEST;
     }
 }
@@ -153,7 +186,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_PLUS:
         case TOKEN_BANG:
         case TOKEN_MINUS: {
-            printf("minuxs\n");
             expr->type = EXPRESSION_TYPE_PREFIX;
             expr->data.prefix = (prefix_expression_t) {
                 .operand = parser_eat(parser),
@@ -178,71 +210,65 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
     return expr;
 }
 
-expression_t* parser_parse_infix_expression(parser_t *parser, expression_t left) {
+expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
     expression_t *expr = malloc(sizeof(expression_t));
     // parse prefix
     switch (parser_current(parser).type) {
-        case TOKEN_LITERAL: {
-            expr->type = EXPRESSION_TYPE_LITERAL;
-            expr->data.literal = parser_parse_literal(parser);
-            break;
-        }
-
+        // case TOKEN_LITERAL: {
+        //     expr->type = EXPRESSION_TYPE_LITERAL;
+        //     expr->data.literal = parser_parse_literal(parser);
+        //     break;
+        // }
         case TOKEN_PLUS:
-        case TOKEN_BANG:
-        case TOKEN_MINUS: {
-            expr->type = EXPRESSION_TYPE_PREFIX;
-            expr->data.prefix = (prefix_expression_t) {
-                .operand = parser_eat(parser),
-                .right = parser_parse_expression(parser, PRECEDENCE_PREFIX)
-            };
-            break;
-        }
-        case TOKEN_IDENTIFIER: {
-            expr->type = EXPRESSION_TYPE_IDENTIFIER;
-            expr->data.identifier = (identifier_expression_t) {
-                .name = strdup(parser_eat(parser).value.raw_str)
+        case TOKEN_MINUS:
+        case TOKEN_MULT: {
+            parser_debug(parser, "INFIX as");
+            expr->type = EXPRESSION_TYPE_INFIX;
+            token_t operand = parser_eat(parser);
+            precedence_t precedence = get_precedence(operand.type);
+            expr->data.infix = (infix_expression_t) {
+                .operand = operand,
+                .right = parser_parse_expression(parser, precedence),
+                .left = left
             };
             break;
         }
         default:
+            free(expr);
             return NULL;
+            // return expr;;
             // printf("\nInvalid token!\n");
-            // token_debug(parser_peek(parser));
+            // token_debug(parser_current(parser));
+            // printf("\n");
             // exit(1);
     }
+    printf("\n DEBUG INFIX \n");
+    debug_expression(expr, 0);
+    printf("\n -- DEBUG INFIX -- \n");
     return expr;
-}
-
-void debug_expression(expression_t *expression) {
-    switch (expression->type) {
-    case EXPRESSION_TYPE_PREFIX:
-        printf("expr PREFIX (");
-        token_debug(expression->data.prefix.operand);
-        printf(")\n      R: ");
-        debug_expression(expression->data.prefix.right);
-        break;
-    case EXPRESSION_TYPE_INFIX:
-
-        printf("expr INFIX (");
-        token_debug(expression->data.infix.operand);
-        printf(")\n      L: ");
-        debug_expression(expression->data.infix.left);
-        printf("\n      R: ");
-        debug_expression(expression->data.infix.right);
-        break;
-    case EXPRESSION_TYPE_LITERAL:
-        printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
-        break;
-    case EXPRESSION_TYPE_IDENTIFIER:
-        printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
-        break;
-    }
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence) {
     expression_t *expr = parser_parse_prefix_expression(parser);
+    parser_debug(parser, "after prefix parsing");
     if (expr == NULL) return NULL;
+    parser_debug(parser, "expr not null -- prefix parsing");
+    token_t next;
+    // printf("\nNEXT TOKEN IS:: ");
+    // token_debug(next);
+    while (
+        next = parser_current(parser),
+        next.type != TOKEN_SEMICOLON
+        && next.type != TOKEN_NEW_LINE
+        && next.type != TOKEN_EOF
+        && precedence < get_precedence(next.type)) {
+        parser_debug(parser, "pre infix parsing");
+        expression_t *infix_expr = parser_parse_infix_expression(parser, expr);
+        if (infix_expr == NULL) return expr;
+        expr = infix_expr;
+        parser_debug(parser, "after infix parsing");
+        // parser_eat(parser);
+    }
     return expr;
 }
 
@@ -259,18 +285,22 @@ void parser_parse(parser_t *parser) {
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
 
         switch (current.type) {
+            case TOKEN_SEMICOLON:
+            case TOKEN_NEW_LINE:
+                break;
             default:
                 statements[statements_index++] = (statement_t) {
                     .type = STATEMENT_TYPE_EXPRESSION,
                     .data.expression = *parser_parse_expression(parser, PRECEDENCE_LOWEST)
                 };
         }
+        parser_debug(parser, "\nloop\n");
         parser_eat(parser);
     }
     printf("\nEOF\n");
 
     for (int i = 0; i < statements_index; i++) {
-        debug_expression(&statements[i].data.expression);
+        debug_expression(&statements[i].data.expression, 0);
         printf("\n");
     }
 }

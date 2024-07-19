@@ -44,9 +44,9 @@ typedef struct {
 
 
 typedef struct {
+    token_t operand;
     expression_t *left;
     expression_t *right;
-    token_t operand;
 } infix_expression_t;
 
 struct expression {
