@@ -3,36 +3,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "ast.h"
 
 typedef struct {
     int length;
     const char* buffer;
-} FileReadResult;
+} file_read_result_t;
 
-FileReadResult read_file_to_str(const char* filename) {
-  char *buffer = 0;
-  int length = -1;
-  FILE *f = fopen(filename, "rb");
-  if (f) {
-    fseek(f, 0, SEEK_END);
-    length = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    buffer = malloc(length + 1);
-    if (buffer) {
-      fread(buffer, 1, length, f);
+file_read_result_t read_file_to_str(const char* filename) {
+    char *buffer = 0;
+    int length = -1;
+    FILE *f = fopen(filename, "rb");
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        length = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        buffer = malloc(length + 1);
+        if (buffer) {
+            fread(buffer, 1, length, f);
+        }
+        fclose(f);
+        buffer[length] = '\0';
     }
-    fclose(f);
-    buffer[length] = '\0';
-  }
 
-  return (FileReadResult) {
-      .length=length,
-      .buffer=buffer
-  };
+    return (file_read_result_t) {
+        .length = length,
+        .buffer = buffer
+    };
 }
 
-void FileReadResult_free(FileReadResult res) {
+void file_read_result_free(file_read_result_t res) {
     free((void*) res.buffer);
 }
 
@@ -44,53 +44,54 @@ typedef enum {
     TOKEN_WHITESPACE = ' ',
     TOKEN_SEMICOLON = ';',
     TOKEN_NEW_LINE = '\n',
+    TOKEN_IDENTIFIER,
     TOKEN_DEFER,
     TOKEN_UNKNOWN,
     TOKEN_EOF
-} TokenType;
+} token_type_t;
 
 typedef union {
     char* raw_str;
     char raw_char;
-} TokenValue;
+} token_value_t;
 
 typedef struct {
-    TokenType type;
+    token_type_t type;
     int position;
-    TokenValue value;
-} Token;
+    token_value_t value;
+} token_t;
 
-Token Token_new_mult_char(TokenType type, int position, char* raw) {
-    return (Token) {
+token_t token_new_mult_char(token_type_t type, int position, char* raw) {
+    return (token_t) {
         .type = type,
         .position = position,
-        .value = (TokenValue) {
+        .value = (token_value_t) {
             .raw_str = raw
         }
     };
 }
 
-Token Token_new_from_buffer(TokenType type, int position, char* buffer, size_t bufferLength) {
-    return (Token) {
+token_t token_new_from_buffer(token_type_t type, int position, char* buffer, size_t buffer_length) {
+    return (token_t) {
         .type = type,
         .position = position,
-        .value = (TokenValue) {
+        .value = (token_value_t) {
             .raw_str = strdup(buffer)
         }
     };
 }
 
-Token Token_new_single_char(TokenType type, int position, char raw) {
-    return (Token) {
+token_t token_new_single_char(token_type_t type, int position, char raw) {
+    return (token_t) {
         .type = type,
         .position = position,
-        .value = (TokenValue) {
+        .value = (token_value_t) {
             .raw_char = raw
         }
     };
 }
 
-void Token_debug(Token token) {
+void token_debug(token_t token) {
     switch (token.type) {
         case TOKEN_L_BRACKET:
         case TOKEN_R_BRACKET:
@@ -106,6 +107,9 @@ void Token_debug(Token token) {
         case TOKEN_DEFER:
             printf("Token DEFER");
             break;
+        case TOKEN_IDENTIFIER:
+            printf("Token IDENTIFIER `%s`", token.value.raw_str);
+            break;
         case TOKEN_UNKNOWN:
             printf("Token UNKNOWN `%s`", token.value.raw_str);
             break;
@@ -119,7 +123,7 @@ const char* keywords[] = {
     "defer",
 };
 
-const TokenType keyword_token_types[] = {
+const token_type_t keyword_token_types[] = {
     TOKEN_DEFER,
 };
 
@@ -127,18 +131,20 @@ const TokenType keyword_token_types[] = {
 static_assert(ARRAY_SIZE(keywords) == ARRAY_SIZE(keyword_token_types),
     "keywords and keyword token types should have the same size");
 
-TokenType get_buffer_token_type(char* buffer) {
+token_type_t get_buffer_token_type(char* buffer) {
     for (int i = 0; i < ARRAY_SIZE(keywords); i++) {
         if (strcmp(keywords[i], buffer) == 0) {
             return keyword_token_types[i];
         }
     }
-    return TOKEN_UNKNOWN;
+    // if token is identifier?
+    return TOKEN_IDENTIFIER;
+    // return TOKEN_UNKNOWN;
 }
 
 #define TOKENISER_BUFFER_SIZE 1024
 
-int tokenise(const char* data, int data_length, Token* tokens) {
+int tokenise(const char* data, int data_length, token_t* tokens) {
     int buffer_index = 0;
     char buffer[TOKENISER_BUFFER_SIZE];
     int token_index = 0;
@@ -157,12 +163,12 @@ int tokenise(const char* data, int data_length, Token* tokens) {
                 // commit buffer
                 if (buffer_index > 0) {
                     buffer[buffer_index] = '\0';
-                    TokenType type = get_buffer_token_type(buffer);
-                    tokens[token_index++] = Token_new_from_buffer(type, i, buffer, buffer_index);
+                    token_type_t type = get_buffer_token_type(buffer);
+                    tokens[token_index++] = token_new_from_buffer(type, i, buffer, buffer_index);
                     buffer_index = 0;
                 }
 
-                tokens[token_index++] = Token_new_single_char(c, i, c);
+                tokens[token_index++] = token_new_single_char(c, i, c);
                 break;
             }
             default: {
@@ -171,13 +177,69 @@ int tokenise(const char* data, int data_length, Token* tokens) {
         }
     }
 
-    tokens[token_index++] = (Token) {.type = TOKEN_EOF };
+    tokens[token_index++] = (token_t) {.type = TOKEN_EOF };
     return token_index;
 }
 
+typedef struct {
+    int index;
+    token_t* tokens;
+    program_t program;
+} parser_t;
+
+token_t parser_eat(parser_t *parser) {
+    return parser->tokens[parser->index++];
+}
+
+token_t parser_peek(parser_t *parser) {
+    return parser->tokens[parser->index];
+}
+
+void parser_parse_expression(parser_t *parser) {
+}
+
+void parser_parse_statement(parser_t *parser) {
+}
+
+void parser_parse_block(parser_t *parser) {
+}
+
+void parser_parse(parser_t *parser) {
+    token_t current;
+    while (current = parser_eat(parser), current.type != TOKEN_EOF) {
+        token_debug(current);
+        printf("\n");
+
+        // if (current.type == TOKEN_L_BRACKET) {
+        //     parser_parse_block(parser);
+        // }
+    }
+    printf("\nEOF\n");
+}
+
+void parse(token_t *tokens) {
+    parser_t parser = (parser_t) {
+        .index = 0,
+        .tokens = tokens,
+        .program = program_create()
+    };
+
+    parser_parse(&parser);
+}
+
 #define MAX_TOKENS 4096
-int main() {
-    FileReadResult result = read_file_to_str("src/main.c");
+int main(int argc, char *argv[]) {
+
+    if (argc != 3) {
+        printf("Argument mismatch.\nUsage: krama <input-file> <output-file>\n");
+        return 1;
+    }
+
+    char* input_file = argv[1];
+    char* output_file = argv[2];
+
+
+    file_read_result_t result = read_file_to_str(input_file);
 
     if (result.length == -1) {
         printf("could not read file\n");
@@ -185,18 +247,12 @@ int main() {
     }
 
     // TODO use dynamic array here
-    Token* tokens = malloc(MAX_TOKENS * sizeof(Token));
+    token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
     int token_count = tokenise(result.buffer, result.length, tokens);
 
-
-    for (int i = 0; i < token_count; i ++) {
-        if (tokens[i].type != TOKEN_WHITESPACE) {
-            Token_debug(tokens[i]);
-            printf("\n");
-        }
-    }
+    parse(tokens);
 
     free(tokens);
-    FileReadResult_free(result);
+    file_read_result_free(result);
     return 0;
 }
