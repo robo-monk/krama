@@ -1,5 +1,6 @@
 #ifndef KRAMA_AST_H
 #define KRAMA_AST_H
+#include "tokeniser.h"
 #include <stdlib.h>
 
 // LITERAL TYPES
@@ -14,18 +15,13 @@ typedef enum {
 
 // EXPRESSIONS
 typedef enum {
-    EXPRESSION_TYPE_BIN,
+    EXPRESSION_TYPE_PREFIX,
+    EXPRESSION_TYPE_INFIX,
     EXPRESSION_TYPE_LITERAL,
+    EXPRESSION_TYPE_IDENTIFIER,
 } expression_type_t;
 
-typedef enum {
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-} bin_expression_op_t;
-
-struct expression;
+typedef struct expression expression_t;
 
 typedef struct {
     literal_type_t type;
@@ -38,23 +34,37 @@ typedef struct {
 } literal_expression_t;
 
 typedef struct {
-    struct expression *left;
-    struct expression *right;
-    bin_expression_op_t op;
-} bin_expression_t;
+    char* name;
+} identifier_expression_t;
 
-typedef struct expression {
+typedef struct {
+    token_t operand;
+    expression_t *right;
+} prefix_expression_t;
+
+
+typedef struct {
+    expression_t *left;
+    expression_t *right;
+    token_t operand;
+} infix_expression_t;
+
+struct expression {
+    expression_type_t type;
     union {
-        bin_expression_t bin;
+        infix_expression_t infix;
+        prefix_expression_t prefix;
+        literal_expression_t literal;
+        identifier_expression_t identifier;
     } data;
-} expression_t;
+};
 
 // STATEMENTS
 typedef enum {
     STATEMENT_TYPE_LET,
-    STATEMENT_TYPE_IDENTIFIER,
     STATEMENT_TYPE_BLOCK,
     STATEMENT_TYPE_DEFER,
+    STATEMENT_TYPE_EXPRESSION
 } statement_type_t;
 
 struct statement;
@@ -74,20 +84,16 @@ typedef struct {
 } defer_statement_t;
 
 typedef struct {
-    char* name;
-} identifier_statement_t;
-
-typedef struct {
-    identifier_statement_t identifier;
+    identifier_expression_t identifier;
 } let_statement_t;
 
 typedef struct statement {
     statement_type_t type;
     union {
         let_statement_t let;
-        identifier_statement_t identifier;
         defer_statement_t defer;
         block_statement_t block;
+        expression_t expression;
     } data;
 } statement_t;
 
