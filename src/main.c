@@ -42,6 +42,15 @@ void file_read_result_free(file_read_result_t res) {
 
 #define MAX_TOKENS 4096
 int main(int argc, char *argv[]) {
+    // hashmap_t hash = hashmap_create(sizeof(char*));
+    // hashmap_insert(&hash, "set", "hello there bing bong");
+    // hashmap_insert(&hash, "t", "yes ackualh");
+    // printf("naah %s\n", (char*) hashmap_get(&hash, "t"));
+    // printf("yes please %s\n", (char*) hashmap_get(&hash, "set"));
+
+    // hashmap_free(&hash);
+    // return 0;
+
     if (argc != 3) {
         printf("Argument mismatch.\nUsage: krama <input-file> <output-file>\n");
         return 1;

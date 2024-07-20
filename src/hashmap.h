@@ -16,7 +16,6 @@ typedef struct hash_entry_t {
 typedef struct {
     size_t capacity;
     size_t count;
-    size_t entry_size;
     hash_entry_t* entries[HASHMAP_INITIAL_CAPACITY];
 } hashmap_t;
 
@@ -25,9 +24,20 @@ hashmap_t hashmap_create(size_t entry_size) {
     return (hashmap_t) {
         .capacity = HASHMAP_INITIAL_CAPACITY,
         .count = 0,
-        // .entries = (hash_entry_t*) malloc(entry_size * HASHMAP_INITIAL_CAPACITY)
         .entries = { NULL }
     };
+}
+
+void __hashmap_free_entry(hash_entry_t *e) {
+   if (e == NULL) return;
+   free(e->key);
+   __hashmap_free_entry(e->next);
+   free(e);
+}
+void hashmap_free(hashmap_t* map) {
+    for (int i = 0; i < map->capacity; i++) {
+        __hashmap_free_entry(map->entries[i]);
+    }
 }
 
 unsigned int hashmap_hash_string(char *key) {
@@ -44,7 +54,7 @@ void hashmap_insert(hashmap_t *map, char* key, void* value) {
     hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
     entry->next = map->entries[idx];
     entry->key = strdup(key);
-    entry->val = value,
+    entry->val = value;
     map->entries[idx] = entry;
     map->count++;
 }
