@@ -1,5 +1,7 @@
 #include "parser.h"
 #include "ast.h"
+#include "tokeniser.h"
+#include <string.h>
 
 token_t parser_peek(parser_t *parser) {
     return parser->tokens[parser->index+1];
@@ -10,12 +12,11 @@ token_t parser_current(parser_t *parser) {
 }
 
 void parser_debug(parser_t *parser, char* msg) {
-    printf("\n %s ::: ", msg);;
+    printf("\n[DEBUG] Parser: %s ", msg);;
     token_debug(parser_current(parser));
 }
 
 token_t parser_eat(parser_t *parser) {
-    parser_debug(parser, ":: eat");
     return parser->tokens[parser->index++];
 }
 
@@ -99,6 +100,28 @@ void debug_expression(expression_t *expression, int ident) {
         break;
     }
 }
+
+void statement_debug(statement_t *s, int ident) {
+    switch (s->type) {
+    case STATEMENT_TYPE_LET: {
+        add_tabs(ident);
+        printf("LET `%s`", s->data.let.identifier.name);
+        printf("\n");
+        // printf("\n│\n");
+        add_tabs(ident);
+        printf("└─  ");
+        return debug_expression(s->data.let.identifier.value, ident+1);
+    }
+    case STATEMENT_TYPE_EXPRESSION: {
+        return debug_expression(&s->data.expression, ident);
+    }
+    case STATEMENT_TYPE_BLOCK:
+    case STATEMENT_TYPE_DEFER:
+        printf("\nnot implemented\n");
+        break;
+    }
+}
+
 
 precedence_t get_precedence(token_type_t token_type) {
     switch (token_type) {
@@ -201,22 +224,16 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
     expression_t *expr = parser_parse_prefix_expression(parser);
     parser_debug(parser, "after prefix parsing");
     if (expr == NULL) return NULL;
-    parser_debug(parser, "expr not null -- prefix parsing");
     token_t next;
-    // printf("\nNEXT TOKEN IS:: ");
-    // token_debug(next);
     while (
         next = parser_current(parser),
         next.type != TOKEN_SEMICOLON
         && next.type != TOKEN_NEW_LINE
         && next.type != TOKEN_EOF
         && precedence < get_precedence(next.type)) {
-        parser_debug(parser, "pre infix parsing");
         expression_t *infix_expr = parser_parse_infix_expression(parser, expr);
         if (infix_expr == NULL) return expr;
         expr = infix_expr;
-        parser_debug(parser, "after infix parsing");
-        // parser_eat(parser);
     }
     return expr;
 }
@@ -235,13 +252,27 @@ void parser_parse(parser_t *parser) {
             case TOKEN_SEMICOLON:
             case TOKEN_NEW_LINE:
                 break;
+            case TOKEN_LET: {
+                token_t let = parser_eat(parser);
+                token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+                token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
+                program_add_statement(&parser->program, (statement_t) {
+                    .type = STATEMENT_TYPE_LET,
+                    .data.let = {
+                        .identifier = {
+                            .name = strdup(identifier.value.raw_str),
+                            .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
+                        }
+                    }
+                });
+                break;
+            }
             default:
                 program_add_statement(&parser->program, (statement_t) {
                     .type = STATEMENT_TYPE_EXPRESSION,
                     .data.expression = *parser_parse_expression(parser, PRECEDENCE_LOWEST)
                 });
         }
-        parser_debug(parser, "\nloop\n");
         parser_eat(parser);
     }
 }
@@ -256,7 +287,9 @@ program_t parse(token_t *tokens) {
     parser_parse(&parser);
 
     for (int i = 0; i < parser.program.statement_count; i++) {
-        debug_expression(&parser.program.statements[i].data.expression, 0);
+        printf("\nSTATEMENT #%d\n", i);
+        statement_debug(&parser.program.statements[i], 0);
+        printf("\n");
     }
     return parser.program;
 }

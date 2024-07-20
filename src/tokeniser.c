@@ -4,10 +4,18 @@
 
 const char* tokeniser_keywords[] = {
     "defer",
+    "let",
+    "mut",
+    "if",
+    "else",
 };
 
 const token_type_t tokeniser_keyword_token_types[] = {
     TOKEN_DEFER,
+    TOKEN_LET,
+    TOKEN_MUT,
+    TOKEN_IF,
+    TOKEN_ELSE,
 };
 
 
@@ -65,7 +73,8 @@ void token_debug(token_t token) {
         case TOKEN_DIV:
         case TOKEN_MULT:
         case TOKEN_EQ:
-            printf("Token '%c'", token.value.raw_char);
+        case TOKEN_BANG:
+            printf("Token '%c'", token.type);
             break;
         case TOKEN_NEW_LINE:
             printf("Token NEW_LINE");

@@ -36,6 +36,7 @@ typedef struct {
 
 typedef struct {
     char* name;
+    expression_t *value;
 } identifier_expression_t;
 
 typedef struct {
