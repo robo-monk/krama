@@ -12,6 +12,10 @@ typedef enum {
     TOKEN_R_BRACKET = '}',
     TOKEN_L_PAREN = '(',
     TOKEN_R_PAREN = ')',
+
+    TOKEN_LT = '<',
+    TOKEN_GT = '>',
+
     // TOKEN_WHITESPACE = ' ',
     TOKEN_SEMICOLON = ';',
 
@@ -21,13 +25,17 @@ typedef enum {
     TOKEN_DOUBLE_QUOTE = '"',
     TOKEN_BACKTICK = '`',
     TOKEN_BACKSLASH = '\\',
-
     TOKEN_NEW_LINE = '\n',
     TOKEN_PLUS = '+',
     TOKEN_MINUS = '-',
-    TOKEN_DIV = '/',
-    TOKEN_MULT = '*',
+    TOKEN_SLASH = '/',
+    TOKEN_ASTERISK = '*',
     TOKEN_EQ = '=',
+
+    TOKEN_NEQ = 420,
+    TOKEN_EQEQ,
+    TOKEN_LTE,
+    TOKEN_GTE,
     TOKEN_LITERAL,
     TOKEN_IDENTIFIER,
     TOKEN_DEFER,

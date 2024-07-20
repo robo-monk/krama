@@ -125,18 +125,21 @@ void statement_debug(statement_t *s, int ident) {
 
 precedence_t get_precedence(token_type_t token_type) {
     switch (token_type) {
-        // case TOKEN_L_BRACKET:
-        // case TOKEN_R_BRACKET:
-        // case TOKEN_L_PAREN:
-        // case TOKEN_R_PAREN:
+        case TOKEN_EQEQ:
+            return PRECEDENCE_EQUALS;
+        case TOKEN_LT:
+        case TOKEN_LTE:
+        case TOKEN_GT:
+        case TOKEN_GTE:
+            return PRECEDENCE_LGT;
         case TOKEN_COLON:
         case TOKEN_BANG:
             return PRECEDENCE_PREFIX;
         case TOKEN_PLUS:
         case TOKEN_MINUS:
             return PRECEDENCE_SUM;
-        case TOKEN_DIV:
-        case TOKEN_MULT:
+        case TOKEN_SLASH:
+        case TOKEN_ASTERISK:
             return PRECEDENCE_PROD;
         default:
             return PRECEDENCE_LOWEST;
@@ -188,17 +191,16 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
 
 expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
     expression_t *expr = malloc(sizeof(expression_t));
-    // parse prefix
     switch (parser_current(parser).type) {
-        // case TOKEN_LITERAL: {
-        //     expr->type = EXPRESSION_TYPE_LITERAL;
-        //     expr->data.literal = parser_parse_literal(parser);
-        //     break;
-        // }
         case TOKEN_PLUS:
         case TOKEN_MINUS:
-        case TOKEN_MULT: {
-            parser_debug(parser, "INFIX as");
+        case TOKEN_SLASH:
+        case TOKEN_ASTERISK:
+        case TOKEN_GT:
+        case TOKEN_LT:
+        case TOKEN_GTE:
+        case TOKEN_LTE:
+        case TOKEN_EQEQ: {
             expr->type = EXPRESSION_TYPE_INFIX;
             token_t operand = parser_eat(parser);
             precedence_t precedence = get_precedence(operand.type);
@@ -212,22 +214,14 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
         default:
             free(expr);
             return NULL;
-            // return expr;;
-            // printf("\nInvalid token!\n");
-            // token_debug(parser_current(parser));
-            // printf("\n");
-            // exit(1);
     }
-    printf("\n DEBUG INFIX \n");
-    debug_expression(expr, 0);
-    printf("\n -- DEBUG INFIX -- \n");
     return expr;
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence) {
     expression_t *expr = parser_parse_prefix_expression(parser);
-    parser_debug(parser, "after prefix parsing");
     if (expr == NULL) return NULL;
+
     token_t next;
     while (
         next = parser_current(parser),

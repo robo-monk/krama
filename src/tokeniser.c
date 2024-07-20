@@ -70,8 +70,10 @@ void token_debug(token_t token) {
         case TOKEN_BACKSLASH :
         case TOKEN_PLUS:
         case TOKEN_MINUS:
-        case TOKEN_DIV:
-        case TOKEN_MULT:
+        case TOKEN_SLASH:
+        case TOKEN_ASTERISK:
+        case TOKEN_GT:
+        case TOKEN_LT:
         case TOKEN_EQ:
         case TOKEN_BANG:
             printf("Token '%c'", token.type);
@@ -105,6 +107,18 @@ void token_debug(token_t token) {
             break;
         case TOKEN_MUT:
             printf("Token MUT");
+            break;
+        case TOKEN_GTE:
+            printf("Token >=");
+            break;
+        case TOKEN_LTE:
+            printf("Token <=");
+            break;
+        case TOKEN_NEQ:
+            printf("Token !=");
+            break;
+        case TOKEN_EQEQ:
+            printf("Token ==");
             break;
     }
 }
@@ -158,12 +172,34 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
             case TOKEN_L_PAREN:
             case TOKEN_R_PAREN:
             case TOKEN_SEMICOLON:
+            case TOKEN_LT:
+                if (data[i+1] == TOKEN_EQ) {
+                    tokens[token_index++] = token_new_mult_char(TOKEN_LTE, i, "<=");
+                    i++;
+                    break;
+                }
+            case TOKEN_GT:
+                if (data[i+1] == TOKEN_EQ) {
+                    tokens[token_index++] = token_new_mult_char(TOKEN_GTE, i, ">=");
+                    i++;
+                    break;
+                }
             case TOKEN_BANG:
+                if (data[i+1] == TOKEN_EQ) {
+                    tokens[token_index++] = token_new_mult_char(TOKEN_NEQ, i, "!=");
+                    i++;
+                    break;
+                }
+            case TOKEN_EQ:
+                if (data[i+1] == TOKEN_EQ) {
+                    tokens[token_index++] = token_new_mult_char(TOKEN_EQEQ, i, "!=");
+                    i++;
+                    break;
+                }
             case TOKEN_PLUS:
             case TOKEN_MINUS:
-            case TOKEN_MULT:
-            case TOKEN_DIV:
-            case TOKEN_EQ:
+            case TOKEN_ASTERISK:
+            case TOKEN_SLASH:
             {
                 // commit buffer
                 if (buffer_index > 0) {

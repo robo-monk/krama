@@ -64,6 +64,10 @@ int main(int argc, char *argv[]) {
     // TODO use dynamic array here
     token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
     int token_count = tokenise(result.buffer, result.length, tokens);
+    for (int i = 0; i < token_count; i ++) {
+        token_debug(tokens[i]);
+        printf("\n");
+    }
 
     parse(tokens);
 
