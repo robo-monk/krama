@@ -149,12 +149,16 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
     expression_t *expr = malloc(sizeof(expression_t));
     // parse prefix
     switch (parser_current(parser).type) {
+        case TOKEN_L_PAREN:
+            parser_eat(parser);
+            expr = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            parser_eat_and_expect(parser, TOKEN_R_PAREN);
+            break;
         case TOKEN_LITERAL: {
             expr->type = EXPRESSION_TYPE_LITERAL;
             expr->data.literal = parser_parse_literal(parser);
             break;
         }
-
         case TOKEN_PLUS:
         case TOKEN_BANG:
         case TOKEN_MINUS: {
