@@ -7,6 +7,7 @@
 #include "tokeniser.h"
 #include "ast.h"
 #include "parser.h"
+#include "hashmap.h"
 
 typedef struct {
     int length;
@@ -39,12 +40,8 @@ void file_read_result_free(file_read_result_t res) {
     free((void*) res.buffer);
 }
 
-
-
-
 #define MAX_TOKENS 4096
 int main(int argc, char *argv[]) {
-
     if (argc != 3) {
         printf("Argument mismatch.\nUsage: krama <input-file> <output-file>\n");
         return 1;
