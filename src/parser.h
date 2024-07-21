@@ -5,9 +5,17 @@
 #include "tokeniser.h"
 
 typedef struct {
+    char* message;
+    token_t token;
+} parser_error_t;
+
+#define PARSER_MAX_ERROR_COUNT 128
+typedef struct {
     int index;
     token_t* tokens;
     program_t program;
+    parser_error_t* errors[PARSER_MAX_ERROR_COUNT];
+    unsigned int error_idx;
 } parser_t;
 
 typedef enum {

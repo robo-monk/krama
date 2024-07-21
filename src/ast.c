@@ -63,3 +63,71 @@ int block_add_statement(block_statement_t *block, statement_t statement) {
     block->statements[block->statement_count++] = statement;
     return 0;
 }
+
+
+
+void add_tabs(int count) {
+    for (int i = 0; i < count; i++) {
+        printf("\t");
+    }
+}
+
+void debug_expression(expression_t *expression, int ident) {
+    if (expression == NULL) {
+        printf("NULL");
+        return;
+    }
+    // printf("%s", ident);
+    switch (expression->type) {
+    case EXPRESSION_TYPE_PREFIX:
+        printf("expr PREFIX (");
+        token_debug(expression->data.prefix.operand);
+        printf(")\n");
+        add_tabs(ident);
+        printf("\tR: ");
+        debug_expression(expression->data.prefix.right, ident+1);
+        break;
+    case EXPRESSION_TYPE_INFIX:
+        printf("expr INFIX (");
+        token_debug(expression->data.infix.operand);
+        printf(")\n");
+        add_tabs(ident);
+        printf("\tL: ");
+        debug_expression(expression->data.infix.left, ident+1);
+        printf("\n");
+        add_tabs(ident);
+        printf("\tR: ");
+        debug_expression(expression->data.infix.right, ident+1);
+        break;
+    case EXPRESSION_TYPE_LITERAL:
+        // add_tabs(ident);
+        printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
+        break;
+    case EXPRESSION_TYPE_IDENTIFIER:
+        // add_tabs(ident);
+        printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
+        break;
+    }
+}
+
+
+void statement_debug(statement_t *s, int ident) {
+    switch (s->type) {
+    case STATEMENT_TYPE_LET: {
+        add_tabs(ident);
+        printf("LET `%s`", s->data.let.identifier.name);
+        printf("\n");
+        // printf("\n│\n");
+        add_tabs(ident);
+        printf("└─  ");
+        return debug_expression(s->data.let.identifier.value, ident+1);
+    }
+    case STATEMENT_TYPE_EXPRESSION: {
+        return debug_expression(&s->data.expression, ident);
+    }
+    case STATEMENT_TYPE_BLOCK:
+    case STATEMENT_TYPE_DEFER:
+        printf("\nnot implemented\n");
+        break;
+    }
+}

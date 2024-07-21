@@ -1,7 +1,32 @@
 #include "parser.h"
 #include "ast.h"
 #include "tokeniser.h"
+#include <stdarg.h>
 #include <string.h>
+
+void parser_error_print(parser_error_t *error) {
+    printf("PARSER ERROR: %s\n", error->message);
+}
+
+
+void parser_error_create(parser_t *parser, token_t token, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    parser_error_t *error = malloc(sizeof(parser_error_t));
+
+    // Allocate memory for the message
+    int msg_len = vsnprintf(NULL, 0, format, args) + 1;
+    error->message = malloc(msg_len);
+
+    // Format the message
+    vsnprintf(error->message, msg_len, format, args);
+
+    va_end(args);
+
+    error->token = token;
+    parser->errors[parser->error_idx++] = error;
+}
 
 token_t parser_peek(parser_t *parser) {
     return parser->tokens[parser->index+1];
@@ -23,12 +48,7 @@ token_t parser_eat(parser_t *parser) {
 token_t parser_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
     if (current.type != token_type) {
-        printf("\nExpected ");
-        token_debug((token_t) { .type = token_type });
-        printf(" but got: ");
-        token_debug(current);
-        printf("\n\n");
-        exit(1);
+        parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
     }
     return current;
 }
@@ -36,12 +56,13 @@ token_t parser_expect(parser_t *parser, token_type_t token_type) {
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_eat(parser);
     if (current.type != token_type) {
-        printf("\nExpected ");
-        token_debug((token_t) { .type = token_type });
-        printf(" but got: ");
-        token_debug(current);
-        printf("\n\n");
-        exit(1);
+        parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
+        // printf("\nExpected ");
+        // token_debug((token_t) { .type = token_type });
+        // printf(" but got: ");
+        // token_debug(current);
+        // printf("\n\n");
+        // exit(1);
     }
     return current;
 }
@@ -54,72 +75,6 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
             .i64 = atoi(current.value.raw_str)
         }
     };
-}
-
-
-void add_tabs(int count) {
-    for (int i = 0; i < count; i++) {
-        printf("\t");
-    }
-}
-
-void debug_expression(expression_t *expression, int ident) {
-    if (expression == NULL) {
-        printf("NULL");
-        return;
-    }
-    // printf("%s", ident);
-    switch (expression->type) {
-    case EXPRESSION_TYPE_PREFIX:
-        printf("expr PREFIX (");
-        token_debug(expression->data.prefix.operand);
-        printf(")\n");
-        add_tabs(ident);
-        printf("\tR: ");
-        debug_expression(expression->data.prefix.right, ident+1);
-        break;
-    case EXPRESSION_TYPE_INFIX:
-        printf("expr INFIX (");
-        token_debug(expression->data.infix.operand);
-        printf(")\n");
-        add_tabs(ident);
-        printf("\tL: ");
-        debug_expression(expression->data.infix.left, ident+1);
-        printf("\n");
-        add_tabs(ident);
-        printf("\tR: ");
-        debug_expression(expression->data.infix.right, ident+1);
-        break;
-    case EXPRESSION_TYPE_LITERAL:
-        // add_tabs(ident);
-        printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
-        break;
-    case EXPRESSION_TYPE_IDENTIFIER:
-        // add_tabs(ident);
-        printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
-        break;
-    }
-}
-
-void statement_debug(statement_t *s, int ident) {
-    switch (s->type) {
-    case STATEMENT_TYPE_LET: {
-        add_tabs(ident);
-        printf("LET `%s`", s->data.let.identifier.name);
-        printf("\n");
-        // printf("\n│\n");
-        add_tabs(ident);
-        printf("└─  ");
-        return debug_expression(s->data.let.identifier.value, ident+1);
-    }
-    case STATEMENT_TYPE_EXPRESSION: {
-        return debug_expression(&s->data.expression, ident);
-    }
-    case STATEMENT_TYPE_BLOCK:
-    case STATEMENT_TYPE_DEFER:
-        printf("\nnot implemented\n");
-        break;
-    }
 }
 
 
@@ -279,7 +234,9 @@ program_t parse(token_t *tokens) {
     parser_t parser = (parser_t) {
         .index = 0,
         .tokens = tokens,
-        .program = program_create()
+        .program = program_create(),
+        // .errors = {NULL},
+        .error_idx = 0
     };
 
     parser_parse(&parser);
@@ -288,6 +245,13 @@ program_t parse(token_t *tokens) {
         printf("\nSTATEMENT #%d\n", i);
         statement_debug(&parser.program.statements[i], 0);
         printf("\n");
+    }
+
+    if (parser.error_idx > 0) {
+        printf("\nParser errored...\n");
+        for (int i = 0; i < parser.error_idx; i++) {
+            parser_error_print(parser.errors[i]);
+        }
     }
     return parser.program;
 }

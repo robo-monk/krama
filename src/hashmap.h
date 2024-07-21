@@ -13,31 +13,51 @@ typedef struct hash_entry_t {
     struct hash_entry_t *next;
 } hash_entry_t;
 
+
+typedef void (*hashmap_entry_free_func)(void*);
+
+
 typedef struct {
     size_t capacity;
     size_t count;
-    hash_entry_t* entries[HASHMAP_INITIAL_CAPACITY];
+    hash_entry_t** entries;
+    hashmap_entry_free_func free_func;
 } hashmap_t;
 
 
-hashmap_t hashmap_create(size_t entry_size) {
-    return (hashmap_t) {
-        .capacity = HASHMAP_INITIAL_CAPACITY,
-        .count = 0,
-        .entries = { NULL }
-    };
+hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func) {
+    hashmap_t *map = (hashmap_t*) malloc(sizeof(hashmap_t));
+    if (!map) {
+        printf("\nMemory allocation failed wtf?\n");
+        exit(1);
+    }
+
+    map->capacity = HASHMAP_INITIAL_CAPACITY;
+    map->count = 0;
+    map->entries = (hash_entry_t**) malloc(sizeof(hash_entry_t*) * map->capacity);
+    map->free_func = free_func;
+    return map;
 }
 
-void __hashmap_free_entry(hash_entry_t *e) {
-   if (e == NULL) return;
-   free(e->key);
-   __hashmap_free_entry(e->next);
-   free(e);
+
+void hashmap_free_entry(hashmap_t* map, hash_entry_t *e) {
+   while (e != NULL) {
+        hash_entry_t* next = e->next;
+        free(e->key);
+        if (map->free_func) {
+            map->free_func(e->val);
+        }
+        free(e);
+        e = next;
+   }
 }
+
 void hashmap_free(hashmap_t* map) {
     for (int i = 0; i < map->capacity; i++) {
-        __hashmap_free_entry(map->entries[i]);
+        hashmap_free_entry(map, map->entries[i]);
     }
+    free(map->entries);
+    free(map);
 }
 
 unsigned int hashmap_hash_string(char *key) {

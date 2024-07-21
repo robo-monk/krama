@@ -109,4 +109,5 @@ program_t program_create(void);
 void program_free(program_t *program);
 int program_add_statement(program_t *program, statement_t statement);
 
+void statement_debug(statement_t *s, int ident);
 #endif

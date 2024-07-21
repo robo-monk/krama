@@ -61,5 +61,6 @@ typedef struct {
 
 int tokenise(const char* data, int data_length, token_t* tokens);
 void token_debug(token_t token);
+const char* token_type_to_string(token_type_t type);
 
 #endif

@@ -56,34 +56,46 @@ token_t token_new_single_char(token_type_t type, int position, char raw) {
     };
 }
 
+const char* token_type_to_string(token_type_t type) {
+    switch (type) {
+        case TOKEN_L_BRACKET:    return "[";
+        case TOKEN_R_BRACKET:    return "]";
+        case TOKEN_L_PAREN:      return "(";
+        case TOKEN_R_PAREN:      return ")";
+        case TOKEN_SEMICOLON:    return ";";
+        case TOKEN_COLON:        return ":";
+        case TOKEN_SINGLE_QUOTE: return "'";
+        case TOKEN_DOUBLE_QUOTE: return "\"";
+        case TOKEN_BACKTICK:     return "`";
+        case TOKEN_BACKSLASH:    return "\\";
+        case TOKEN_PLUS:         return "+";
+        case TOKEN_MINUS:        return "-";
+        case TOKEN_SLASH:        return "/";
+        case TOKEN_ASTERISK:     return "*";
+        case TOKEN_GT:           return ">";
+        case TOKEN_LT:           return "<";
+        case TOKEN_EQ:           return "=";
+        case TOKEN_BANG:         return "!";
+        case TOKEN_NEW_LINE:     return "NEW_LINE";
+        case TOKEN_DEFER:        return "DEFER";
+        case TOKEN_LITERAL:      return "LITERAL";
+        case TOKEN_IDENTIFIER:   return "IDENTIFIER";
+        case TOKEN_UNKNOWN:      return "UNKNOWN";
+        case TOKEN_EOF:          return "EOF";
+        case TOKEN_IF:           return "IF";
+        case TOKEN_ELSE:         return "ELSE";
+        case TOKEN_LET:          return "LET";
+        case TOKEN_MUT:          return "MUT";
+        case TOKEN_GTE:          return ">=";
+        case TOKEN_LTE:          return "<=";
+        case TOKEN_NEQ:          return "!=";
+        case TOKEN_EQEQ:         return "==";
+        default:                 return "INVALID_TOKEN_TYPE";
+    }
+}
+
 void token_debug(token_t token) {
     switch (token.type) {
-        case TOKEN_L_BRACKET:
-        case TOKEN_R_BRACKET:
-        case TOKEN_L_PAREN:
-        case TOKEN_R_PAREN:
-        case TOKEN_SEMICOLON:
-        case TOKEN_COLON:
-        case TOKEN_SINGLE_QUOTE :
-        case TOKEN_DOUBLE_QUOTE:
-        case TOKEN_BACKTICK:
-        case TOKEN_BACKSLASH :
-        case TOKEN_PLUS:
-        case TOKEN_MINUS:
-        case TOKEN_SLASH:
-        case TOKEN_ASTERISK:
-        case TOKEN_GT:
-        case TOKEN_LT:
-        case TOKEN_EQ:
-        case TOKEN_BANG:
-            printf("Token '%c'", token.type);
-            break;
-        case TOKEN_NEW_LINE:
-            printf("Token NEW_LINE");
-            break;
-        case TOKEN_DEFER:
-            printf("Token DEFER");
-            break;
         case TOKEN_LITERAL:
             printf("Token LITERAL `%s`", token.value.raw_str);
             break;
@@ -93,36 +105,10 @@ void token_debug(token_t token) {
         case TOKEN_UNKNOWN:
             printf("Token UNKNOWN `%s`", token.value.raw_str);
             break;
-        case TOKEN_EOF:
-            printf("Token EOF");
-            break;
-        case TOKEN_IF:
-            printf("Token IF");
-            break;
-        case TOKEN_ELSE:
-            printf("Token ELSE");
-            break;
-        case TOKEN_LET:
-            printf("Token LET");
-            break;
-        case TOKEN_MUT:
-            printf("Token MUT");
-            break;
-        case TOKEN_GTE:
-            printf("Token >=");
-            break;
-        case TOKEN_LTE:
-            printf("Token <=");
-            break;
-        case TOKEN_NEQ:
-            printf("Token !=");
-            break;
-        case TOKEN_EQEQ:
-            printf("Token ==");
-            break;
+        default:
+            printf("Token %s", token_type_to_string(token.type));
     }
 }
-
 
 token_type_t get_buffer_token_type(char* buffer) {
     for (int i = 0; i < ARRAY_SIZE(tokeniser_keywords); i++) {
