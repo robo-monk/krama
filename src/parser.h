@@ -9,7 +9,7 @@ typedef struct {
     token_t token;
 } parser_error_t;
 
-#define PARSER_MAX_ERROR_COUNT 128
+#define PARSER_MAX_ERROR_COUNT 8
 typedef struct {
     int index;
     token_t* tokens;

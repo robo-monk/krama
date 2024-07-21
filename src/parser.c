@@ -5,11 +5,19 @@
 #include <string.h>
 
 void parser_error_print(parser_error_t *error) {
-    printf("PARSER ERROR: %s\n", error->message);
+    fprintf(stderr, "PARSER ERROR: %s\n", error->message);
 }
 
 
 void parser_error_create(parser_t *parser, token_t token, const char *format, ...) {
+    if (parser->error_idx >= PARSER_MAX_ERROR_COUNT) {
+        for (int i = 0; i < parser->error_idx; i++) {
+            parser_error_print(parser->errors[i]);
+        }
+
+        fprintf(stderr, "\nToo many parsing errors.\n");
+        exit(1);
+    }
     va_list args;
     va_start(args, format);
 
@@ -54,10 +62,12 @@ token_t parser_expect(parser_t *parser, token_type_t token_type) {
 }
 
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
-    token_t current = parser_eat(parser);
+    token_t current = parser_current(parser);
     if (current.type != token_type) {
         parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
+        return current;
     }
+    parser_eat(parser);
     return current;
 }
 
@@ -249,7 +259,6 @@ program_t parse(token_t *tokens) {
     }
 
     if (parser.error_idx > 0) {
-        printf("\nParser errored...\n");
         for (int i = 0; i < parser.error_idx; i++) {
             parser_error_print(parser.errors[i]);
         }

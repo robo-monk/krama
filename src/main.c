@@ -1,4 +1,4 @@
-#include <_ctype.h>
+#include <ctype.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -51,8 +51,39 @@ int main(int argc, char *argv[]) {
     // hashmap_free(&hash);
     // return 0;
 
-    if (argc != 3) {
-        printf("Argument mismatch.\nUsage: krama <input-file> <output-file>\n");
+    if (argc == 1) {
+        char inp[1024];
+        printf("Initialising REPL... Type `exit` to exit\n");
+        while (true) {
+            printf("> ");
+            if (fgets(inp, sizeof(inp), stdin) == NULL) {
+                break;  // Handle EOF
+            }
+
+            // inp[strcspn(inp, "\n")] = ';';
+
+            if (strcasecmp(inp, "exit\n") == 0) {
+                break;
+            }
+
+            token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
+            int len = strlen(inp)+1;
+            int token_count = tokenise(inp, len, tokens);
+
+            // printf("inp is:: `%s`\n", inp);
+            for (int i = 0; i < token_count; i ++) {
+                printf("->");
+                token_debug(tokens[i]);
+                printf("\n");
+            }
+            parse(tokens);
+            free(tokens);
+        }
+        return 0;
+    } else if (argc == 3) {
+        printf("Compiling...\n");
+    } else {
+        printf("Argument mismatch.\nUsage: krama <input-file> <output-file> or krama to initialise the REPL\n");
         return 1;
     }
 
