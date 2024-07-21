@@ -1,3 +1,4 @@
+#define HASHMAP_IMPLEMENTATION
 #include <ctype.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -66,8 +67,9 @@ int main(int argc, char *argv[]) {
                 break;
             }
 
+            int len = strlen(inp);
+
             token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
-            int len = strlen(inp)+1;
             int token_count = tokenise(inp, len, tokens);
 
             // printf("inp is:: `%s`\n", inp);

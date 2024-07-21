@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "ast.h"
+#include "hashmap.h"
 #include "tokeniser.h"
 #include <stdarg.h>
 #include <string.h>
@@ -241,11 +242,22 @@ void parser_parse(parser_t *parser) {
     }
 }
 
+typedef struct {
+    identifier_expression_t identifier;
+} scope_entry_t;
+
+void free_scope_entry(void* f) {
+    free(f);
+}
+
 program_t parse(token_t *tokens) {
     parser_t parser = (parser_t) {
         .index = 0,
         .tokens = tokens,
         .program = program_create(),
+        .scope = {
+            .table = hashmap_create(sizeof(scope_entry_t), free_scope_entry)
+        },
         // .errors = {NULL},
         .error_idx = 0
     };
@@ -264,4 +276,5 @@ program_t parse(token_t *tokens) {
         }
     }
     return parser.program;
+
 }

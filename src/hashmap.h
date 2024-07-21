@@ -1,9 +1,9 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
-#include "stdlib.h"
-#include "string.h"
-#include "stdio.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #define HASHMAP_INITIAL_CAPACITY 4096
 
@@ -13,9 +13,7 @@ typedef struct hash_entry_t {
     struct hash_entry_t *next;
 } hash_entry_t;
 
-
 typedef void (*hashmap_entry_free_func)(void*);
-
 
 typedef struct {
     size_t capacity;
@@ -24,6 +22,16 @@ typedef struct {
     hashmap_entry_free_func free_func;
 } hashmap_t;
 
+// Function declarations
+hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func);
+void hashmap_free_entry(hashmap_t* map, hash_entry_t *e);
+void hashmap_free(hashmap_t* map);
+unsigned int hashmap_hash_string(char *key);
+void hashmap_insert(hashmap_t *map, char* key, void* value);
+void* hashmap_get(hashmap_t *map, char* key);
+
+// Implementation macro
+#ifdef HASHMAP_IMPLEMENTATION
 
 hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func) {
     hashmap_t *map = (hashmap_t*) malloc(sizeof(hashmap_t));
@@ -31,14 +39,12 @@ hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func) 
         printf("\nMemory allocation failed wtf?\n");
         exit(1);
     }
-
     map->capacity = HASHMAP_INITIAL_CAPACITY;
     map->count = 0;
-    map->entries = (hash_entry_t**) malloc(sizeof(hash_entry_t*) * map->capacity);
+    map->entries = (hash_entry_t**) calloc(map->capacity, sizeof(hash_entry_t*));
     map->free_func = free_func;
     return map;
 }
-
 
 void hashmap_free_entry(hashmap_t* map, hash_entry_t *e) {
    while (e != NULL) {
@@ -53,7 +59,7 @@ void hashmap_free_entry(hashmap_t* map, hash_entry_t *e) {
 }
 
 void hashmap_free(hashmap_t* map) {
-    for (int i = 0; i < map->capacity; i++) {
+    for (size_t i = 0; i < map->capacity; i++) {
         hashmap_free_entry(map, map->entries[i]);
     }
     free(map->entries);
@@ -85,9 +91,10 @@ void* hashmap_get(hashmap_t *map, char* key) {
     while (entry != NULL && strcmp(entry->key, key) != 0) {
         entry = entry->next;
     }
-
     if (entry == NULL) return NULL;
     return entry->val;
 }
 
-#endif
+#endif // HASHMAP_IMPLEMENTATION
+
+#endif // HASHMAP_H

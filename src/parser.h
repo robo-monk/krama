@@ -3,6 +3,12 @@
 
 #include "ast.h"
 #include "tokeniser.h"
+#include "hashmap.h"
+
+typedef struct scope_t {
+    hashmap_t *table;
+    struct scope_t *upper;
+} scope_t;
 
 typedef struct {
     char* message;
@@ -16,6 +22,7 @@ typedef struct {
     program_t program;
     parser_error_t* errors[PARSER_MAX_ERROR_COUNT];
     unsigned int error_idx;
+    scope_t scope;
 } parser_t;
 
 typedef enum {
