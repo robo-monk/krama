@@ -57,12 +57,6 @@ token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_eat(parser);
     if (current.type != token_type) {
         parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
-        // printf("\nExpected ");
-        // token_debug((token_t) { .type = token_type });
-        // printf(" but got: ");
-        // token_debug(current);
-        // printf("\n\n");
-        // exit(1);
     }
     return current;
 }
@@ -137,9 +131,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         default:
             free(expr);
             return NULL;
-            // printf("\nInvalid token!\n");
-            // token_debug(parser_peek(parser));
-            // exit(1);
     }
     return expr;
 }
@@ -175,7 +166,9 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence) {
     expression_t *expr = parser_parse_prefix_expression(parser);
-    if (expr == NULL) return NULL;
+    if (expr == NULL) {
+        return NULL;
+    }
 
     token_t next;
     while (
@@ -220,11 +213,19 @@ void parser_parse(parser_t *parser) {
                 });
                 break;
             }
-            default:
+            default: {
+                expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+
+                if (exp == NULL) {
+                    parser_error_create(parser, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
+                    break;
+                }
+
                 program_add_statement(&parser->program, (statement_t) {
                     .type = STATEMENT_TYPE_EXPRESSION,
-                    .data.expression = *parser_parse_expression(parser, PRECEDENCE_LOWEST)
+                    .data.expression = *exp
                 });
+            }
         }
         parser_eat(parser);
     }

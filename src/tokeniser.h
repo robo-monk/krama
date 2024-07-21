@@ -8,8 +8,11 @@
 #include <assert.h>
 
 typedef enum {
-    TOKEN_L_BRACKET = '{',
-    TOKEN_R_BRACKET = '}',
+    TOKEN_L_BRACE = '{',
+    TOKEN_R_BRACE = '}',
+    TOKEN_L_BRACKET = '[',
+    TOKEN_R_BRACKET = ']',
+
     TOKEN_L_PAREN = '(',
     TOKEN_R_PAREN = ')',
 

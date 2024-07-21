@@ -58,6 +58,8 @@ token_t token_new_single_char(token_type_t type, int position, char raw) {
 
 const char* token_type_to_string(token_type_t type) {
     switch (type) {
+        case TOKEN_L_BRACE:    return "{";
+        case TOKEN_R_BRACE:    return "}";
         case TOKEN_L_BRACKET:    return "[";
         case TOKEN_R_BRACKET:    return "]";
         case TOKEN_L_PAREN:      return "(";
@@ -153,6 +155,8 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
                 }
                 break;
             case TOKEN_NEW_LINE:
+            case TOKEN_L_BRACE:
+            case TOKEN_R_BRACE:
             case TOKEN_L_BRACKET:
             case TOKEN_R_BRACKET:
             case TOKEN_L_PAREN:
