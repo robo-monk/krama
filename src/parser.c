@@ -64,6 +64,9 @@ token_t parser_expect(parser_t *parser, token_type_t token_type) {
 
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
+    // printf("\n-- Expecting:: %s ", token_type_to_string(token_type));
+    // parser_debug(parser, "GOT ");
+    // printf("\n -- \n");
     if (current.type != token_type) {
         parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
         return current;
@@ -107,13 +110,29 @@ precedence_t get_precedence(token_type_t token_type) {
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
+statement_t parser_parse_statement(parser_t *parser);
 
 expression_t* parser_parse_prefix_expression(parser_t *parser) {
     expression_t *expr = malloc(sizeof(expression_t));
     // parse prefix
     switch (parser_current(parser).type) {
+        case TOKEN_L_BRACE: {
+            expr->type = EXPRESSION_TYPE_BLOCK;
+            expr->data.block = block_expression_new();
+            parser_eat_and_expect(parser, TOKEN_L_BRACE);
+            while (parser_current(parser).type != TOKEN_R_BRACE) {
+                parser_debug(parser, "\nbefore block parsing\n");
+                block_add_statement(&expr->data.block,
+                    parser_parse_statement(parser)
+                );
+                parser_debug(parser, "\nafter block parsing\n");
+            };
+            parser_debug(parser, "\nafter while parsing\n");
+            parser_eat_and_expect(parser, TOKEN_R_BRACE);
+            break;
+        }
         case TOKEN_L_PAREN:
-            parser_eat(parser);
+            parser_eat_and_expect(parser, TOKEN_L_PAREN);
             expr = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
             break;
@@ -199,13 +218,16 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
         if (infix_expr == NULL) return expr;
         expr = infix_expr;
     }
+    parser_debug(parser, "\nafter expression parsing: ");
+    if (parser_current(parser).type == TOKEN_SEMICOLON) {
+        printf("\n EAT SEMIC COLON AFTER EXPR\n");
+        parser_eat_and_expect(parser, TOKEN_SEMICOLON);
+    }
+    if (parser_current(parser).type == TOKEN_NEW_LINE) {
+        printf("\n EAT NEW LINE AFTER EXPR\n");
+        parser_eat_and_expect(parser, TOKEN_NEW_LINE);
+    }
     return expr;
-}
-
-void parser_parse_statement(parser_t *parser) {
-}
-
-void parser_parse_block(parser_t *parser) {
 }
 
 void scope_define_let(scope_t *scope, scope_entry_t entry) {
@@ -214,48 +236,63 @@ void scope_define_let(scope_t *scope, scope_entry_t entry) {
     hashmap_insert(scope->table, entry.identifier.name, ptr);
 }
 
+statement_t parser_parse_statement(parser_t *parser) {
+    // parser_debug(parser, "\nPARSE_STATEMENT");
+    token_t current;
+    while (current = parser_current(parser), current.type == TOKEN_NEW_LINE || current.type == TOKEN_SEMICOLON) {
+        // parser_debug(parser, "\nMUNCH: ");
+        parser_eat(parser);
+    }
+    // parser_debug(parser, "\nAFTER MUNCH: ");
+
+    switch (current.type) {
+        case TOKEN_SEMICOLON:
+        case TOKEN_NEW_LINE:
+            printf("\n unreachable?\n");
+            break;
+        case TOKEN_LET: {
+            token_t let = parser_eat(parser);
+            token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+            token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
+            identifier_expression_t idexpr = (identifier_expression_t) {
+                .name = strdup(identifier.value.raw_str),
+                .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
+            };
+            scope_define_let(&parser->scope, (scope_entry_t) {
+                .identifier = idexpr
+            });
+            return (statement_t) {
+                .type = STATEMENT_TYPE_LET,
+                .data.let = {
+                    .identifier = idexpr
+                }
+            };
+            break;
+        }
+        default: {
+            expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+
+            if (exp == NULL) {
+                parser_error_create(parser, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
+                break;
+            }
+
+            return (statement_t) {
+                .type = STATEMENT_TYPE_EXPRESSION,
+                .data.expression = *exp
+            };
+        }
+    }
+    printf("\nUnrecoverable error\n");
+    exit(0);
+}
+
 void parser_parse(parser_t *parser) {
     token_t current;
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
-
-        switch (current.type) {
-            case TOKEN_SEMICOLON:
-            case TOKEN_NEW_LINE:
-                break;
-            case TOKEN_LET: {
-                token_t let = parser_eat(parser);
-                token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-                token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
-                identifier_expression_t idexpr = (identifier_expression_t) {
-                    .name = strdup(identifier.value.raw_str),
-                    .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
-                };
-                scope_define_let(&parser->scope, (scope_entry_t) {
-                    .identifier = idexpr
-                });
-                program_add_statement(&parser->program, (statement_t) {
-                    .type = STATEMENT_TYPE_LET,
-                    .data.let = {
-                        .identifier = idexpr
-                    }
-                });
-                break;
-            }
-            default: {
-                expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
-
-                if (exp == NULL) {
-                    parser_error_create(parser, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
-                    break;
-                }
-
-                program_add_statement(&parser->program, (statement_t) {
-                    .type = STATEMENT_TYPE_EXPRESSION,
-                    .data.expression = *exp
-                });
-            }
-        }
-        parser_eat(parser);
+        program_add_statement(&parser->program, parser_parse_statement(parser));
+        parser_debug(parser, "---- after adding statement ---");
+        // parser_eat(parser);
     }
 }
 
@@ -294,5 +331,4 @@ program_t parse(parser_t *parser, token_t *tokens) {
         }
     }
     return parser->program;
-
 }

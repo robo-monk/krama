@@ -20,6 +20,7 @@ typedef enum {
     EXPRESSION_TYPE_INFIX,
     EXPRESSION_TYPE_LITERAL,
     EXPRESSION_TYPE_IDENTIFIER,
+    EXPRESSION_TYPE_BLOCK,
 } expression_type_t;
 
 typedef struct expression expression_t;
@@ -51,6 +52,13 @@ typedef struct {
     expression_t *right;
 } infix_expression_t;
 
+
+typedef struct {
+    struct statement *statements;
+    size_t statement_count;
+    size_t statement_capacity;
+} block_expression_t;
+
 struct expression {
     expression_type_t type;
     union {
@@ -58,25 +66,18 @@ struct expression {
         prefix_expression_t prefix;
         literal_expression_t literal;
         identifier_expression_t identifier;
+        block_expression_t block;
     } data;
 };
 
 // STATEMENTS
 typedef enum {
     STATEMENT_TYPE_LET,
-    STATEMENT_TYPE_BLOCK,
     STATEMENT_TYPE_DEFER,
     STATEMENT_TYPE_EXPRESSION
 } statement_type_t;
 
 struct statement;
-
-typedef struct {
-    struct statement *statements;
-    size_t statement_count;
-    size_t statement_capacity;
-} block_statement_t;
-
 typedef struct {
    expression_t *expression;
 } expression_statement_t;
@@ -94,7 +95,6 @@ typedef struct statement {
     union {
         let_statement_t let;
         defer_statement_t defer;
-        block_statement_t block;
         expression_t expression;
     } data;
 } statement_t;
@@ -108,6 +108,9 @@ typedef struct {
 program_t program_create(void);
 void program_free(program_t *program);
 int program_add_statement(program_t *program, statement_t statement);
+
+block_expression_t block_expression_new(void);
+int block_add_statement(block_expression_t *block, statement_t statement);
 
 void statement_debug(statement_t *s, int ident);
 #endif

@@ -1,2 +1,18 @@
-let isTrue = !(5 >= 4 + 2 * 3);
-isTrue;
+{
+  let b = {
+    let isTrue = !(5 >= 4 + 2 * 3);
+    isTrue;
+    let a = {
+      let hello = 2
+    let a = {
+        let hello = 2
+      let a = {
+          let hello = 2
+        };
+      };
+    };
+  };
+
+  b + b
+  b
+}

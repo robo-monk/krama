@@ -18,11 +18,11 @@ void program_free(program_t *program) {
         return;
     }
     // Free any dynamically allocated memory in statements if necessary
-    for (size_t i = 0; i < program->statement_count; i++) {
-        if (program->statements[i].type == STATEMENT_TYPE_BLOCK) {
-            program_free((program_t *)&program->statements[i].data.block);
-        }
-    }
+    // for (size_t i = 0; i < program->statement_count; i++) {
+    //     if (program->statements[i].type == EXPRESSION_TYPE_BLOCK) {
+    //         program_free((program_t *)&program->statements[i].data.expression.);
+    //     }
+    // }
     free(program->statements);
     free(program);
 }
@@ -42,15 +42,15 @@ int program_add_statement(program_t *program, statement_t statement) {
 }
 
 
-block_statement_t block_statement_new(void) {
-    return (block_statement_t) {
+block_expression_t block_expression_new(void) {
+    return (block_expression_t) {
         .statement_capacity = INITIAL_BLOCK_CAPACITY,
         .statement_count = 0,
         .statements = malloc(sizeof(statement_t) * INITIAL_BLOCK_CAPACITY)
     };
 }
 
-int block_add_statement(block_statement_t *block, statement_t statement) {
+int block_add_statement(block_expression_t *block, statement_t statement) {
     if (block->statement_count == block->statement_capacity) {
         block->statement_capacity *= 2;
         block->statements = realloc(block->statements, block->statement_capacity * sizeof(statement_t));
@@ -68,11 +68,15 @@ int block_add_statement(block_statement_t *block, statement_t statement) {
 
 void add_tabs(int count) {
     for (int i = 0; i < count; i++) {
-        printf("\t");
+        printf("⎹");
+        printf("    ");
     }
 }
 
+void statement_debug(statement_t *s, int ident);
+
 void debug_expression(expression_t *expression, int ident) {
+    add_tabs(ident);
     if (expression == NULL) {
         printf("NULL");
         return;
@@ -83,8 +87,8 @@ void debug_expression(expression_t *expression, int ident) {
         printf("expr PREFIX (");
         token_debug(expression->data.prefix.operand);
         printf(")\n");
-        add_tabs(ident);
-        printf("\tR: ");
+        // add_tabs(ident+1);
+        // printf("R: \n");
         debug_expression(expression->data.prefix.right, ident+1);
         break;
     case EXPRESSION_TYPE_INFIX:
@@ -92,11 +96,11 @@ void debug_expression(expression_t *expression, int ident) {
         token_debug(expression->data.infix.operand);
         printf(")\n");
         add_tabs(ident);
-        printf("\tL: ");
+        printf("R:\n");
         debug_expression(expression->data.infix.left, ident+1);
         printf("\n");
         add_tabs(ident);
-        printf("\tR: ");
+        printf("L:\n");
         debug_expression(expression->data.infix.right, ident+1);
         break;
     case EXPRESSION_TYPE_LITERAL:
@@ -104,9 +108,23 @@ void debug_expression(expression_t *expression, int ident) {
         printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
         break;
     case EXPRESSION_TYPE_IDENTIFIER:
-        // add_tabs(ident);
         printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
         break;
+    case EXPRESSION_TYPE_BLOCK: {
+        // add_tabs(ident);
+        printf("block {\n");
+        for (int i = 0; i < expression->data.block.statement_count; i++) {
+            add_tabs(ident+1);
+            printf("#%d\n", i);
+            statement_debug(&expression->data.block.statements[i], ident+1);
+            printf("\n");
+        }
+        add_tabs(ident);
+        printf("}");
+        break;
+    }
+    default:
+        printf("\n not implemented ?? \n");
     }
 }
 
@@ -115,19 +133,18 @@ void statement_debug(statement_t *s, int ident) {
     switch (s->type) {
     case STATEMENT_TYPE_LET: {
         add_tabs(ident);
-        printf("LET `%s`", s->data.let.identifier.name);
+        printf("LET `%s` = ", s->data.let.identifier.name);
         printf("\n");
-        // printf("\n│\n");
-        add_tabs(ident);
-        printf("└─  ");
+        // add_tabs(ident);
+        // printf("└─ ");
         return debug_expression(s->data.let.identifier.value, ident+1);
     }
     case STATEMENT_TYPE_EXPRESSION: {
         return debug_expression(&s->data.expression, ident);
     }
-    case STATEMENT_TYPE_BLOCK:
-    case STATEMENT_TYPE_DEFER:
+    default:
         printf("\nnot implemented\n");
         break;
     }
+
 }
