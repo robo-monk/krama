@@ -237,13 +237,10 @@ void scope_define_let(scope_t *scope, scope_entry_t entry) {
 }
 
 statement_t parser_parse_statement(parser_t *parser) {
-    // parser_debug(parser, "\nPARSE_STATEMENT");
     token_t current;
     while (current = parser_current(parser), current.type == TOKEN_NEW_LINE || current.type == TOKEN_SEMICOLON) {
-        // parser_debug(parser, "\nMUNCH: ");
         parser_eat(parser);
     }
-    // parser_debug(parser, "\nAFTER MUNCH: ");
 
     switch (current.type) {
         case TOKEN_SEMICOLON:
@@ -258,6 +255,12 @@ statement_t parser_parse_statement(parser_t *parser) {
                 .name = strdup(identifier.value.raw_str),
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
             };
+            scope_entry_t *entry = hashmap_get(parser->scope.table, idexpr.name);
+
+            if (entry != NULL) {
+                parser_error_create(parser, current, "Identifier `%s` has already been declared.", idexpr.name);
+            }
+
             scope_define_let(&parser->scope, (scope_entry_t) {
                 .identifier = idexpr
             });

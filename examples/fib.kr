@@ -4,7 +4,7 @@
     isTrue;
     let a = {
       let hello = 2
-    let a = {
+      let a = {
         let hello = 2
       let a = {
           let hello = 2
