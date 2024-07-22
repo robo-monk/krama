@@ -19,11 +19,12 @@ typedef struct {
     size_t capacity;
     size_t count;
     hash_entry_t** entries;
+    size_t entry_size;
     hashmap_entry_free_func free_func;
 } hashmap_t;
 
 // Function declarations
-hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func);
+hashmap_t* hashmap_create(hashmap_entry_free_func free_func);
 void hashmap_free_entry(hashmap_t* map, hash_entry_t *e);
 void hashmap_free(hashmap_t* map);
 unsigned int hashmap_hash_string(char *key);
@@ -33,7 +34,7 @@ void* hashmap_get(hashmap_t *map, char* key);
 // Implementation macro
 #ifdef HASHMAP_IMPLEMENTATION
 
-hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func) {
+hashmap_t* hashmap_create(hashmap_entry_free_func free_func) {
     hashmap_t *map = (hashmap_t*) malloc(sizeof(hashmap_t));
     if (!map) {
         printf("\nMemory allocation failed wtf?\n");
@@ -41,7 +42,7 @@ hashmap_t* hashmap_create(size_t entry_size, hashmap_entry_free_func free_func) 
     }
     map->capacity = HASHMAP_INITIAL_CAPACITY;
     map->count = 0;
-    map->entries = (hash_entry_t**) calloc(map->capacity, sizeof(hash_entry_t*));
+    map->entries = (hash_entry_t**) calloc(map->capacity, sizeof(hash_entry_t));
     map->free_func = free_func;
     return map;
 }
@@ -77,9 +78,11 @@ unsigned int hashmap_hash_string(char *key) {
 
 void hashmap_insert(hashmap_t *map, char* key, void* value) {
     unsigned int idx = hashmap_hash_string(key) % map->capacity;
+    // printf("\nINS idx is %d\n", idx);
     hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
     entry->next = map->entries[idx];
     entry->key = strdup(key);
+    // printf("\nVAL::%s", value);
     entry->val = value;
     map->entries[idx] = entry;
     map->count++;
@@ -87,7 +90,9 @@ void hashmap_insert(hashmap_t *map, char* key, void* value) {
 
 void* hashmap_get(hashmap_t *map, char* key) {
     unsigned int idx = hashmap_hash_string(key) % map->capacity;
+    // printf("\nGET idx is %d\n", idx);
     hash_entry_t* entry = map->entries[idx];
+    // printf("\nENTRY::%s", entry);
     while (entry != NULL && strcmp(entry->key, key) != 0) {
         entry = entry->next;
     }

@@ -133,9 +133,16 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             break;
         }
         case TOKEN_IDENTIFIER: {
+            char* identifier_name = strdup(parser_eat(parser).value.raw_str);
+            scope_entry_t *entry = hashmap_get(parser->scope.table, identifier_name);
+            if (entry == NULL) {
+                parser_error_create(parser, parser_current(parser), "identifier `%s` is not declared.", identifier_name);
+                break;
+            }
+            printf("\n table returns: %s \n", entry->identifier.name);
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
             expr->data.identifier = (identifier_expression_t) {
-                .name = strdup(parser_eat(parser).value.raw_str)
+                .name = identifier_name
             };
             break;
         }
@@ -201,6 +208,12 @@ void parser_parse_statement(parser_t *parser) {
 void parser_parse_block(parser_t *parser) {
 }
 
+void scope_define_let(scope_t *scope, scope_entry_t entry) {
+    scope_entry_t *ptr = (scope_entry_t*) malloc(sizeof(entry));
+    ptr->identifier = entry.identifier;
+    hashmap_insert(scope->table, entry.identifier.name, ptr);
+}
+
 void parser_parse(parser_t *parser) {
     token_t current;
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
@@ -213,13 +226,17 @@ void parser_parse(parser_t *parser) {
                 token_t let = parser_eat(parser);
                 token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
                 token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
+                identifier_expression_t idexpr = (identifier_expression_t) {
+                    .name = strdup(identifier.value.raw_str),
+                    .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
+                };
+                scope_define_let(&parser->scope, (scope_entry_t) {
+                    .identifier = idexpr
+                });
                 program_add_statement(&parser->program, (statement_t) {
                     .type = STATEMENT_TYPE_LET,
                     .data.let = {
-                        .identifier = {
-                            .name = strdup(identifier.value.raw_str),
-                            .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
-                        }
+                        .identifier = idexpr
                     }
                 });
                 break;
@@ -242,39 +259,40 @@ void parser_parse(parser_t *parser) {
     }
 }
 
-typedef struct {
-    identifier_expression_t identifier;
-} scope_entry_t;
-
 void free_scope_entry(void* f) {
     free(f);
 }
 
-program_t parse(token_t *tokens) {
-    parser_t parser = (parser_t) {
+parser_t create_parser() {
+    return (parser_t) {
         .index = 0,
-        .tokens = tokens,
         .program = program_create(),
         .scope = {
-            .table = hashmap_create(sizeof(scope_entry_t), free_scope_entry)
+            .table = hashmap_create(free_scope_entry),
+            .upper = NULL
         },
-        // .errors = {NULL},
         .error_idx = 0
     };
+}
+program_t parse(parser_t *parser, token_t *tokens) {
+    parser->tokens = tokens;
+    parser->index = 0;
+    parser->error_idx = 0;
+    parser->program = program_create();
 
-    parser_parse(&parser);
+    parser_parse(parser);
 
-    for (int i = 0; i < parser.program.statement_count; i++) {
+    for (int i = 0; i < parser->program.statement_count; i++) {
         printf("\nSTATEMENT #%d\n", i);
-        statement_debug(&parser.program.statements[i], 0);
+        statement_debug(&parser->program.statements[i], 0);
         printf("\n");
     }
 
-    if (parser.error_idx > 0) {
-        for (int i = 0; i < parser.error_idx; i++) {
-            parser_error_print(parser.errors[i]);
+    if (parser->error_idx > 0) {
+        for (int i = 0; i < parser->error_idx; i++) {
+            parser_error_print(parser->errors[i]);
         }
     }
-    return parser.program;
+    return parser->program;
 
 }

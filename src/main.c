@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         char inp[1024];
         printf("Initialising REPL... Type `exit` to exit\n");
+        parser_t parser = create_parser();
         while (true) {
             printf("> ");
             if (fgets(inp, sizeof(inp), stdin) == NULL) {
@@ -78,7 +79,7 @@ int main(int argc, char *argv[]) {
                 token_debug(tokens[i]);
                 printf("\n");
             }
-            parse(tokens);
+            parse(&parser, tokens);
             free(tokens);
         }
         return 0;
@@ -108,7 +109,8 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
 
-    parse(tokens);
+    parser_t parser = create_parser();
+    parse(&parser, tokens);
 
     free(tokens);
     file_read_result_free(result);

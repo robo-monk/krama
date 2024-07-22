@@ -11,6 +11,10 @@ typedef struct scope_t {
 } scope_t;
 
 typedef struct {
+    identifier_expression_t identifier;
+} scope_entry_t;
+
+typedef struct {
     char* message;
     token_t token;
 } parser_error_t;
@@ -38,5 +42,6 @@ typedef enum {
 
 
 void debug_expression(expression_t *expression, int ident);
-program_t parse(token_t *tokens);
+parser_t create_parser();
+program_t parse(parser_t *parser, token_t *tokens);
 #endif
