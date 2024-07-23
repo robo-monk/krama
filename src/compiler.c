@@ -130,6 +130,16 @@ void compile_expression(String *expr, c_program_t *program, expression_t *e){
             return sformat(expr, "%ld", e->data.literal.data.i64);
         case EXPRESSION_TYPE_IDENTIFIER:
             return sformat(expr, "%s", e->data.identifier.name);
+        case EXPRESSION_TYPE_FUNC_DECL:{
+            String fn_body = {0};
+            compile_expression(&fn_body ,program, e->data.func_decl.value);
+
+            char str[slen(&fn_body)];
+            sconsume(&fn_body, str);
+
+            return sformat(expr, "void %s()\n%s", e->data.func_decl.name, str);
+
+        }
         case EXPRESSION_TYPE_BLOCK: {
             String block = {0};
             for (int i = 0; i < e->data.block.statement_count; i++) {
