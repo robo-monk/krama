@@ -125,12 +125,12 @@ void compile_expression(String *expr, c_program_t *program, expression_t *e){
                 rstr
             );
         }
+
         case EXPRESSION_TYPE_LITERAL:
             return sformat(expr, "%ld", e->data.literal.data.i64);
         case EXPRESSION_TYPE_IDENTIFIER:
             return sformat(expr, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_BLOCK: {
-            // char* stmts[e->data.block.statement_count];
             String block = {0};
             for (int i = 0; i < e->data.block.statement_count; i++) {
                 String newst = {0};
@@ -141,9 +141,6 @@ void compile_expression(String *expr, c_program_t *program, expression_t *e){
                 char curr[slen(&block)];
                 sconsume(&block, curr);
                 sformat(&block, "%s\n  %s", curr, newst_stack);
-
-                // stmts[i] = malloc(slen(&st));
-                // sconsume(&st, stmts[i]);
             }
 
             char curr[slen(&block)];
@@ -167,7 +164,6 @@ void compile_statement(String *stmt, c_program_t *program, statement_t *s) {
         case STATEMENT_TYPE_DEFER:
             printf("\nDefer statement not implemented!");
             return;
-            // return "\ndefer statement compilation not implemented\n";
         case STATEMENT_TYPE_EXPRESSION: {
             String exp = {0};
             compile_expression(&exp, program, &s->data.expression);
@@ -193,6 +189,7 @@ void compile(program_t program, const char* file_out) {
     for (int hi = 0; hi < cprogram.header_count; hi++) {
         printf("%d\n%s\n", hi, cprogram.headers[hi]);
     }
+
     printf("\n");
     for (int ii = 0; ii < cprogram.impl_count; ii++) {
         printf("\n%s\n", cprogram.impls[ii]);

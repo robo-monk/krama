@@ -123,6 +123,11 @@ void debug_expression(expression_t *expression, int ident) {
         printf("}");
         break;
     }
+    case EXPRESSION_TYPE_FUNC_DECL: {
+        printf("FUNCTION %s\n", expression->data.func_decl.name);
+        debug_expression(expression->data.func_decl.value, ident+1);
+        break;
+    }
     default:
         printf("\n not implemented ?? \n");
     }

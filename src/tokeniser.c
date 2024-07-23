@@ -8,6 +8,10 @@ const char* tokeniser_keywords[] = {
     "mut",
     "if",
     "else",
+    "return",
+    "def",
+    "for",
+    "loop",
 };
 
 const token_type_t tokeniser_keyword_token_types[] = {
@@ -16,6 +20,10 @@ const token_type_t tokeniser_keyword_token_types[] = {
     TOKEN_MUT,
     TOKEN_IF,
     TOKEN_ELSE,
+    TOKEN_RETURN,
+    TOKEN_DEF,
+    TOKEN_FOR,
+    TOKEN_LOOP
 };
 
 
@@ -92,6 +100,11 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_LTE:          return "<=";
         case TOKEN_NEQ:          return "!=";
         case TOKEN_EQEQ:         return "==";
+        case TOKEN_ATOM:         return "ATOM";
+        case TOKEN_RETURN:       return "RETURN";
+        case TOKEN_DEF:          return "DEF";
+        case TOKEN_FOR:          return "FOR";
+        case TOKEN_LOOP:         return "LOOP";
         default:                 return "INVALID_TOKEN_TYPE";
     }
 }

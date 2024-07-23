@@ -48,6 +48,7 @@ token_t parser_current(parser_t *parser) {
 void parser_debug(parser_t *parser, char* msg) {
     printf("\n[DEBUG] Parser: %s ", msg);;
     token_debug(parser_current(parser));
+    printf("\n\n");
 }
 
 token_t parser_eat(parser_t *parser) {
@@ -68,6 +69,7 @@ token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     // parser_debug(parser, "GOT ");
     // printf("\n -- \n");
     if (current.type != token_type) {
+        printf("\n(!) Expected token `%s` but got `%s`\n", token_type_to_string(token_type), token_type_to_string(current.type));
         parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
         return current;
     }
@@ -165,7 +167,32 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             };
             break;
         }
+        case TOKEN_DEF: {
+            parser_debug(parser, "\ntoken def here\n");
+            parser_eat(parser);
+            token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+            char* function_name = identifier.value.raw_str;
+            printf("\n function name is %s \n", function_name);
+            scope_entry_t *entry = hashmap_get(parser->scope.table, function_name);
+            if (entry != NULL) {
+                parser_error_create(parser, parser_current(parser), "function `%s` has already been declared.", function_name);
+                break;
+            }
+            parser_eat_and_expect(parser, TOKEN_L_PAREN);
+            parser_eat_and_expect(parser, TOKEN_R_PAREN);
+            // printf("\n table returns: %s \n", entry->identifier.name);
+            expr->type = EXPRESSION_TYPE_FUNC_DECL;
+            expr->data.func_decl = (func_decl_expression_t) {
+                .name = strdup(function_name),
+                .value = parser_parse_expression(parser, PRECEDENCE_CALL)
+            };
+            // expr->data.identifier = (identifier_expression_t) {
+            //     .name = strdup(function_name)
+            // };
+            break;
+        }
         default:
+            parser_debug(parser, "hit NULL case here with token [\n");
             free(expr);
             return NULL;
     }
@@ -246,6 +273,7 @@ statement_t parser_parse_statement(parser_t *parser) {
         case TOKEN_SEMICOLON:
         case TOKEN_NEW_LINE:
             printf("\n unreachable?\n");
+            exit(1);
             break;
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
