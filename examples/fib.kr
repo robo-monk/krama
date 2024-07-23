@@ -1,6 +1,6 @@
-let hello = 5;
-!!!(hello);
-200;
+let b = {
+  let hello = 5;
+  200;
 !420;
 240 + 2;
 let isTrue = !(5 >= 4 + 2 * 3);
@@ -8,3 +8,4 @@ let a = isTrue + 520;
 2000 * 4;
 
 let isFalse = a * isTrue;
+};

@@ -5,12 +5,11 @@
 
 #define MAX_HEADER_COUNT 1024
 #define MAX_IMPLEMENTATION_COUNT 1024
-#define LONG_STR_CHARS 2048
-
 
 #define STRING_CHARS 1024
 typedef struct {
     char cstr[STRING_CHARS];
+    char* dstr;
 } String;
 
 String stringf(const char *fmt, ...)
@@ -41,23 +40,6 @@ c_program_t c_program_new() {
     };
 }
 
-
-
-// char* format_string(const char* format, ...) {
-//     char buffer[LONG_STR_CHARS];
-//     va_list args;
-
-//     va_start(args, format);
-//     vsnprintf(buffer, sizeof(buffer), format, args);
-//     va_end(args);
-
-//     // return buffer;
-//     // printf("\nallocated str\n");
-//     // return strdup(buffer);
-// }
-
-
-
 void sformat(String *s, const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -65,6 +47,38 @@ void sformat(String *s, const char* format, ...) {
     va_end(args);
 }
 
+
+
+unsigned long slen(String *s) {
+    if (s->dstr != NULL) {
+        // string was dynamically allocated, and has to be freed.
+        return strlen(s->dstr);
+    }
+
+    return sizeof(s->cstr);
+}
+
+void sconsume(String *s, char* flush) {
+    if (s->dstr != NULL) {
+        // string was dynamically allocated, and has to be freed.
+        // move string to stack and free addr
+        int len = strlen(s->dstr);
+        printf("str len is %d\n", len);
+        for (int i = 0; i<len; i++) {
+            flush[i] = s->dstr[i];
+        }
+        free(s->dstr);
+        return;
+    }
+
+    for (int i = 0; i<sizeof(s->cstr); i++) {
+        flush[i] = s->cstr[i];
+    }
+    // flush = &*s->cstr;
+}
+
+
+void compile_statement(String *stmt, c_program_t *program, statement_t *s);
 
 void compile_expression(String *expr, c_program_t *program, expression_t *e){
 
@@ -78,18 +92,15 @@ void compile_expression(String *expr, c_program_t *program, expression_t *e){
             String right_expr = {0};
             compile_expression(&right_expr ,program, e->data.prefix.right);
 
-            sformat(
+            char str[slen(&right_expr)];
+            sconsume(&right_expr, str);
+
+            return sformat(
                 expr,
                 "%s%s",
                 token_type_to_string(e->data.prefix.operand.type),
-                right_expr.cstr
+                str
             );
-
-            printf("\n----\n");
-            printf("type prefix, expr is: %s\n", expr->cstr);
-            printf("type prefix, right expr is: %s", right_expr.cstr);
-            printf("\n----\n");
-            break;
         }
         case EXPRESSION_TYPE_INFIX: {
             String left_expr = {0};
@@ -98,28 +109,47 @@ void compile_expression(String *expr, c_program_t *program, expression_t *e){
             String right_expr = {0};
             compile_expression(&right_expr ,program, e->data.infix.right);
 
-            printf("\n----\n");
-            printf("type infix, left expr is: %s\n", left_expr.cstr);
-            printf("type infix, right expr is: %s", right_expr.cstr);
-            printf("\n----\n");
 
-            sformat(
+            char lstr[slen(&left_expr)];
+            sconsume(&left_expr, lstr);
+
+            char rstr[slen(&right_expr)];
+            sconsume(&right_expr, rstr);
+
+            return sformat(
                 expr,
                 "%s %s %s",
-                left_expr.cstr,
+                // left_expr.cstr,
+                lstr,
                 token_type_to_string(e->data.prefix.operand.type),
-                right_expr.cstr
+                rstr
             );
-            break;
         }
         case EXPRESSION_TYPE_LITERAL:
-            sformat(expr, "%ld", e->data.literal.data.i64);
-            break;
+            return sformat(expr, "%ld", e->data.literal.data.i64);
         case EXPRESSION_TYPE_IDENTIFIER:
-            sformat(expr, "%s", e->data.identifier.name);
-            break;
-        case EXPRESSION_TYPE_BLOCK:
-            break;
+            return sformat(expr, "%s", e->data.identifier.name);
+        case EXPRESSION_TYPE_BLOCK: {
+            // char* stmts[e->data.block.statement_count];
+            String block = {0};
+            for (int i = 0; i < e->data.block.statement_count; i++) {
+                String newst = {0};
+                compile_statement(&newst, program, &e->data.block.statements[i]);
+                char newst_stack[slen(&newst)];
+                sconsume(&newst, newst_stack);
+
+                char curr[slen(&block)];
+                sconsume(&block, curr);
+                sformat(&block, "%s\n  %s", curr, newst_stack);
+
+                // stmts[i] = malloc(slen(&st));
+                // sconsume(&st, stmts[i]);
+            }
+
+            char curr[slen(&block)];
+            sconsume(&block, curr);
+            return sformat(expr, "{%s\n}", curr);
+        }
     }
 }
 
