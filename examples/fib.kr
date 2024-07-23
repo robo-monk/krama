@@ -1,18 +1,10 @@
-{
-  let b = {
-    let isTrue = !(5 >= 4 + 2 * 3);
-    isTrue;
-    let a = {
-      let hello = 2
-      let a = {
-        let hello = 2
-      let a = {
-          let hello = 2
-        };
-      };
-    };
-  };
+let hello = 5;
+!!!(hello);
+200;
+!420;
+240 + 2;
+let isTrue = !(5 >= 4 + 2 * 3);
+let a = isTrue + 520;
+2000 * 4;
 
-  b + b
-  b
-}
+let isFalse = a * isTrue;

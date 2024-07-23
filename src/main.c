@@ -1,3 +1,4 @@
+#include "compiler.h"
 #define HASHMAP_IMPLEMENTATION
 #include <ctype.h>
 #include <assert.h>
@@ -111,6 +112,7 @@ int main(int argc, char *argv[]) {
 
     parser_t parser = create_parser();
     parse(&parser, tokens);
+    compile(parser.program, output_file);
 
     free(tokens);
     file_read_result_free(result);
