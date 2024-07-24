@@ -2,27 +2,47 @@
 #include "stdarg.h"
 #include "tokeniser.h"
 #include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #define MAX_HEADER_COUNT 1024
 #define MAX_IMPLEMENTATION_COUNT 1024
 
-#define STRING_CHARS 1024
 typedef struct {
-    char cstr[STRING_CHARS];
-    char* dstr;
-} String;
+    void* data;
+    size_t capacity;
+    size_t offset;
+} Arena;
 
-String stringf(const char *fmt, ...)
-{
-    String result;
-    va_list args;
-    va_start(args, fmt);
-    int n = vsnprintf(result.cstr, sizeof(result.cstr), fmt, args);
-    assert(n >= 0);
-    assert(n + 1 <= sizeof(result.cstr));
-    va_end(args);
-    return result;
+Arena arena_new(size_t capacity) {
+    return (Arena) {
+        .data = malloc(capacity),
+        .capacity = capacity,
+        .offset = 0
+    };
 }
+
+void* arena_alloc(Arena *arena, size_t size) {
+    if (arena->offset + size > arena->capacity) {
+        printf("\n arena out of memory, implement resizing or regions...");
+        exit(1);
+    }
+
+    void* ptr = arena->data + arena->offset;
+    arena->offset += size;
+    return ptr;
+}
+
+void arena_destroy(Arena *arena) {
+    free(arena->data);
+    arena->data = NULL;
+    arena->capacity = 0;
+    arena->offset = 0;
+}
+
+typedef struct {
+    Arena* arena;
+} CompilerContext;
 
 typedef struct c_program_t {
     char* headers[MAX_HEADER_COUNT];
@@ -40,162 +60,108 @@ c_program_t c_program_new() {
     };
 }
 
-void sformat(String *s, const char* format, ...) {
+char* string_arena_format(Arena *arena, const char* fmt, ...) {
     va_list args;
-    va_start(args, format);
-    vsnprintf(s->cstr, sizeof(s->cstr), format, args);
+    va_start(args, fmt);
+
+    va_list copy;
+    va_copy(copy, args);
+    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
+    char* str = arena_alloc(arena, length * sizeof(char));
+    vsnprintf(str, length, fmt, args);
     va_end(args);
+    return str;
 }
 
 
+char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
 
-unsigned long slen(String *s) {
-    if (s->dstr != NULL) {
-        // string was dynamically allocated, and has to be freed.
-        return strlen(s->dstr);
-    }
-
-    return sizeof(s->cstr);
-}
-
-void sconsume(String *s, char* flush) {
-    if (s->dstr != NULL) {
-        // string was dynamically allocated, and has to be freed.
-        // move string to stack and free addr
-        int len = strlen(s->dstr);
-        printf("str len is %d\n", len);
-        for (int i = 0; i<len; i++) {
-            flush[i] = s->dstr[i];
-        }
-        free(s->dstr);
-        return;
-    }
-
-    for (int i = 0; i<sizeof(s->cstr); i++) {
-        flush[i] = s->cstr[i];
-    }
-    // flush = &*s->cstr;
-}
-
-
-void compile_statement(String *stmt, c_program_t *program, statement_t *s);
-
-void compile_expression(String *expr, c_program_t *program, expression_t *e){
+char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e){
 
     if (e == NULL) {
         printf("\nWARNING: tried to compile NULL expression...\n");
-        return;
+        return NULL;
     }
 
     switch (e->type) {
         case EXPRESSION_TYPE_PREFIX: {
-            String right_expr = {0};
-            compile_expression(&right_expr ,program, e->data.prefix.right);
-
-            char str[slen(&right_expr)];
-            sconsume(&right_expr, str);
-
-            return sformat(
-                expr,
+            char *right_expr = compile_expression(ctx, program, e->data.prefix.right);
+            return string_arena_format(ctx->arena,
                 "%s%s",
                 token_type_to_string(e->data.prefix.operand.type),
-                str
+                right_expr
             );
         }
         case EXPRESSION_TYPE_INFIX: {
-            String left_expr = {0};
-            compile_expression(&left_expr ,program, e->data.infix.left);
-
-            String right_expr = {0};
-            compile_expression(&right_expr ,program, e->data.infix.right);
-
-
-            char lstr[slen(&left_expr)];
-            sconsume(&left_expr, lstr);
-
-            char rstr[slen(&right_expr)];
-            sconsume(&right_expr, rstr);
-
-            return sformat(
-                expr,
+            char* left_expr = compile_expression(ctx, program, e->data.infix.left);
+            char* right_expr = compile_expression(ctx, program, e->data.infix.right);
+            return string_arena_format(ctx->arena,
                 "%s %s %s",
-                // left_expr.cstr,
-                lstr,
+                left_expr,
                 token_type_to_string(e->data.prefix.operand.type),
-                rstr
+                right_expr
             );
         }
 
         case EXPRESSION_TYPE_LITERAL:
-            return sformat(expr, "%ld", e->data.literal.data.i64);
+            return string_arena_format(ctx->arena, "%ld", e->data.literal.data.i64);
         case EXPRESSION_TYPE_IDENTIFIER:
-            return sformat(expr, "%s", e->data.identifier.name);
+            return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_FUNC_DECL:{
-            String fn_body = {0};
-            compile_expression(&fn_body ,program, e->data.func_decl.value);
-
-            char str[slen(&fn_body)];
-            sconsume(&fn_body, str);
-
-            return sformat(expr, "void %s()\n%s", e->data.func_decl.name, str);
-
+            char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
+            return string_arena_format(ctx->arena, "void %s()\n%s", e->data.func_decl.name, fn_body);
         }
-        case EXPRESSION_TYPE_BLOCK: {
-            String block = {0};
-            for (int i = 0; i < e->data.block.statement_count; i++) {
-                String newst = {0};
-                compile_statement(&newst, program, &e->data.block.statements[i]);
-                char newst_stack[slen(&newst)];
-                sconsume(&newst, newst_stack);
 
-                char curr[slen(&block)];
-                sconsume(&block, curr);
-                sformat(&block, "%s\n  %s", curr, newst_stack);
+        case EXPRESSION_TYPE_BLOCK: {
+            char* block = "  ";
+            for (int i = 0; i < e->data.block.statement_count; i++) {
+                char* stmt = compile_statement(ctx, program, &e->data.block.statements[i]);
+                block = string_arena_format(ctx->arena, "%s\n  %s", block, stmt);
             }
 
-            char curr[slen(&block)];
-            sconsume(&block, curr);
-            return sformat(expr, "{%s\n}", curr);
+            return string_arena_format(ctx->arena, "{%s\n}", block);
         }
     }
 }
 
-void compile_statement(String *stmt, c_program_t *program, statement_t *s) {
+char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s) {
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
-            String exp = {0};
-            compile_expression(&exp, program, s->data.let.identifier.value);
-            printf("\ntype let exp out:: %s\n", exp.cstr);
-            return sformat(stmt, "int %s = %s;",
+            char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
+            printf("\ntype let exp out:: %s\n", exp);
+            return string_arena_format(ctx->arena, "int %s = %s;",
                 s->data.let.identifier.name,
-                exp.cstr
+                exp
             );
         }
         case STATEMENT_TYPE_DEFER:
             printf("\nDefer statement not implemented!");
-            return;
+            return NULL;
         case STATEMENT_TYPE_EXPRESSION: {
-            String exp = {0};
-            compile_expression(&exp, program, &s->data.expression);
-            printf("\nexp out:: %s\n", exp.cstr);
-            return sformat(
-                    stmt,
+            char* exp = compile_expression(ctx, program, &s->data.expression);
+            printf("\nexp out:: %s\n", exp);
+            return string_arena_format(
+                    ctx->arena,
                     "%s;",
-                    exp.cstr
+                    exp
                 );
         }
     }
 }
 
 void compile(program_t program, const char* file_out) {
+    Arena arena = arena_new(1024*1024);
+    CompilerContext ctx = (CompilerContext) {
+        .arena = &arena
+    };
+
     c_program_t cprogram = c_program_new();
     for (int i = 0; i < program.statement_count; i++) {
-        statement_t st = program.statements[i];
-        String stmt = {0};
-        compile_statement(&stmt, &cprogram, &st);
-        cprogram.impls[cprogram.impl_count++] = strdup(stmt.cstr);
+        char* stmt = compile_statement(&ctx, &cprogram, &program.statements[i]);
+        cprogram.impls[cprogram.impl_count++] = stmt;
     }
 
+    printf("\n---- %s.c ---- \n", file_out);
     for (int hi = 0; hi < cprogram.header_count; hi++) {
         printf("%d\n%s\n", hi, cprogram.headers[hi]);
     }
@@ -204,4 +170,6 @@ void compile(program_t program, const char* file_out) {
     for (int ii = 0; ii < cprogram.impl_count; ii++) {
         printf("\n%s\n", cprogram.impls[ii]);
     }
+
+    arena_destroy(&arena);
 }
