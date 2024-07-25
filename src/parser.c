@@ -23,7 +23,6 @@ void parser_error_create(parser_t *parser, token_t token, const char *format, ..
     va_list args;
     va_start(args, format);
 
-    // parser_error_t *error = malloc(sizeof(parser_error_t));
     parser_error_t *error = arena_alloc(&parser->ctx.arena, sizeof(parser_error_t));
 
     // Allocate memory for the message
@@ -120,8 +119,23 @@ precedence_t get_precedence(token_type_t token_type) {
     }
 }
 
+
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
 statement_t parser_parse_statement(parser_t *parser);
+
+vector_t parser_parse_comma_seperated_args(parser_t *parser) {
+    vector_t args = vector_new(8, sizeof(expression_t));
+    expression_t *arg = parser_parse_expression(parser, PRECEDENCE_CALL);
+
+    while (arg != NULL) {
+        vector_push(&args, arg);
+        if (parser_current(parser).type != TOKEN_COMMA) break;
+        parser_eat_and_expect(parser, TOKEN_COMMA);
+        arg = parser_parse_expression(parser, PRECEDENCE_CALL);
+    }
+    parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
+    return args;
+}
 
 expression_t* parser_parse_prefix_expression(parser_t *parser) {
     // parse prefix
@@ -172,17 +186,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
 
             if (parser_current(parser).type == TOKEN_L_PAREN) {
                 parser_eat_and_expect(parser, TOKEN_L_PAREN);
-                vector_t args = vector_new(8, sizeof(expression_t));
-                expression_t *arg = parser_parse_expression(parser, PRECEDENCE_CALL);
-
-                while (arg != NULL) {
-                    vector_push(&args, arg);
-                    if (parser_current(parser).type != TOKEN_COMMA) break;
-                    parser_eat_and_expect(parser, TOKEN_COMMA);
-                    arg = parser_parse_expression(parser, PRECEDENCE_CALL);
-                }
-
-                parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
+                vector_t args = parser_parse_comma_seperated_args(parser);
                 parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
                 expr->type = EXPRESSION_TYPE_CALL;
@@ -225,9 +229,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
                 .name = arena_strdup(&parser->ctx.arena, function_name),
                 .value = parser_parse_expression(parser, PRECEDENCE_CALL)
             };
-            // expr->data.identifier = (identifier_expression_t) {
-            //     .name = strdup(function_name)
-            // };
             return expr;
         }
         case TOKEN_RETURN: {
@@ -323,10 +324,15 @@ statement_t parser_parse_statement(parser_t *parser) {
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+            parser_eat_and_expect(parser, TOKEN_COLON);
+            token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+            ptype_t primitive = get_primitive_type(type.value.raw_str);
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
+
             identifier_expression_t idexpr = (identifier_expression_t) {
                 .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
-                .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
+                .value = parser_parse_expression(parser, PRECEDENCE_LOWEST),
+                .type = primitive
             };
             scope_entry_t *entry = hashmap_get(parser->scope.table, idexpr.name);
 

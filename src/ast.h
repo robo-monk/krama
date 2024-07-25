@@ -53,6 +53,7 @@ typedef struct {
 
 typedef struct {
     char* name;
+    ptype_t type;
     expression_t *value;
 } identifier_expression_t;
 

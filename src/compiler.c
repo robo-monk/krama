@@ -17,6 +17,35 @@ c_program_t c_program_new() {
     };
 }
 
+char* ptype_to_ctype(ptype_t t) {
+    switch (t) {
+    case PTYPE_I64:
+        return "long";
+    case PTYPE_I32:
+        return "int";
+    case PTYPE_I16:
+        return "short";
+    case PTYPE_U64:
+        return "unsigned long";
+    case PTYPE_U32:
+        return "unsigned int";
+    case PTYPE_U16:
+        return "unsigned short";
+    case PTYPE_U8:
+        return "char";
+    case PTYPE_F64:
+        return "double";
+    case PTYPE_F32:
+        return "float";
+    case PTYPE_F16:
+        return "float";
+    case PTYPE_CHAR:
+        return "char";
+    case PTYPE_UNKNOWN:
+        return "[UNKNOWN]";
+    }
+}
+
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
     // printf("\noverwrite ptr: %s\n",overwrite_ptr);
     // printf("\nfmt: %s\n", fmt);
@@ -54,6 +83,20 @@ char* string_arena_format(Arena *arena, const char* fmt, ...) {
 
 
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
+char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e);
+
+char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, vector_t *args_vector) {
+    char* args = NULL;
+    for (int i = 0; i < args_vector->count; i++) {
+        char* expr = compile_expression(ctx, program, vector_get(args_vector, i));
+        if (args == NULL) {
+            args = expr;
+        } else {
+            args = string_arena_format_overwrite(ctx->arena, expr, "%s,%s", args, expr);
+        }
+    }
+    return args;
+}
 
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e){
 
@@ -99,15 +142,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
         }
         case EXPRESSION_TYPE_CALL: {
-            char* args = NULL;
-            for (int i = 0; i < e->data.call.arguments.count; i++) {
-                char* expr = compile_expression(ctx, program, vector_get(&e->data.call.arguments, i));
-                if (args == NULL) {
-                    args = expr;
-                } else {
-                    args = string_arena_format_overwrite(ctx->arena, expr, "%s,%s", args, expr);
-                }
-            }
+            char* args = compile_comma_seperated_exprs(ctx, program, &e->data.call.arguments);
             return string_arena_format(ctx->arena, "%s(%s)", arena_strdup(ctx->arena, e->data.call.identifier_name), args);
         }
         case EXPRESSION_TYPE_RETURN: {
@@ -126,7 +161,8 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
             char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
-            return string_arena_format_overwrite(ctx->arena, exp, "int %s = %s;",
+            return string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
+                ptype_to_ctype(s->data.let.identifier.type),
                 s->data.let.identifier.name,
                 exp
             );

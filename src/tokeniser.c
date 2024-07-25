@@ -1,5 +1,4 @@
 #include "tokeniser.h"
-#include <_ctype.h>
 #include <ctype.h>
 
 const char* tokeniser_keywords[] = {
@@ -12,6 +11,35 @@ const char* tokeniser_keywords[] = {
     "def",
     "for",
     "loop",
+    "type",
+};
+
+const char* primitive_types[] = {
+    "i64",
+    "i32",
+    "i16",
+    "u64",
+    "u32",
+    "u16",
+    "u8",
+    "f64",
+    "f32",
+    "f16",
+    "char",
+};
+
+const ptype_t primitive_types_enum[] ={
+    PTYPE_I64,
+    PTYPE_I32,
+    PTYPE_I16,
+    PTYPE_U64,
+    PTYPE_U32,
+    PTYPE_U16,
+    PTYPE_U8,
+    PTYPE_F64,
+    PTYPE_F32,
+    PTYPE_F16,
+    PTYPE_CHAR,
 };
 
 const token_type_t tokeniser_keyword_token_types[] = {
@@ -23,7 +51,8 @@ const token_type_t tokeniser_keyword_token_types[] = {
     TOKEN_RETURN,
     TOKEN_DEF,
     TOKEN_FOR,
-    TOKEN_LOOP
+    TOKEN_LOOP,
+    TOKEN_TYPE,
 };
 
 
@@ -31,7 +60,8 @@ const token_type_t tokeniser_keyword_token_types[] = {
 static_assert(ARRAY_SIZE(tokeniser_keywords) == ARRAY_SIZE(tokeniser_keyword_token_types),
     "keywords and keyword token types should have the same size");
 
-
+static_assert(ARRAY_SIZE(primitive_types_enum) == ARRAY_SIZE(primitive_types),
+    "primitive types and primitive types enum should have the same size");
 
 
 token_t token_new_mult_char(token_type_t type, int position, char* raw) {
@@ -106,8 +136,11 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_DEF:          return "DEF";
         case TOKEN_FOR:          return "FOR";
         case TOKEN_LOOP:         return "LOOP";
+        case TOKEN_TYPE:         return "TYPE";
+        case TOKEN_PRIMITIVE_TYPE:    return "PRIMITIVE TYPE";
         default:                 return "INVALID_TOKEN_TYPE";
-    }
+        break;
+        }
 }
 
 void token_debug(token_t token) {
@@ -126,19 +159,29 @@ void token_debug(token_t token) {
     }
 }
 
+ptype_t get_primitive_type(char* buffer) {
+    for (int i = 0; i < ARRAY_SIZE(primitive_types); i++) {
+        if (strcmp(primitive_types[i], buffer) == 0) {
+            return primitive_types_enum[i];
+        }
+    }
+    return PTYPE_UNKNOWN;
+}
+
 token_type_t get_buffer_token_type(char* buffer) {
+    if (isdigit(buffer[0])) {
+        return TOKEN_LITERAL;
+    }
+
     for (int i = 0; i < ARRAY_SIZE(tokeniser_keywords); i++) {
         if (strcmp(tokeniser_keywords[i], buffer) == 0) {
             return tokeniser_keyword_token_types[i];
         }
     }
-    // if token is identifier?
-    if (isdigit(buffer[0])) {
-        return TOKEN_LITERAL;
-    }
+
+
 
     return TOKEN_IDENTIFIER;
-    // return TOKEN_UNKNOWN;
 }
 
 #define TOKENISER_BUFFER_SIZE 1024
@@ -205,6 +248,7 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
             case TOKEN_L_PAREN:
             case TOKEN_R_PAREN:
             case TOKEN_SEMICOLON:
+            case TOKEN_COLON:
             case TOKEN_COMMA:
             {
                 // commit buffer

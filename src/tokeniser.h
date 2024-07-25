@@ -53,8 +53,26 @@ typedef enum {
     TOKEN_LET,
     TOKEN_MUT,
     TOKEN_UNKNOWN,
-    TOKEN_EOF
+    TOKEN_TYPE,
+    TOKEN_PRIMITIVE_TYPE,
+
+    TOKEN_EOF,
 } token_type_t;
+
+typedef enum {
+    PTYPE_I64,
+    PTYPE_I32,
+    PTYPE_I16,
+    PTYPE_U64,
+    PTYPE_U32,
+    PTYPE_U16,
+    PTYPE_U8,
+    PTYPE_F64,
+    PTYPE_F32,
+    PTYPE_F16,
+    PTYPE_CHAR,
+    PTYPE_UNKNOWN
+} ptype_t;
 
 typedef union {
     char* raw_str;
@@ -71,5 +89,6 @@ typedef struct {
 int tokenise(const char* data, int data_length, token_t* tokens);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
+ptype_t get_primitive_type(char* buffer);
 
 #endif
