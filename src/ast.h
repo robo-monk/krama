@@ -1,6 +1,7 @@
 #ifndef KRAMA_AST_H
 #define KRAMA_AST_H
 
+#include "arena.h"
 #include "tokeniser.h"
 #include <stdlib.h>
 
@@ -62,6 +63,7 @@ typedef struct {
 
 typedef struct {
     char* identifier_name;
+    vector_t arguments;
 } call_expression_t;
 
 typedef struct {

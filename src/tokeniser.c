@@ -72,6 +72,7 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_R_BRACKET:    return "]";
         case TOKEN_L_PAREN:      return "(";
         case TOKEN_R_PAREN:      return ")";
+        case TOKEN_COMMA:       return ",";
         case TOKEN_SEMICOLON:    return ";";
         case TOKEN_COLON:        return ":";
         case TOKEN_SINGLE_QUOTE: return "'";
@@ -167,14 +168,7 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
                     buffer_index = 0;
                 }
                 break;
-            case TOKEN_NEW_LINE:
-            case TOKEN_L_BRACE:
-            case TOKEN_R_BRACE:
-            case TOKEN_L_BRACKET:
-            case TOKEN_R_BRACKET:
-            case TOKEN_L_PAREN:
-            case TOKEN_R_PAREN:
-            case TOKEN_SEMICOLON:
+
             case TOKEN_LT:
                 if (data[i+1] == TOKEN_EQ) {
                     tokens[token_index++] = token_new_mult_char(TOKEN_LTE, i, "<=");
@@ -203,6 +197,15 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
             case TOKEN_MINUS:
             case TOKEN_ASTERISK:
             case TOKEN_SLASH:
+            case TOKEN_NEW_LINE:
+            case TOKEN_L_BRACE:
+            case TOKEN_R_BRACE:
+            case TOKEN_L_BRACKET:
+            case TOKEN_R_BRACKET:
+            case TOKEN_L_PAREN:
+            case TOKEN_R_PAREN:
+            case TOKEN_SEMICOLON:
+            case TOKEN_COMMA:
             {
                 // commit buffer
                 if (buffer_index > 0) {

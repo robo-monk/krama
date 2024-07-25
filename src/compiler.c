@@ -18,8 +18,8 @@ c_program_t c_program_new() {
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    printf("\noverwrite ptr: %s\n",overwrite_ptr);
-    printf("\nfmt: %s\n", fmt);
+    // printf("\noverwrite ptr: %s\n",overwrite_ptr);
+    // printf("\nfmt: %s\n", fmt);
     assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
@@ -99,7 +99,16 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
         }
         case EXPRESSION_TYPE_CALL: {
-            return string_arena_format(ctx->arena, "%s()", arena_strdup(ctx->arena, e->data.call.identifier_name));
+            char* args = NULL;
+            for (int i = 0; i < e->data.call.arguments.count; i++) {
+                char* expr = compile_expression(ctx, program, vector_get(&e->data.call.arguments, i));
+                if (args == NULL) {
+                    args = expr;
+                } else {
+                    args = string_arena_format_overwrite(ctx->arena, expr, "%s,%s", args, expr);
+                }
+            }
+            return string_arena_format(ctx->arena, "%s(%s)", arena_strdup(ctx->arena, e->data.call.identifier_name), args);
         }
         case EXPRESSION_TYPE_RETURN: {
             char* ret_exp = compile_expression(ctx, program, e->data.return_exp.expression);

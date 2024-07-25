@@ -64,6 +64,14 @@ token_t parser_expect(parser_t *parser, token_type_t token_type) {
     return current;
 }
 
+token_t parser_optional_eat(parser_t *parser, token_type_t token_type) {
+    token_t current = parser_current(parser);
+    if (current.type != token_type) {
+        return current;
+    }
+    return parser_eat(parser);
+}
+
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
     // printf("\n-- Expecting:: %s ", token_type_to_string(token_type));
@@ -164,10 +172,24 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
 
             if (parser_current(parser).type == TOKEN_L_PAREN) {
                 parser_eat_and_expect(parser, TOKEN_L_PAREN);
-                // no argument parsing support yet
+                vector_t args = vector_new(8, sizeof(expression_t));
+                expression_t *arg = parser_parse_expression(parser, PRECEDENCE_CALL);
+
+                while (arg != NULL) {
+                    vector_push(&args, arg);
+                    if (parser_current(parser).type != TOKEN_COMMA) break;
+                    parser_eat_and_expect(parser, TOKEN_COMMA);
+                    arg = parser_parse_expression(parser, PRECEDENCE_CALL);
+                }
+
+                parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
                 parser_eat_and_expect(parser, TOKEN_R_PAREN);
+
                 expr->type = EXPRESSION_TYPE_CALL;
-                expr->data.call.identifier_name = identifier_name;
+                expr->data.call = (call_expression_t) {
+                    .identifier_name = identifier_name,
+                    .arguments = args
+                };
                 return expr;
             }
 

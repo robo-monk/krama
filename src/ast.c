@@ -1,9 +1,12 @@
 #include "ast.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define INITIAL_PROGRAM_CAPACITY 64
 #define INITIAL_BLOCK_CAPACITY 1
+
 
 program_t program_create(void) {
     return (program_t) {
