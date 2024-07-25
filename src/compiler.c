@@ -1,55 +1,11 @@
+#include "compiler.h"
+#include "arena.h"
 #include "ast.h"
 #include "stdarg.h"
 #include "tokeniser.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-
-#define MAX_HEADER_COUNT 1024
-#define MAX_IMPLEMENTATION_COUNT 1024
-
-typedef struct {
-    void* data;
-    size_t capacity;
-    size_t offset;
-} Arena;
-
-Arena arena_new(size_t capacity) {
-    return (Arena) {
-        .data = malloc(capacity),
-        .capacity = capacity,
-        .offset = 0
-    };
-}
-
-void* arena_alloc(Arena *arena, size_t size) {
-    if (arena->offset + size > arena->capacity) {
-        printf("\n arena out of memory, implement resizing or regions...");
-        exit(1);
-    }
-
-    void* ptr = arena->data + arena->offset;
-    arena->offset += size;
-    return ptr;
-}
-
-void arena_destroy(Arena *arena) {
-    free(arena->data);
-    arena->data = NULL;
-    arena->capacity = 0;
-    arena->offset = 0;
-}
-
-typedef struct {
-    Arena* arena;
-} CompilerContext;
-
-typedef struct c_program_t {
-    char* headers[MAX_HEADER_COUNT];
-    char* impls[MAX_IMPLEMENTATION_COUNT];
-    int header_count;
-    int impl_count;
-} c_program_t;
 
 c_program_t c_program_new() {
     return (c_program_t) {
@@ -102,7 +58,6 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                 right_expr
             );
         }
-
         case EXPRESSION_TYPE_LITERAL:
             return string_arena_format(ctx->arena, "%ld", e->data.literal.data.i64);
         case EXPRESSION_TYPE_IDENTIFIER:
@@ -111,17 +66,24 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
             return string_arena_format(ctx->arena, "void %s()\n%s", e->data.func_decl.name, fn_body);
         }
-
         case EXPRESSION_TYPE_BLOCK: {
             char* block = "  ";
             for (int i = 0; i < e->data.block.statement_count; i++) {
                 char* stmt = compile_statement(ctx, program, &e->data.block.statements[i]);
+                assert(stmt == ctx->arena->last_ptr);
+                ctx->arena->offset = (ctx->arena->data+ctx->arena->offset) - ctx->arena->last_ptr;
                 block = string_arena_format(ctx->arena, "%s\n  %s", block, stmt);
             }
 
             return string_arena_format(ctx->arena, "{%s\n}", block);
         }
-    }
+        case EXPRESSION_TYPE_CALL:
+        case EXPRESSION_TYPE_RETURN:
+        case EXPRESSION_TYPE_CONDITIONAL:
+        case EXPRESSION_TYPE_FOR:
+            return string_arena_format(ctx->arena, "\n// [Not implemented]\n");
+            break;
+        }
 }
 
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s) {

@@ -1,5 +1,10 @@
-#include "compiler.h"
+#include <stddef.h>
+#define ARENA_IMPLEMENTATION
 #define HASHMAP_IMPLEMENTATION
+
+#include "arena.h"
+#include "hashmap.h"
+#include "compiler.h"
 #include <ctype.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -9,7 +14,7 @@
 #include "tokeniser.h"
 #include "ast.h"
 #include "parser.h"
-#include "hashmap.h"
+#include "compiler.h"
 
 typedef struct {
     int length;
@@ -45,6 +50,7 @@ void file_read_result_free(file_read_result_t res) {
 #define MAX_TOKENS 4096
 int main(int argc, char *argv[]) {
     // hashmap_t hash = hashmap_create(sizeof(char*));
+
     // hashmap_insert(&hash, "set", "hello there bing bong");
     // hashmap_insert(&hash, "t", "yes ackualh");
     // printf("naah %s\n", (char*) hashmap_get(&hash, "t"));
@@ -56,7 +62,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         char inp[1024];
         printf("Initialising REPL... Type `exit` to exit\n");
-        parser_t parser = create_parser();
+        parser_t parser = parser_new();
         while (true) {
             printf("> ");
             if (fgets(inp, sizeof(inp), stdin) == NULL) {
@@ -83,6 +89,8 @@ int main(int argc, char *argv[]) {
             parse(&parser, tokens);
             free(tokens);
         }
+
+        parser_destroy(&parser);
         return 0;
     } else if (argc == 3) {
         printf("Compiling...\n");
@@ -110,11 +118,13 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
 
-    parser_t parser = create_parser();
+    parser_t parser = parser_new();
     parse(&parser, tokens);
     compile(parser.program, output_file);
 
+    parser_destroy(&parser);
     free(tokens);
     file_read_result_free(result);
+
     return 0;
 }

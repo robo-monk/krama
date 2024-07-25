@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "arena.h"
 #include "ast.h"
 #include "hashmap.h"
 #include "tokeniser.h"
@@ -9,28 +10,29 @@ void parser_error_print(parser_error_t *error) {
     fprintf(stderr, "PARSER ERROR: %s\n", error->message);
 }
 
-
 void parser_error_create(parser_t *parser, token_t token, const char *format, ...) {
     if (parser->error_idx >= PARSER_MAX_ERROR_COUNT) {
-        for (int i = 0; i < parser->error_idx; i++) {
-            parser_error_print(parser->errors[i]);
-        }
+        parser->error_idx = 0;
 
-        fprintf(stderr, "\nToo many parsing errors.\n");
-        exit(1);
+        // for (int i = 0; i < parser->error_idx; i++) {
+        //     parser_error_print(parser->errors[i]);
+        // }
+
+        // fprintf(stderr, "\nToo many parsing errors.\n");
+        // exit(1);
     }
     va_list args;
     va_start(args, format);
 
-    parser_error_t *error = malloc(sizeof(parser_error_t));
+    // parser_error_t *error = malloc(sizeof(parser_error_t));
+    parser_error_t *error = arena_alloc(&parser->ctx.arena, sizeof(parser_error_t));
 
     // Allocate memory for the message
     int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = malloc(msg_len);
+    error->message = arena_alloc(&parser->ctx.arena, msg_len);
 
     // Format the message
     vsnprintf(error->message, msg_len, format, args);
-
     va_end(args);
 
     error->token = token;
@@ -115,10 +117,10 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
 statement_t parser_parse_statement(parser_t *parser);
 
 expression_t* parser_parse_prefix_expression(parser_t *parser) {
-    expression_t *expr = malloc(sizeof(expression_t));
     // parse prefix
     switch (parser_current(parser).type) {
         case TOKEN_L_BRACE: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_BLOCK;
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
@@ -131,29 +133,34 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             };
             parser_debug(parser, "\nafter while parsing\n");
             parser_eat_and_expect(parser, TOKEN_R_BRACE);
-            break;
+            return expr;
         }
-        case TOKEN_L_PAREN:
+        case TOKEN_L_PAREN: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
             expr = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
-            break;
+            return expr;
+        }
         case TOKEN_LITERAL: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_LITERAL;
             expr->data.literal = parser_parse_literal(parser);
-            break;
+            return expr;
         }
         case TOKEN_PLUS:
         case TOKEN_BANG:
         case TOKEN_MINUS: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_PREFIX;
             expr->data.prefix = (prefix_expression_t) {
                 .operand = parser_eat(parser),
                 .right = parser_parse_expression(parser, PRECEDENCE_PREFIX)
             };
-            break;
+            return expr;
         }
         case TOKEN_IDENTIFIER: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             char* identifier_name = strdup(parser_eat(parser).value.raw_str);
             scope_entry_t *entry = hashmap_get(parser->scope.table, identifier_name);
             if (entry == NULL) {
@@ -165,9 +172,10 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->data.identifier = (identifier_expression_t) {
                 .name = identifier_name
             };
-            break;
+            return expr;
         }
         case TOKEN_DEF: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_debug(parser, "\ntoken def here\n");
             parser_eat(parser);
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -189,18 +197,20 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             // expr->data.identifier = (identifier_expression_t) {
             //     .name = strdup(function_name)
             // };
-            break;
+            return expr;
+        }
+        case TOKEN_RETURN: {
+
         }
         default:
-            parser_debug(parser, "hit NULL case here with token [\n");
-            free(expr);
+            parser_debug(parser, "hit NULL case here with token \n");
             return NULL;
     }
-    return expr;
+    return NULL;
 }
 
 expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
-    expression_t *expr = malloc(sizeof(expression_t));
+
     switch (parser_current(parser).type) {
         case TOKEN_PLUS:
         case TOKEN_MINUS:
@@ -211,6 +221,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
         case TOKEN_GTE:
         case TOKEN_LTE:
         case TOKEN_EQEQ: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_INFIX;
             token_t operand = parser_eat(parser);
             precedence_t precedence = get_precedence(operand.type);
@@ -219,13 +230,11 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
                 .right = parser_parse_expression(parser, precedence),
                 .left = left
             };
-            break;
+            return expr;
         }
         default:
-            free(expr);
             return NULL;
     }
-    return expr;
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence) {
@@ -257,8 +266,11 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
     return expr;
 }
 
-void scope_define_let(scope_t *scope, scope_entry_t entry) {
-    scope_entry_t *ptr = (scope_entry_t*) malloc(sizeof(entry));
+void scope_define_let(parser_t *parser, scope_t *scope, scope_entry_t entry) {
+    // scope_entry_t *ptr = (scope_entry_t*) malloc(sizeof(entry));
+    scope_entry_t *ptr = (scope_entry_t*) arena_alloc(
+        &parser->ctx.arena,
+        sizeof(entry));
     ptr->identifier = entry.identifier;
     hashmap_insert(scope->table, entry.identifier.name, ptr);
 }
@@ -289,7 +301,7 @@ statement_t parser_parse_statement(parser_t *parser) {
                 parser_error_create(parser, current, "Identifier `%s` has already been declared.", idexpr.name);
             }
 
-            scope_define_let(&parser->scope, (scope_entry_t) {
+            scope_define_let(parser, &parser->scope, (scope_entry_t) {
                 .identifier = idexpr
             });
             return (statement_t) {
@@ -327,21 +339,27 @@ void parser_parse(parser_t *parser) {
     }
 }
 
-void free_scope_entry(void* f) {
-    free(f);
-}
-
-parser_t create_parser() {
+parser_t parser_new() {
     return (parser_t) {
         .index = 0,
         .program = program_create(),
         .scope = {
-            .table = hashmap_create(free_scope_entry),
+            .table = hashmap_create(NULL),
             .upper = NULL
         },
-        .error_idx = 0
+        .error_idx = 0,
+        .ctx = (ParserContext) {
+            .arena = arena_new(1024*1024)
+        }
     };
 }
+
+void parser_destroy(parser_t *parser) {
+    printf("\n[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx.arena.offset, parser->ctx.arena.capacity, 100*parser->ctx.arena.offset/parser->ctx.arena.capacity);
+    arena_destroy(&parser->ctx.arena);
+}
+
+
 program_t parse(parser_t *parser, token_t *tokens) {
     parser->tokens = tokens;
     parser->index = 0;

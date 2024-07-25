@@ -1,0 +1,62 @@
+#ifndef ARENA_H
+#define ARENA_H
+
+#include <stdint.h>
+#include <stdlib.h>
+
+#define ALIGNMENT (_Alignof(max_align_t))
+
+typedef struct {
+    void* data;
+    size_t capacity;
+    size_t offset;
+    void* last_ptr;
+} Arena;
+
+Arena arena_new(size_t capacity);
+void* arena_alloc(Arena *arena, size_t size);
+void arena_destroy(Arena *arena);
+
+#ifdef ARENA_IMPLEMENTATION
+
+#include <stdlib.h>
+#include <stdio.h>
+
+static size_t align_size(size_t size) {
+    return (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
+}
+
+Arena arena_new(size_t capacity) {
+    return (Arena) {
+        .data = malloc(capacity),
+        .capacity = capacity,
+        .offset = 0,
+        .last_ptr = 0
+    };
+}
+
+void* arena_alloc(Arena *arena, size_t bytes) {
+    size_t size = align_size(bytes);
+
+    if (arena->offset + size > arena->capacity) {
+        printf("\n arena out of memory, implement resizing or regions...");
+        exit(1);
+    }
+
+    void* ptr = arena->data + arena->offset;
+    arena->offset += size;
+    arena->last_ptr = ptr;
+    return ptr;
+}
+
+void arena_destroy(Arena *arena) {
+    free(arena->data);
+    arena->data = NULL;
+    arena->last_ptr = 0;
+    arena->capacity = 0;
+    arena->offset = 0;
+}
+
+#endif // IMPL
+
+#endif // ARENA_H

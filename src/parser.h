@@ -1,6 +1,7 @@
 #ifndef KRAMA_PARSER_H
 #define KRAMA_PARSER_H
 
+#include "arena.h"
 #include "ast.h"
 #include "tokeniser.h"
 #include "hashmap.h"
@@ -19,6 +20,10 @@ typedef struct {
     token_t token;
 } parser_error_t;
 
+typedef struct {
+    Arena arena;
+} ParserContext;
+
 #define PARSER_MAX_ERROR_COUNT 8
 typedef struct {
     int index;
@@ -27,6 +32,7 @@ typedef struct {
     parser_error_t* errors[PARSER_MAX_ERROR_COUNT];
     unsigned int error_idx;
     scope_t scope;
+    ParserContext ctx;
 } parser_t;
 
 typedef enum {
@@ -42,6 +48,7 @@ typedef enum {
 
 
 void debug_expression(expression_t *expression, int ident);
-parser_t create_parser();
+parser_t parser_new();
+void parser_destroy(parser_t *parser);
 program_t parse(parser_t *parser, token_t *tokens);
 #endif
