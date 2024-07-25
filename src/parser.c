@@ -12,14 +12,13 @@ void parser_error_print(parser_error_t *error) {
 
 void parser_error_create(parser_t *parser, token_t token, const char *format, ...) {
     if (parser->error_idx >= PARSER_MAX_ERROR_COUNT) {
-        parser->error_idx = 0;
 
-        // for (int i = 0; i < parser->error_idx; i++) {
-        //     parser_error_print(parser->errors[i]);
-        // }
+        for (int i = 0; i < parser->error_idx; i++) {
+            parser_error_print(parser->errors[i]);
+        }
 
-        // fprintf(stderr, "\nToo many parsing errors.\n");
-        // exit(1);
+        fprintf(stderr, "\nToo many parsing errors.\n");
+        exit(1);
     }
     va_list args;
     va_start(args, format);
@@ -200,7 +199,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             return expr;
         }
         case TOKEN_RETURN: {
-
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            parser_eat_and_expect(parser, TOKEN_RETURN);
+            parser_debug(parser, "hit RETURN!! \n");
+            expr->type = EXPRESSION_TYPE_RETURN;
+            expr->data.return_exp = (return_expression_t) {
+                .expression = parser_parse_expression(parser, PRECEDENCE_CALL)
+            };
+            return expr;
         }
         default:
             parser_debug(parser, "hit NULL case here with token \n");
@@ -282,11 +288,6 @@ statement_t parser_parse_statement(parser_t *parser) {
     }
 
     switch (current.type) {
-        case TOKEN_SEMICOLON:
-        case TOKEN_NEW_LINE:
-            printf("\n unreachable?\n");
-            exit(1);
-            break;
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -310,7 +311,6 @@ statement_t parser_parse_statement(parser_t *parser) {
                     .identifier = idexpr
                 }
             };
-            break;
         }
         default: {
             expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
@@ -355,7 +355,7 @@ parser_t parser_new() {
 }
 
 void parser_destroy(parser_t *parser) {
-    printf("\n[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx.arena.offset, parser->ctx.arena.capacity, 100*parser->ctx.arena.offset/parser->ctx.arena.capacity);
+    printf("[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx.arena.offset, parser->ctx.arena.capacity, 100*parser->ctx.arena.offset/parser->ctx.arena.capacity);
     arena_destroy(&parser->ctx.arena);
 }
 

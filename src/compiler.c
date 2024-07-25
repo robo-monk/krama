@@ -4,6 +4,7 @@
 #include "stdarg.h"
 #include "tokeniser.h"
 #include <assert.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -14,6 +15,26 @@ c_program_t c_program_new() {
         .header_count = 0,
         .impl_count = 0,
     };
+}
+
+char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
+    assert(overwrite_ptr == arena->last_ptr);
+    size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
+    arena->offset -= last_bytes; // go back
+
+    va_list args;
+    va_start(args, fmt);
+
+    va_list copy;
+    va_copy(copy, args);
+    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
+    char* tempstr = malloc(length * sizeof(char));
+    vsnprintf(tempstr, length, fmt, args);
+    char* str = arena_alloc(arena, length * sizeof(char));
+    strcpy(str, tempstr);
+    va_end(args);
+    free(tempstr);
+    return str;
 }
 
 char* string_arena_format(Arena *arena, const char* fmt, ...) {
@@ -42,7 +63,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
     switch (e->type) {
         case EXPRESSION_TYPE_PREFIX: {
             char *right_expr = compile_expression(ctx, program, e->data.prefix.right);
-            return string_arena_format(ctx->arena,
+            return string_arena_format_overwrite(ctx->arena, right_expr,
                 "%s%s",
                 token_type_to_string(e->data.prefix.operand.type),
                 right_expr
@@ -51,7 +72,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         case EXPRESSION_TYPE_INFIX: {
             char* left_expr = compile_expression(ctx, program, e->data.infix.left);
             char* right_expr = compile_expression(ctx, program, e->data.infix.right);
-            return string_arena_format(ctx->arena,
+            return string_arena_format_overwrite(ctx->arena, right_expr,
                 "%s %s %s",
                 left_expr,
                 token_type_to_string(e->data.prefix.operand.type),
@@ -64,24 +85,22 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_FUNC_DECL:{
             char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
-            return string_arena_format(ctx->arena, "void %s()\n%s", e->data.func_decl.name, fn_body);
+            return string_arena_format_overwrite(ctx->arena, fn_body, "void %s()\n%s", e->data.func_decl.name, fn_body);
         }
         case EXPRESSION_TYPE_BLOCK: {
             char* block = "  ";
             for (int i = 0; i < e->data.block.statement_count; i++) {
                 char* stmt = compile_statement(ctx, program, &e->data.block.statements[i]);
-                assert(stmt == ctx->arena->last_ptr);
-                ctx->arena->offset = (ctx->arena->data+ctx->arena->offset) - ctx->arena->last_ptr;
-                block = string_arena_format(ctx->arena, "%s\n  %s", block, stmt);
+                block = string_arena_format_overwrite(ctx->arena, stmt, "%s\n  %s", block, stmt);
             }
 
-            return string_arena_format(ctx->arena, "{%s\n}", block);
+            return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
         }
         case EXPRESSION_TYPE_CALL:
         case EXPRESSION_TYPE_RETURN:
         case EXPRESSION_TYPE_CONDITIONAL:
         case EXPRESSION_TYPE_FOR:
-            return string_arena_format(ctx->arena, "\n// [Not implemented]\n");
+            return string_arena_format(ctx->arena, "%s", "Not implemented");
             break;
         }
 }
@@ -90,20 +109,18 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
             char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
-            printf("\ntype let exp out:: %s\n", exp);
-            return string_arena_format(ctx->arena, "int %s = %s;",
+            return string_arena_format_overwrite(ctx->arena, exp, "int %s = %s;",
                 s->data.let.identifier.name,
                 exp
             );
         }
         case STATEMENT_TYPE_DEFER:
-            printf("\nDefer statement not implemented!");
-            return NULL;
+            return string_arena_format(ctx->arena, " [Not implemented defer stmt] ");
         case STATEMENT_TYPE_EXPRESSION: {
             char* exp = compile_expression(ctx, program, &s->data.expression);
-            printf("\nexp out:: %s\n", exp);
-            return string_arena_format(
+            return string_arena_format_overwrite(
                     ctx->arena,
+                    exp,
                     "%s;",
                     exp
                 );
@@ -133,5 +150,7 @@ void compile(program_t program, const char* file_out) {
         printf("\n%s\n", cprogram.impls[ii]);
     }
 
+    printf("\n---\n\n");
+    printf("[Compiler Stats] Compiler Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", arena.offset, arena.capacity, 100*arena.offset/arena.capacity);
     arena_destroy(&arena);
 }

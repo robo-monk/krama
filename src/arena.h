@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define ALIGNMENT (_Alignof(max_align_t))
 
@@ -46,6 +47,9 @@ void* arena_alloc(Arena *arena, size_t bytes) {
     void* ptr = arena->data + arena->offset;
     arena->offset += size;
     arena->last_ptr = ptr;
+
+    // assert(arena->data+arena->offset == arena->last_ptr+size);
+    // assert(size == ((arena->data+arena->offset) - arena->last_ptr));
     return ptr;
 }
 

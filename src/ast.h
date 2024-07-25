@@ -21,14 +21,15 @@ typedef enum {
     EXPRESSION_TYPE_LITERAL,
     EXPRESSION_TYPE_IDENTIFIER,
     EXPRESSION_TYPE_FUNC_DECL,
-    EXPRESSION_TYPE_CALL,
     EXPRESSION_TYPE_BLOCK,
     EXPRESSION_TYPE_RETURN,
     EXPRESSION_TYPE_CONDITIONAL,
     EXPRESSION_TYPE_FOR,
+    EXPRESSION_TYPE_CALL,
 } expression_type_t;
 
 typedef struct expression expression_t;
+
 
 typedef struct {
     literal_type_t type;
@@ -39,6 +40,17 @@ typedef struct {
         char* string;
     } data;
 } literal_expression_t;
+
+typedef struct {
+    expression_t *expression;
+} return_expression_t;
+
+typedef struct {
+    expression_t *predicate;
+    expression_t *success_branch;
+    expression_t *fail_branch;
+} conditional_expression_t;
+
 
 typedef struct {
     char* name;
@@ -78,6 +90,8 @@ struct expression {
         identifier_expression_t identifier;
         block_expression_t block;
         func_decl_expression_t func_decl;
+        return_expression_t return_exp;
+        conditional_expression_t conditional;
     } data;
 };
 
