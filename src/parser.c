@@ -160,7 +160,17 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         }
         case TOKEN_IDENTIFIER: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
-            char* identifier_name = strdup(parser_eat(parser).value.raw_str);
+            char* identifier_name = arena_strdup(&parser->ctx.arena, parser_eat(parser).value.raw_str);
+
+            if (parser_current(parser).type == TOKEN_L_PAREN) {
+                parser_eat_and_expect(parser, TOKEN_L_PAREN);
+                // no argument parsing support yet
+                parser_eat_and_expect(parser, TOKEN_R_PAREN);
+                expr->type = EXPRESSION_TYPE_CALL;
+                expr->data.call.identifier_name = identifier_name;
+                return expr;
+            }
+
             scope_entry_t *entry = hashmap_get(parser->scope.table, identifier_name);
             if (entry == NULL) {
                 parser_error_create(parser, parser_current(parser), "identifier `%s` is not declared.", identifier_name);
@@ -190,7 +200,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             // printf("\n table returns: %s \n", entry->identifier.name);
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
-                .name = strdup(function_name),
+                .name = arena_strdup(&parser->ctx.arena, function_name),
                 .value = parser_parse_expression(parser, PRECEDENCE_CALL)
             };
             // expr->data.identifier = (identifier_expression_t) {
@@ -293,7 +303,7 @@ statement_t parser_parse_statement(parser_t *parser) {
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
             identifier_expression_t idexpr = (identifier_expression_t) {
-                .name = strdup(identifier.value.raw_str),
+                .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST)
             };
             scope_entry_t *entry = hashmap_get(parser->scope.table, idexpr.name);

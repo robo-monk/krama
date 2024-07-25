@@ -30,7 +30,6 @@ typedef enum {
 
 typedef struct expression expression_t;
 
-
 typedef struct {
     literal_type_t type;
     union {
@@ -51,7 +50,6 @@ typedef struct {
     expression_t *fail_branch;
 } conditional_expression_t;
 
-
 typedef struct {
     char* name;
     expression_t *value;
@@ -62,6 +60,9 @@ typedef struct {
     expression_t *value;
 } func_decl_expression_t;
 
+typedef struct {
+    char* identifier_name;
+} call_expression_t;
 
 typedef struct {
     token_t operand;
@@ -92,6 +93,7 @@ struct expression {
         func_decl_expression_t func_decl;
         return_expression_t return_exp;
         conditional_expression_t conditional;
+        call_expression_t call;
     } data;
 };
 

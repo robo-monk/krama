@@ -18,11 +18,13 @@ c_program_t c_program_new() {
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
+    printf("\noverwrite ptr: %s\n",overwrite_ptr);
+    printf("\nfmt: %s\n", fmt);
     assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
 
-    va_list args;
+va_list args;
     va_start(args, fmt);
 
     va_list copy;
@@ -96,8 +98,14 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
 
             return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
         }
-        case EXPRESSION_TYPE_CALL:
-        case EXPRESSION_TYPE_RETURN:
+        case EXPRESSION_TYPE_CALL: {
+            return string_arena_format(ctx->arena, "%s()", arena_strdup(ctx->arena, e->data.call.identifier_name));
+        }
+        case EXPRESSION_TYPE_RETURN: {
+            char* ret_exp = compile_expression(ctx, program, e->data.return_exp.expression);
+            if (ret_exp == NULL) return string_arena_format(ctx->arena, "return");
+            return string_arena_format_overwrite(ctx->arena, ret_exp, "return %s", ret_exp);
+        }
         case EXPRESSION_TYPE_CONDITIONAL:
         case EXPRESSION_TYPE_FOR:
             return string_arena_format(ctx->arena, "%s", "Not implemented");

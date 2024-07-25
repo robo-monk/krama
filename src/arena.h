@@ -1,8 +1,8 @@
 #ifndef ARENA_H
 #define ARENA_H
 
-#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #define ALIGNMENT (_Alignof(max_align_t))
@@ -17,6 +17,8 @@ typedef struct {
 Arena arena_new(size_t capacity);
 void* arena_alloc(Arena *arena, size_t size);
 void arena_destroy(Arena *arena);
+
+char* arena_strdup(Arena *arena, const char* s);
 
 #ifdef ARENA_IMPLEMENTATION
 
@@ -59,6 +61,13 @@ void arena_destroy(Arena *arena) {
     arena->last_ptr = 0;
     arena->capacity = 0;
     arena->offset = 0;
+}
+
+
+char* arena_strdup(Arena *arena, const char* s) {
+    size_t len = strlen(s) + 1;
+    char* new = arena_alloc(arena, len);
+    return (char*) memcpy(new, s, len);
 }
 
 #endif // IMPL
