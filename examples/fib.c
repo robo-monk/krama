@@ -1,5 +1,5 @@
 
 
-void hello()
-{  long b = 1 + 5;
+void hello(long a, unsigned int c)
+{  long b = a + 5;
 };

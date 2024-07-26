@@ -102,6 +102,19 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
     return args;
 }
 
+char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program, vector_t *params) {
+    char* args = NULL;
+    for (int i = 0; i < params->count; i++) {
+        identifier_expression_t* expr = vector_get(params, i);
+        if (args == NULL) {
+            args = string_arena_format(ctx->arena, "%s %s", ptype_to_ctype(expr->type), expr->name);
+        } else {
+            args = string_arena_format_overwrite(ctx->arena, args, "%s, %s %s", args, ptype_to_ctype(expr->type), expr->name);
+        }
+    }
+    return args;
+}
+
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e){
 
     if (e == NULL) {
@@ -133,10 +146,12 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         case EXPRESSION_TYPE_IDENTIFIER:
             return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_FUNC_DECL:{
+            char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
             char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
-            return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s()\n%s",
+            return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
                 ptype_to_ctype(e->data.func_decl.type),
                 e->data.func_decl.name,
+                params,
                 fn_body);
         }
         case EXPRESSION_TYPE_BLOCK: {

@@ -31,7 +31,6 @@ typedef struct {
     program_t program;
     parser_error_t* errors[PARSER_MAX_ERROR_COUNT];
     unsigned int error_idx;
-    scope_t scope;
     ParserContext ctx;
 } parser_t;
 
