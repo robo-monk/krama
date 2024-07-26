@@ -98,8 +98,7 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
 }
 
 
-void scope_define_let(parser_t *parser, scope_t *scope, scope_entry_t entry) {
-    // scope_entry_t *ptr = (scope_entry_t*) malloc(sizeof(entry));
+void scope_define_entry(parser_t *parser, scope_t *scope, scope_entry_t entry) {
     scope_entry_t *ptr = (scope_entry_t*) arena_alloc(
         &parser->ctx.arena,
         sizeof(entry));
@@ -107,6 +106,15 @@ void scope_define_let(parser_t *parser, scope_t *scope, scope_entry_t entry) {
     hashmap_insert(scope->table, entry.identifier.name, ptr);
 }
 
+scope_entry_t* scope_get_entry(parser_t* parser, scope_t *scope, char* key) {
+    while (scope != NULL && scope->table != NULL) {
+        scope_entry_t *entry = hashmap_get(scope->table, key);
+        if (entry != NULL) return entry;
+        scope = scope->upper;
+    };
+    printf("\n [could not find variable `%s` ]\n", key);
+    return NULL;
+}
 
 precedence_t get_precedence(token_type_t token_type) {
     switch (token_type) {
@@ -172,7 +180,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
         param->name = identifier.value.raw_str,
         param->type = ptype;
 
-        scope_define_let(parser, scope, (scope_entry_t) {
+        scope_define_entry(parser, scope, (scope_entry_t) {
             .identifier = *param
         });
 
@@ -191,10 +199,16 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expr->type = EXPRESSION_TYPE_BLOCK;
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
+
+            scope_t block_scope = (scope_t) {
+                .table = hashmap_create(NULL),
+                .upper = scope
+            };
+
             while (parser_current(parser).type != TOKEN_R_BRACE) {
                 parser_debug(parser, "\nbefore block parsing\n");
                 block_add_statement(&expr->data.block,
-                    parser_parse_statement(parser, scope)
+                    parser_parse_statement(parser, &block_scope)
                 );
                 parser_debug(parser, "\nafter block parsing\n");
             };
@@ -243,7 +257,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
                 return expr;
             }
 
-            scope_entry_t *entry = hashmap_get(scope->table, identifier_name);
+            scope_entry_t *entry = scope_get_entry(parser, scope, identifier_name);
             if (entry == NULL) {
                 parser_error_create(parser, parser_current(parser), "identifier `%s` is not declared.", identifier_name);
                 break;
@@ -262,13 +276,19 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
             printf("\n function name is %s \n", function_name);
-            scope_entry_t *entry = hashmap_get(scope->table, function_name);
+            scope_entry_t *entry = scope_get_entry(parser, scope, function_name);
             if (entry != NULL) {
                 parser_error_create(parser, parser_current(parser), "function `%s` has already been declared.", function_name);
                 break;
             }
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
-            vector_t params = parser_parse_comma_seperated_params(parser, scope);
+
+            scope_t fn_scope = (scope_t) {
+                .table = hashmap_create(NULL),
+                .upper = scope
+            };
+
+            vector_t params = parser_parse_comma_seperated_params(parser, &fn_scope);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
             ptype_t type = parser_parse_type_hint(parser);
@@ -277,7 +297,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expr->data.func_decl = (func_decl_expression_t) {
                 .params = params,
                 .name = arena_strdup(&parser->ctx.arena, function_name),
-                .value = parser_parse_expression(parser, PRECEDENCE_CALL, scope),
+                .value = parser_parse_expression(parser, PRECEDENCE_CALL, &fn_scope),
                 .type = type
             };
             return expr;
@@ -387,13 +407,13 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope),
                 .type = type
             };
-            scope_entry_t *entry = hashmap_get(scope->table, idexpr.name);
+            scope_entry_t *entry = scope_get_entry(parser, scope, idexpr.name);
 
             if (entry != NULL) {
                 parser_error_create(parser, current, "Identifier `%s` has already been declared.", idexpr.name);
             }
 
-            scope_define_let(parser, scope, (scope_entry_t) {
+            scope_define_entry(parser, scope, (scope_entry_t) {
                 .identifier = idexpr
             });
             return (statement_t) {

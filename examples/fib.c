@@ -1,5 +1,9 @@
 
 
 void hello(long a, unsigned int c)
-{  long b = a + 5;
+{
+  int b = 5902;
+  int result = a + b + c;
 };
+
+int b = 520;

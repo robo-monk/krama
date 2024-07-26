@@ -50,8 +50,8 @@ char* ptype_to_ctype(ptype_t t) {
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
-    printf("\nfmt: [%s]\n", fmt);
+    // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
+    // printf("\nfmt: [%s]\n", fmt);
     assert(overwrite_ptr != NULL);
     assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
@@ -168,7 +168,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             if (block == NULL) {
                 return string_arena_format(ctx->arena, "{}");
             }
-            return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
+            return string_arena_format_overwrite(ctx->arena, block, "{\n%s\n}", block);
         }
         case EXPRESSION_TYPE_CALL: {
             char* args = compile_comma_seperated_exprs(ctx, program, &e->data.call.arguments);
