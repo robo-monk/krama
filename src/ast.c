@@ -131,6 +131,29 @@ void debug_expression(expression_t *expression, int ident) {
         debug_expression(expression->data.func_decl.value, ident+1);
         break;
     }
+    case EXPRESSION_TYPE_CONDITIONAL: {
+        printf("expr IF\n");
+
+        add_tabs(ident);
+        printf("predicate:\n");
+        debug_expression(expression->data.conditional.predicate, ident+1);
+
+        printf("\n");
+
+        add_tabs(ident);
+        printf("success:\n");
+        debug_expression(expression->data.conditional.success_branch, ident+1);
+
+        printf("\n");
+        add_tabs(ident);
+        printf("fail:\n");
+        debug_expression(expression->data.conditional.fail_branch, ident+1);
+        break;
+    }
+    case EXPRESSION_TYPE_RETURN: {
+        printf("expr RETURN\n");
+        debug_expression(expression->data.return_exp.expression, ident+1);
+    }
     default:
         printf("\n not implemented ?? \n");
     }

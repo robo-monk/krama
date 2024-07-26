@@ -52,6 +52,7 @@ char* ptype_to_ctype(ptype_t t) {
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
     // printf("\noverwrite ptr: %s\n",overwrite_ptr);
     // printf("\nfmt: %s\n", fmt);
+    assert(overwrite_ptr != NULL);
     assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
@@ -156,7 +157,19 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             if (ret_exp == NULL) return string_arena_format(ctx->arena, "return");
             return string_arena_format_overwrite(ctx->arena, ret_exp, "return %s", ret_exp);
         }
-        case EXPRESSION_TYPE_CONDITIONAL:
+        case EXPRESSION_TYPE_CONDITIONAL: {
+            char* predicate = compile_expression(ctx, program, e->data.conditional.predicate);
+            char* success_branch = compile_expression(ctx, program, e->data.conditional.success_branch);
+            if (success_branch == NULL) {
+                printf("no success branch\n");
+            }
+            char* stmt = string_arena_format_overwrite(ctx->arena, success_branch, "if (%s) %s", predicate, success_branch);
+            if (e->data.conditional.fail_branch != NULL) {
+                char* fail_branch = compile_expression(ctx, program, e->data.conditional.success_branch);
+                stmt = string_arena_format_overwrite(ctx->arena, fail_branch, "%s else %s", stmt, fail_branch);
+            }
+            return stmt;
+        }
         case EXPRESSION_TYPE_FOR:
             return string_arena_format(ctx->arena, "%s", "Not implemented");
             break;

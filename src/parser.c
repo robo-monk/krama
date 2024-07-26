@@ -247,11 +247,23 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_RETURN: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_RETURN);
-            parser_debug(parser, "hit RETURN!! \n");
             expr->type = EXPRESSION_TYPE_RETURN;
             expr->data.return_exp = (return_expression_t) {
                 .expression = parser_parse_expression(parser, PRECEDENCE_CALL)
             };
+            return expr;
+        }
+        case TOKEN_IF: {
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            parser_eat_and_expect(parser, TOKEN_IF);
+            expr->type = EXPRESSION_TYPE_CONDITIONAL;
+            expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            parser_expect(parser, TOKEN_L_BRACE);
+            expr->data.conditional.success_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            if (parser_current(parser).type == TOKEN_ELSE) {
+                parser_eat_and_expect(parser, TOKEN_ELSE);
+                expr->data.conditional.fail_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            }
             return expr;
         }
         default:
