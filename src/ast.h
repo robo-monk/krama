@@ -57,10 +57,7 @@ typedef struct {
     expression_t *value;
 } identifier_expression_t;
 
-typedef struct {
-    char* name;
-    expression_t *value;
-} func_decl_expression_t;
+typedef identifier_expression_t func_decl_expression_t;
 
 typedef struct {
     char* identifier_name;

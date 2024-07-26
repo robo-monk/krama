@@ -71,6 +71,7 @@ typedef enum {
     PTYPE_F32,
     PTYPE_F16,
     PTYPE_CHAR,
+    PTYPE_VOID,
     PTYPE_UNKNOWN
 } ptype_t;
 

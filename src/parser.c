@@ -120,6 +120,15 @@ precedence_t get_precedence(token_type_t token_type) {
 }
 
 
+ptype_t parser_parse_type_hint(parser_t *parser) {
+    token_t current = parser_current(parser);
+    if (current.type != TOKEN_COLON) return PTYPE_UNKNOWN;
+    parser_eat_and_expect(parser, TOKEN_COLON);
+    token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+    ptype_t primitive = get_primitive_type(type.value.raw_str);
+    return primitive;
+}
+
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
 statement_t parser_parse_statement(parser_t *parser);
 
@@ -136,6 +145,7 @@ vector_t parser_parse_comma_seperated_args(parser_t *parser) {
     parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
     return args;
 }
+
 
 expression_t* parser_parse_prefix_expression(parser_t *parser) {
     // parse prefix
@@ -223,11 +233,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             }
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
-            // printf("\n table returns: %s \n", entry->identifier.name);
+
+            ptype_t type = parser_parse_type_hint(parser);
+
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
                 .name = arena_strdup(&parser->ctx.arena, function_name),
-                .value = parser_parse_expression(parser, PRECEDENCE_CALL)
+                .value = parser_parse_expression(parser, PRECEDENCE_CALL),
+                .type = type
             };
             return expr;
         }
@@ -314,6 +327,8 @@ void scope_define_let(parser_t *parser, scope_t *scope, scope_entry_t entry) {
     hashmap_insert(scope->table, entry.identifier.name, ptr);
 }
 
+
+
 statement_t parser_parse_statement(parser_t *parser) {
     token_t current;
     while (current = parser_current(parser), current.type == TOKEN_NEW_LINE || current.type == TOKEN_SEMICOLON) {
@@ -324,15 +339,14 @@ statement_t parser_parse_statement(parser_t *parser) {
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-            parser_eat_and_expect(parser, TOKEN_COLON);
-            token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-            ptype_t primitive = get_primitive_type(type.value.raw_str);
+            ptype_t type = parser_parse_type_hint(parser);
+
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
 
             identifier_expression_t idexpr = (identifier_expression_t) {
                 .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST),
-                .type = primitive
+                .type = type
             };
             scope_entry_t *entry = hashmap_get(parser->scope.table, idexpr.name);
 

@@ -1,5 +1,11 @@
-def hello() {
+def hello(): i64 {
     let a: i64 = 0;
+
+    if a == 5 {
+        print(problem)
+    }
+
+    return a + 4
 }
 
 hello(1, 2)

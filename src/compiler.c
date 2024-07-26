@@ -41,9 +41,12 @@ char* ptype_to_ctype(ptype_t t) {
         return "float";
     case PTYPE_CHAR:
         return "char";
+    case PTYPE_VOID:
+        return "void";
     case PTYPE_UNKNOWN:
         return "[UNKNOWN]";
     }
+
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
@@ -130,7 +133,10 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_FUNC_DECL:{
             char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
-            return string_arena_format_overwrite(ctx->arena, fn_body, "void %s()\n%s", e->data.func_decl.name, fn_body);
+            return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s()\n%s",
+                ptype_to_ctype(e->data.func_decl.type),
+                e->data.func_decl.name,
+                fn_body);
         }
         case EXPRESSION_TYPE_BLOCK: {
             char* block = "  ";

@@ -26,6 +26,7 @@ const char* primitive_types[] = {
     "f32",
     "f16",
     "char",
+    "void"
 };
 
 const ptype_t primitive_types_enum[] ={
@@ -40,6 +41,7 @@ const ptype_t primitive_types_enum[] ={
     PTYPE_F32,
     PTYPE_F16,
     PTYPE_CHAR,
+    PTYPE_VOID
 };
 
 const token_type_t tokeniser_keyword_token_types[] = {
