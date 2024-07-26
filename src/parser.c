@@ -4,6 +4,7 @@
 #include "hashmap.h"
 #include "tokeniser.h"
 #include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
 
 void parser_error_print(parser_error_t *error) {
@@ -63,12 +64,13 @@ token_t parser_expect(parser_t *parser, token_type_t token_type) {
     return current;
 }
 
-token_t parser_optional_eat(parser_t *parser, token_type_t token_type) {
+bool parser_optional_eat(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
     if (current.type != token_type) {
-        return current;
+        return false;
     }
-    return parser_eat(parser);
+    parser_eat(parser);
+    return true;
 }
 
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
@@ -143,6 +145,27 @@ vector_t parser_parse_comma_seperated_args(parser_t *parser) {
         arg = parser_parse_expression(parser, PRECEDENCE_CALL);
     }
     parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
+    return args;
+}
+
+vector_t parser_parse_comma_seperated_params(parser_t *parser) {
+    vector_t args = vector_new(8, sizeof(expression_t));
+
+    do {
+        token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+        printf("\n--> ");
+        token_debug(identifier);
+        printf("\n---\n");
+
+        ptype_t ptype = parser_parse_type_hint(parser);
+
+        identifier_expression_t *param = arena_alloc(&parser->ctx.arena, sizeof(identifier_expression_t));
+        param->name = identifier.value.raw_str,
+        param->type = ptype;
+
+        vector_push(&args, param);
+    } while (parser_optional_eat(parser, TOKEN_COMMA));
+
     return args;
 }
 
@@ -232,12 +255,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
                 break;
             }
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
+            vector_t params = parser_parse_comma_seperated_params(parser);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
             ptype_t type = parser_parse_type_hint(parser);
 
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
+                // .params = params,
                 .name = arena_strdup(&parser->ctx.arena, function_name),
                 .value = parser_parse_expression(parser, PRECEDENCE_CALL),
                 .type = type

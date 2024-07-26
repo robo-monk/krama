@@ -50,8 +50,8 @@ char* ptype_to_ctype(ptype_t t) {
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    // printf("\noverwrite ptr: %s\n",overwrite_ptr);
-    // printf("\nfmt: %s\n", fmt);
+    printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
+    printf("\nfmt: [%s]\n", fmt);
     assert(overwrite_ptr != NULL);
     assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
@@ -140,12 +140,19 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                 fn_body);
         }
         case EXPRESSION_TYPE_BLOCK: {
-            char* block = "  ";
+            char* block = NULL;
             for (int i = 0; i < e->data.block.statement_count; i++) {
                 char* stmt = compile_statement(ctx, program, &e->data.block.statements[i]);
-                block = string_arena_format_overwrite(ctx->arena, stmt, "%s\n  %s", block, stmt);
+                if (block == NULL) {
+                    block = string_arena_format(ctx->arena, "  %s", stmt);
+                } else {
+                    block = string_arena_format_overwrite(ctx->arena, stmt, "%s\n  %s", block, stmt);
+                }
             }
 
+            if (block == NULL) {
+                return string_arena_format(ctx->arena, "{}");
+            }
             return string_arena_format_overwrite(ctx->arena, block, "{%s\n}", block);
         }
         case EXPRESSION_TYPE_CALL: {
@@ -212,14 +219,21 @@ void compile(program_t program, const char* file_out) {
         cprogram.impls[cprogram.impl_count++] = stmt;
     }
 
-    printf("\n---- %s.c ---- \n", file_out);
-    for (int hi = 0; hi < cprogram.header_count; hi++) {
-        printf("%d\n%s\n", hi, cprogram.headers[hi]);
+    printf("\n---- %s ---- \n", file_out);
+
+    FILE *file_ptr = fopen(file_out, "w");
+    if (file_ptr == NULL) {
+        printf("\n Error creating output `%s` file", file_out);
+        exit(1);
     }
 
-    printf("\n");
+    for (int hi = 0; hi < cprogram.header_count; hi++) {
+        fprintf(file_ptr, "%d\n%s\n", hi, cprogram.headers[hi]);
+    }
+
+    fprintf(file_ptr, "\n");
     for (int ii = 0; ii < cprogram.impl_count; ii++) {
-        printf("\n%s\n", cprogram.impls[ii]);
+        fprintf(file_ptr, "\n%s\n", cprogram.impls[ii]);
     }
 
     printf("\n---\n\n");

@@ -120,7 +120,9 @@ int main(int argc, char *argv[]) {
 
     parser_t parser = parser_new();
     parse(&parser, tokens);
-    compile(parser.program, output_file);
+    if (parser.error_idx == 0) {
+        compile(parser.program, output_file);
+    }
 
     parser_destroy(&parser);
     free(tokens);
