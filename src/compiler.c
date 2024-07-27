@@ -103,6 +103,8 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
 }
 
 char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program, vector_t *params) {
+    if (params->count == 0) return "";
+
     char* args = NULL;
     for (int i = 0; i < params->count; i++) {
         identifier_expression_t* expr = vector_get(params, i);

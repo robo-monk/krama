@@ -112,7 +112,7 @@ scope_entry_t* scope_get_entry(parser_t* parser, scope_t *scope, char* key) {
         if (entry != NULL) return entry;
         scope = scope->upper;
     };
-    printf("\n [could not find variable `%s` ]\n", key);
+    // printf("\n [could not find variable `%s` ]\n", key);
     return NULL;
 }
 
@@ -154,21 +154,22 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope);
 
 vector_t parser_parse_comma_seperated_args(parser_t *parser, scope_t *scope) {
     vector_t args = vector_new(8, sizeof(expression_t));
-    expression_t *arg = parser_parse_expression(parser, PRECEDENCE_CALL, scope);
+    expression_t *arg = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
 
     while (arg != NULL) {
         vector_push(&args, arg);
         if (parser_current(parser).type != TOKEN_COMMA) break;
         parser_eat_and_expect(parser, TOKEN_COMMA);
-        arg = parser_parse_expression(parser, PRECEDENCE_CALL, scope);
+        arg = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
     }
     parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
     return args;
 }
 
 vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
-    vector_t args = vector_new(8, sizeof(expression_t));
+    vector_t args = vector_new(4, sizeof(expression_t));
     do {
+        if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
         token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
         printf("\n--> ");
         token_debug(identifier);
@@ -271,11 +272,11 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
         }
         case TOKEN_DEF: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
-            parser_debug(parser, "\ntoken def here\n");
+            // parser_debug(parser, "\ntoken def here\n");
             parser_eat(parser);
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
-            printf("\n function name is %s \n", function_name);
+            // printf("\n function name is %s \n", function_name);
             scope_entry_t *entry = scope_get_entry(parser, scope, function_name);
             if (entry != NULL) {
                 parser_error_create(parser, parser_current(parser), "function `%s` has already been declared.", function_name);
@@ -382,7 +383,7 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence,
         parser_eat_and_expect(parser, TOKEN_SEMICOLON);
     }
     if (parser_current(parser).type == TOKEN_NEW_LINE) {
-        printf("\n EAT NEW LINE AFTER EXPR\n");
+        // printf("\n EAT NEW LINE AFTER EXPR\n");
         parser_eat_and_expect(parser, TOKEN_NEW_LINE);
     }
     return expr;

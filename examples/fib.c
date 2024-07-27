@@ -1,9 +1,14 @@
 
 
-void hello(long a, unsigned int c)
+unsigned int factorial(unsigned int number)
 {
-  int b = 5902;
-  int result = a + b + c;
+  if (number < 1) {
+  return 1;
+};
+  return number * factorial(number - 1);
 };
 
-int b = 520;
+int main()
+{
+  unsigned int result = factorial(12);
+};

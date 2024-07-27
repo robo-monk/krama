@@ -1,7 +1,11 @@
-def hello(a: i64, c: u32): void {
-    let b: i32 = 5902;
-    let result: i32 = a + b + c;
+def factorial(number: u32): u32 {
+    if number < 1 {
+        return 1
+    }
+
+    return number * factorial(number - 1)
 }
 
-
-let b: i32 = 520;
+def main(): i32 {
+    let result: u32 = factorial(12);
+}
