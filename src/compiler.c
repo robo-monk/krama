@@ -45,6 +45,8 @@ char* ptype_to_ctype(ptype_t t) {
         return "void";
     case PTYPE_UNKNOWN:
         return "[UNKNOWN]";
+    case PTYPE_ANY:
+        return "void*";
     case PTYPE_BOOL:
         return "int";
     }
@@ -58,7 +60,7 @@ char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, con
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
 
-va_list args;
+    va_list args;
     va_start(args, fmt);
 
     va_list copy;
@@ -94,6 +96,8 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
     char* args = NULL;
     for (int i = 0; i < args_vector->count; i++) {
         char* expr = compile_expression(ctx, program, vector_get(args_vector, i));
+        expression_t* e = vector_get(args_vector, i);
+        printf("--> |EXPR| %d\n", e->type);
         if (args == NULL) {
             args = expr;
         } else {
@@ -145,18 +149,37 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                 right_expr
             );
         }
-        case EXPRESSION_TYPE_LITERAL:
-            return string_arena_format(ctx->arena, "%ld", e->data.literal.data.i64);
+        case EXPRESSION_TYPE_LITERAL: {
+            switch (e->data.literal.type) {
+                case LITERAL_TYPE_I64:
+                    return string_arena_format(ctx->arena, "%ld", e->data.literal.data.i64);
+                case LITERAL_TYPE_F64:
+                    return string_arena_format(ctx->arena, "%lf", e->data.literal.data.f64);
+                case LITERAL_TYPE_CHARACTER:
+                    return string_arena_format(ctx->arena, "%c", e->data.literal.data.character);
+                case LITERAL_TYPE_STRING:
+                    // return  e->data.literal.data.string;
+                    return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
+            }
+        }
         case EXPRESSION_TYPE_IDENTIFIER:
             return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
         case EXPRESSION_TYPE_FUNC_DECL:{
             char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
-            char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
-            return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
-                ptype_to_ctype(e->data.func_decl.type),
-                e->data.func_decl.name,
-                params,
-                fn_body);
+            if (e->data.func_decl.value != NULL) {
+                char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
+                return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
+                    ptype_to_ctype(e->data.func_decl.type),
+                    e->data.func_decl.name,
+                    params,
+                    fn_body);
+            } else {
+                // return "\0";
+                return string_arena_format(ctx->arena, "// external %s %s(%s)",
+                    ptype_to_ctype(e->data.func_decl.type),
+                    e->data.func_decl.name,
+                    params);
+            }
         }
         case EXPRESSION_TYPE_BLOCK: {
             char* block = NULL;
@@ -176,6 +199,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         }
         case EXPRESSION_TYPE_CALL: {
             char* args = compile_comma_seperated_exprs(ctx, program, &e->data.call.arguments);
+            printf("\nARGS ARE %s\n", args);
             return string_arena_format(ctx->arena, "%s(%s)", arena_strdup(ctx->arena, e->data.call.identifier_name), args);
         }
         case EXPRESSION_TYPE_RETURN: {
@@ -243,6 +267,8 @@ void compile(program_t program, const char* file_out) {
         cprogram.impls[cprogram.impl_count++] = stmt;
     }
 
+    cprogram.headers[cprogram.header_count++] = "#include <stdio.h>";
+
     printf("\n---- %s ---- \n", file_out);
 
     FILE *file_ptr = fopen(file_out, "w");
@@ -251,8 +277,8 @@ void compile(program_t program, const char* file_out) {
         exit(1);
     }
 
-    for (int hi = 0; hi < cprogram.header_count; hi++) {
-        fprintf(file_ptr, "%d\n%s\n", hi, cprogram.headers[hi]);
+    for (int i = 0; i < cprogram.header_count; i++) {
+        fprintf(file_ptr, "%s\n", cprogram.headers[i]);
     }
 
     fprintf(file_ptr, "\n");

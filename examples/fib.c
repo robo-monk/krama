@@ -1,6 +1,7 @@
+#include <stdio.h>
 
 
-int a = 5;
+// external void printf(void* n0, void* n1);
 
 unsigned long factorial(unsigned long n)
 {
@@ -10,7 +11,11 @@ unsigned long factorial(unsigned long n)
   return factorial(n - 1) * n;
 };
 
-void main(long ab)
+int main(void)
 {
-  factorial(5);
+  int result = factorial(5);
+  int b = result + result;
+  result;
+  printf(result,result,"%s",result);
+  return 1;
 };

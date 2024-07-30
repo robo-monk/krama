@@ -45,7 +45,7 @@ void analyser_error_create(analyser_t *analyser, const char *format, ...) {
 
 bool expect_type(analyser_t *analyser, ptype_t t, ptype_t expected, char* msg) {
     if (t != expected) {
-        analyser_error_create(analyser, "%s. Expected type '%s' but got type %s", msg, primitive_type_to_string(expected), primitive_type_to_string(t));
+        analyser_error_create(analyser, "%s. Expected type '%s' but got type %s", msg, primitive_type_to_str(expected), primitive_type_to_str(t));
         return false;
     }
     return true;
@@ -54,8 +54,8 @@ bool expect_type(analyser_t *analyser, ptype_t t, ptype_t expected, char* msg) {
 ptype_t annotate_statement(analyser_t *an, statement_t *s);
 
 ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
-    printf("\n---> hello? %d\n", expression->type);
-    debug_expression(expression, 5);
+    // printf("\n---> hello? %d\n", expression->type);
+    // debug_expression(expression, 5);
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
     // }
@@ -69,9 +69,9 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
         case EXPRESSION_TYPE_INFIX: {
             printf("-> here we go\n");
             ptype_t ltype = annotate_expression(an, expression->data.infix.left);
-            printf("\nLtype is %s\n", primitive_type_to_string(ltype));
+            printf("\nLtype is %s\n", primitive_type_to_str(ltype));
             ptype_t rtype = annotate_expression(an, expression->data.infix.right);
-            printf("\nRype is %s\n", primitive_type_to_string(rtype));
+            printf("\nRype is %s\n", primitive_type_to_str(rtype));
             expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
             expression->resultType = ltype;
             return ltype;
@@ -113,6 +113,8 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
         case EXPRESSION_TYPE_CALL:
         break;
     }
+
+    return PTYPE_UNKNOWN;
 };
 
 ptype_t annotate_statement(analyser_t *an, statement_t *s) {

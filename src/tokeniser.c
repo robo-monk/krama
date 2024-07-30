@@ -1,5 +1,7 @@
 #include "tokeniser.h"
+#include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 const char* tokeniser_keywords[] = {
     "defer",
@@ -12,6 +14,7 @@ const char* tokeniser_keywords[] = {
     "for",
     "loop",
     "type",
+    "extern",
 };
 
 
@@ -26,6 +29,7 @@ const token_type_t tokeniser_keyword_token_types[] = {
     TOKEN_FOR,
     TOKEN_LOOP,
     TOKEN_TYPE,
+    TOKEN_EXTERN
 };
 
 
@@ -42,7 +46,8 @@ const char* primitive_types[] = {
     "f16",
     "char",
     "void",
-    "bool"
+    "bool",
+    "any"
 };
 
 const ptype_t primitive_types_enum[] ={
@@ -58,7 +63,8 @@ const ptype_t primitive_types_enum[] ={
     PTYPE_F16,
     PTYPE_CHAR,
     PTYPE_VOID,
-    PTYPE_BOOL
+    PTYPE_BOOL,
+    PTYPE_ANY
 };
 
 
@@ -143,7 +149,7 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_FOR:          return "FOR";
         case TOKEN_LOOP:         return "LOOP";
         case TOKEN_TYPE:         return "TYPE";
-        case TOKEN_PRIMITIVE_TYPE:    return "PRIMITIVE TYPE";
+        case TOKEN_EXTERN:       return "EXTERN";
         default:                 return "INVALID_TOKEN_TYPE";
         break;
         }
@@ -165,7 +171,7 @@ void token_debug(token_t token) {
     }
 }
 
-ptype_t get_primitive_type(char* buffer) {
+ptype_t str_to_primitive_type(char* buffer) {
     for (int i = 0; i < ARRAY_SIZE(primitive_types); i++) {
         if (strcmp(primitive_types[i], buffer) == 0) {
             return primitive_types_enum[i];
@@ -174,7 +180,7 @@ ptype_t get_primitive_type(char* buffer) {
     return PTYPE_UNKNOWN;
 }
 
-const char* primitive_type_to_string(ptype_t t) {
+const char* primitive_type_to_str(ptype_t t) {
     for (int i = 0; i < ARRAY_SIZE(primitive_types_enum); i++) {
         if (primitive_types_enum[i] == t) {
             return primitive_types[i];
@@ -192,13 +198,50 @@ token_type_t get_buffer_token_type(char* buffer) {
         return TOKEN_LITERAL;
     }
 
-    for (int i = 0; i < ARRAY_SIZE(tokeniser_keywords); i++) {
-        if (strcmp(tokeniser_keywords[i], buffer) == 0) {
-            return tokeniser_keyword_token_types[i];
-        }
+    return TOKEN_IDENTIFIER;
+}
+
+token_t flush_buffer_to_token(char* buffer, int buffer_len) {
+    const char first = buffer[0];
+    printf("\nCOMMITING BIUFFER:::: (%s) as....", buffer);
+
+    bool is_str = false;
+    bool is_char = false;
+    bool is_num = false;
+
+    if (first == '"') {
+        is_str = true;
+        assert(buffer[buffer_len-1] == '"');
+        printf("STRING");
+    } else if (first == '\'') {
+        is_char = true;
+        assert(buffer[2] == '\'');
+        assert(buffer_len == 3);
+        printf("CHAR");
+    } else if (isdigit(first)) {
+        is_num = true;
+        printf("NUM");
+        // TODO add check that the number is valid here
+    } else {
+        printf("IDENTIFIER / kewyord");
     }
 
-    return TOKEN_IDENTIFIER;
+    for (int i = 0; i < ARRAY_SIZE(tokeniser_keywords); i++) {
+        if (strcmp(tokeniser_keywords[i], buffer) == 0) {
+            return (token_t) {
+                .type = tokeniser_keyword_token_types[i],
+                .value = NULL
+            };
+        }
+    }
+    token_type_t type = (is_num || is_str || is_char) ? TOKEN_LITERAL : TOKEN_IDENTIFIER;
+    return (token_t) {
+        .type = type,
+        .value = {
+            // memory leak? use arena
+            .raw_str = strdup(buffer)
+        }
+    };
 }
 
 #define TOKENISER_BUFFER_SIZE 1024
@@ -223,8 +266,9 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
                 // commit buffer
                 if (buffer_index > 0) {
                     buffer[buffer_index] = '\0';
-                    token_type_t type = get_buffer_token_type(buffer);
-                    tokens[token_index++] = token_new_from_buffer(type, i, buffer, buffer_index);
+                    token_t token = flush_buffer_to_token(buffer, buffer_index);
+                    token.position = i;
+                    tokens[token_index++] = token;
                     buffer_index = 0;
                 }
                 break;
@@ -271,8 +315,9 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
                 // commit buffer
                 if (buffer_index > 0) {
                     buffer[buffer_index] = '\0';
-                    token_type_t type = get_buffer_token_type(buffer);
-                    tokens[token_index++] = token_new_from_buffer(type, i, buffer, buffer_index);
+                    token_t token = flush_buffer_to_token(buffer, buffer_index);
+                    token.position = i;
+                    tokens[token_index++] = token;
                     buffer_index = 0;
                 }
 

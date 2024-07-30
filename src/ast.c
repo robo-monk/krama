@@ -153,9 +153,21 @@ void debug_expression(expression_t *expression, int ident) {
     case EXPRESSION_TYPE_RETURN: {
         printf("expr RETURN\n");
         debug_expression(expression->data.return_exp.expression, ident+1);
+        break;
     }
-    default:
-        printf("\n not implemented ?? \n");
+    case EXPRESSION_TYPE_FOR:
+        printf("expr FOR\n");
+        break;
+    case EXPRESSION_TYPE_CALL: {
+        printf("expr CALL '%s' \n", expression->data.call.identifier_name);
+        for (int i = 0; i < expression->data.call.arguments.count; i++) {
+            expression_t* e = vector_get(&expression->data.call.arguments, i);
+            // add_tabs(ident+1);
+            debug_expression(e, ident+1);
+            printf("\n");
+        }
+        break;
+    }
     }
 }
 

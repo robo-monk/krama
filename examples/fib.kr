@@ -1,13 +1,18 @@
-let a = 5
+extern fn void printf(any n0, any n1);
 
 fn u64 factorial(u64 n) {
     if n < 1 {
         return 1
     }
-    return factorial(n-1) * n
+    return factorial(n - 1) * n
 }
 
 
-fn void main(i64 ab) {
-    factorial(5)
+fn i32 main() {
+    let result = factorial(5)
+    let b = result + result;
+    result;
+    printf(result, result, "%s", result)
+
+    return 1
 }

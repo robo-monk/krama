@@ -54,8 +54,7 @@ typedef enum {
     TOKEN_MUT,
     TOKEN_UNKNOWN,
     TOKEN_TYPE,
-    TOKEN_PRIMITIVE_TYPE,
-
+    TOKEN_EXTERN,
     TOKEN_EOF,
 } token_type_t;
 
@@ -73,7 +72,8 @@ typedef enum {
     PTYPE_CHAR,
     PTYPE_VOID,
     PTYPE_UNKNOWN,
-    PTYPE_BOOL
+    PTYPE_BOOL,
+    PTYPE_ANY
 } ptype_t;
 
 typedef union {
@@ -91,7 +91,7 @@ typedef struct {
 int tokenise(const char* data, int data_length, token_t* tokens);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
-ptype_t get_primitive_type(char* buffer);
-const char* primitive_type_to_string(ptype_t t);
+ptype_t str_to_primitive_type(char* buffer);
+const char* primitive_type_to_str(ptype_t t);
 
 #endif

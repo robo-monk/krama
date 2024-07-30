@@ -89,15 +89,23 @@ token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
 
 literal_expression_t parser_parse_literal(parser_t *parser) {
     token_t current = parser_eat_and_expect(parser, TOKEN_LITERAL);
-
-    if (current.value.raw_str[0] == '\'' && current.value.raw_str[2]=='\'') {
+    const char first = current.value.raw_str[0];
+    if (first == '\'') {
         return (literal_expression_t) {
             .type = LITERAL_TYPE_CHARACTER,
             .data = {
                 .character = current.value.raw_str[1]
             }
         };
+    } else if (first == '"') {
+        return (literal_expression_t) {
+            .type = LITERAL_TYPE_STRING,
+            .data = {
+                .string = arena_strdup(&parser->ctx.arena, current.value.raw_str)
+            }
+        };
     }
+
     return (literal_expression_t) {
         .type = LITERAL_TYPE_I64,
         .data = {
@@ -155,7 +163,7 @@ ptype_t parser_parse_type_hint(parser_t *parser) {
     // if (current.type != TOKEN_COLON) return PTYPE_UNKNOWN;
     // parser_eat_and_expect(parser, TOKEN_COLON);
 
-    ptype_t primitive = get_primitive_type(current.value.raw_str);
+    ptype_t primitive = str_to_primitive_type(current.value.raw_str);
     if (primitive != PTYPE_UNKNOWN) {
         token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
     }
@@ -173,6 +181,7 @@ vector_t parser_parse_comma_seperated_args(parser_t *parser, scope_t *scope) {
         vector_push(&args, arg);
         if (parser_current(parser).type != TOKEN_COMMA) break;
         parser_eat_and_expect(parser, TOKEN_COMMA);
+        parser_debug(parser, "here\n");
         arg = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
     }
     parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
@@ -180,7 +189,7 @@ vector_t parser_parse_comma_seperated_args(parser_t *parser, scope_t *scope) {
 }
 
 vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
-    vector_t args = vector_new(4, sizeof(expression_t));
+    vector_t args = vector_new(8, sizeof(expression_t));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
         ptype_t ptype = parser_parse_type_hint(parser);
@@ -200,9 +209,11 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
         param->name = identifier.value.raw_str,
         param->type = ptype;
 
-        scope_define_entry(parser, scope, (scope_entry_t) {
-            .identifier = *param
-        });
+        if (scope != NULL) {
+            scope_define_entry(parser, scope, (scope_entry_t) {
+                .identifier = *param
+            });
+        }
 
         vector_push(&args, param);
     } while (parser_optional_eat(parser, TOKEN_COMMA));
@@ -226,13 +237,13 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             };
 
             while (parser_current(parser).type != TOKEN_R_BRACE) {
-                parser_debug(parser, "\nbefore block parsing\n");
+                // parser_debug(parser, "\nbefore block parsing\n");
                 block_add_statement(&expr->data.block,
                     parser_parse_statement(parser, &block_scope)
                 );
-                parser_debug(parser, "\nafter block parsing\n");
+                // parser_debug(parser, "\nafter block parsing\n");
             };
-            parser_debug(parser, "\nafter while parsing\n");
+            // parser_debug(parser, "\nafter while parsing\n");
             parser_eat_and_expect(parser, TOKEN_R_BRACE);
             return expr;
         }
@@ -282,7 +293,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
                 parser_error_create(parser, parser_current(parser), "identifier `%s` is not declared.", identifier_name);
                 break;
             }
-            printf("\n table returns: %s \n", entry->identifier.name);
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
             expr->data.identifier = (identifier_expression_t) {
                 .name = identifier_name,
@@ -445,6 +455,32 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
                 }
             };
         }
+        case TOKEN_EXTERN: {
+            parser_eat_and_expect(parser, TOKEN_EXTERN);
+            parser_eat_and_expect(parser, TOKEN_FN); // only fn can be external
+            ptype_t type = parser_parse_type_hint(parser);
+            if (type == PTYPE_UNKNOWN) {
+                parser_error_create(parser, parser_current(parser), "External functional need to define return type");
+            }
+            token_t fn_identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+
+            parser_eat_and_expect(parser, TOKEN_L_PAREN);
+            vector_t params = parser_parse_comma_seperated_params(parser, NULL);
+            parser_eat_and_expect(parser, TOKEN_R_PAREN);
+
+            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expr->type = EXPRESSION_TYPE_FUNC_DECL;
+            expr->data.func_decl = (func_decl_expression_t) {
+                .params = params,
+                .name = arena_strdup(&parser->ctx.arena,  fn_identifier.value.raw_str),
+                .value = NULL,
+                .type = type
+            };
+            return (statement_t) {
+                .type = STATEMENT_TYPE_EXPRESSION,
+                .data.expression = *expr
+            };
+        }
         default: {
             expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
 
@@ -473,7 +509,7 @@ void parser_parse(parser_t *parser) {
 
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
         program_add_statement(&parser->program, parser_parse_statement(parser, &scope));
-        parser_debug(parser, "---- after adding statement ---");
+        // parser_debug(parser, "---- after adding statement ---");
     }
 }
 
