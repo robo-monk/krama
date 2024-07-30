@@ -230,7 +230,6 @@ token_t flush_buffer_to_token(char* buffer, int buffer_len) {
         if (strcmp(tokeniser_keywords[i], buffer) == 0) {
             return (token_t) {
                 .type = tokeniser_keyword_token_types[i],
-                .value = NULL
             };
         }
     }

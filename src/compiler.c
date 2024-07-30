@@ -97,7 +97,6 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
     for (int i = 0; i < args_vector->count; i++) {
         char* expr = compile_expression(ctx, program, vector_get(args_vector, i));
         expression_t* e = vector_get(args_vector, i);
-        printf("--> |EXPR| %d\n", e->type);
         if (args == NULL) {
             args = expr;
         } else {

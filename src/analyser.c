@@ -41,6 +41,8 @@ void analyser_error_create(analyser_t *analyser, const char *format, ...) {
 
     // error->token = token;
     analyser->errors[analyser->error_idx++] = error;
+
+    printf("\n(!) ANALYSER ERROR: %s\n", error->message);
 }
 
 bool expect_type(analyser_t *analyser, ptype_t t, ptype_t expected, char* msg) {
@@ -52,22 +54,28 @@ bool expect_type(analyser_t *analyser, ptype_t t, ptype_t expected, char* msg) {
 }
 
 ptype_t annotate_statement(analyser_t *an, statement_t *s);
+ptype_t annotate_block(analyser_t *an, block_expression_t *block) {
+    return annotate_statement(an, &block->statements[
+        block->statement_count-1
+    ]);
+}
 
 ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
-    // printf("\n---> hello? %d\n", expression->type);
-    // debug_expression(expression, 5);
+    printf("\n---\n");
+    debug_expression(expression, 0);
+    printf("\n---\n");
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
     // }
 
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
-            ptype_t ltype = annotate_expression(an, expression->data.infix.left);
+            ptype_t ltype = annotate_expression(an, expression->data.prefix.right);
             expression->resultType = ltype;
             return ltype;
         }
         case EXPRESSION_TYPE_INFIX: {
-            printf("-> here we go\n");
+            debug_expression(expression, 2);
             ptype_t ltype = annotate_expression(an, expression->data.infix.left);
             printf("\nLtype is %s\n", primitive_type_to_str(ltype));
             ptype_t rtype = annotate_expression(an, expression->data.infix.right);
@@ -90,14 +98,33 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
         case EXPRESSION_TYPE_IDENTIFIER: {
             return expression->data.identifier.type;
         }
-        case EXPRESSION_TYPE_FUNC_DECL:
-            break;
+        case EXPRESSION_TYPE_FUNC_DECL: {
+
+            if (expression->data.func_decl.value == NULL) {
+                return expression->data.func_decl.type;
+            }
+
+            ptype_t type_hint = expression->data.func_decl.type;
+            ptype_t inferred_type = annotate_expression(an, expression->data.func_decl.value);
+            if (type_hint == PTYPE_UNKNOWN) {
+                type_hint = inferred_type;
+                expression->data.func_decl.type = type_hint;
+            }
+
+            if (inferred_type == PTYPE_UNKNOWN && type_hint == PTYPE_UNKNOWN) {
+                analyser_error_create(an, "Type hint for this function is neeed \n");
+            }
+
+            expect_type(an, inferred_type, type_hint, "Function does not return expected type in all paths");
+            printf("After: type_hint = %d, expression->data.func_decl.type = %d\n",
+                   type_hint, expression->data.func_decl.type);
+            return inferred_type;
+        }
         case EXPRESSION_TYPE_BLOCK: {
-            return annotate_statement(an, &expression->data.block.statements[
-                expression->data.block.statement_count-1
-            ]);
+            return annotate_block(an, &expression->data.block);
         }
         case EXPRESSION_TYPE_RETURN:
+            return annotate_expression(an, expression->data.return_exp.expression);
         case EXPRESSION_TYPE_CONDITIONAL: {
             ptype_t predicate_type = annotate_expression(an, expression->data.conditional.predicate);
             expect_type(an, predicate_type, PTYPE_BOOL, "Conditional predicate should be of the bool type");
@@ -110,7 +137,11 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression) {
             return sbranch_type;
         }
         case EXPRESSION_TYPE_FOR:
-        case EXPRESSION_TYPE_CALL:
+        case EXPRESSION_TYPE_CALL: {
+            return PTYPE_UNKNOWN;
+            // TODO use vtable
+            // return annotate_block(an, expression->data.call.);
+        }
         break;
     }
 
@@ -157,6 +188,7 @@ void analyse_program(program_t *program) {
     for (int i = 0; i < program->statement_count; i++) {
         statement_t s = program->statements[i];
         annotate_statement(&a, &s);
+        program->statements[i] = s;
     }
 
     if (a.error_idx > 0) {
