@@ -1,3 +1,9 @@
+let a = 590390;
+
 fn add(u64 a, u64 b) {
     return a
+}
+
+fn main() {
+    return 0
 }

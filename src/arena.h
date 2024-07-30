@@ -120,12 +120,14 @@ void vector_push(vector_t *v, const void* e) {
 }
 
 void vector_push_ptr(vector_t *v, const void* ptr) {
+    assert(v->element_size == sizeof(void*));
+
     if (v->capacity == v->count) {
         v->capacity *= 2;
         v->data = realloc(v->data, v->capacity);
     }
-    int i = v->element_size*(v->count++);
-    ((size_t*) v->data)[i] = (size_t) ptr;
+
+    (((size_t*) v->data))[v->count++] = (size_t) ptr;
 }
 
 void vector_free(vector_t *v) {

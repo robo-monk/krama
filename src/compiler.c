@@ -259,19 +259,17 @@ void compile(program_t program, const char* file_out) {
     };
 
     c_program_t cprogram = c_program_new();
-
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
 
     for (int i = 0; i < program.statements.count; i++) {
-        // char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
         char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
         vector_push_ptr(&cprogram.impls, stmt);
-        printf("\n[%s]\n", stmt);
     }
 
 
     printf("\n---- %s ---- \n", file_out);
     FILE *file_ptr = fopen(file_out, "w");
+
     if (file_ptr == NULL) {
         printf("\n Error creating output `%s` file", file_out);
         exit(1);
@@ -288,5 +286,8 @@ void compile(program_t program, const char* file_out) {
 
     printf("\n---\n\n");
     printf("[Compiler Stats] Compiler Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", arena.offset, arena.capacity, 100*arena.offset/arena.capacity);
+
+    vector_free(&cprogram.impls);
+    vector_free(&cprogram.headers);
     arena_destroy(&arena);
 }

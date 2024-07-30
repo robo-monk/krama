@@ -424,8 +424,8 @@ vector_t tokenise2(const char* data, int data_length) {
     }
 
     token_t eof = (token_t){.type = TOKEN_EOF};
-    vector_push(&t.tokens, &eof);
 
+    vector_push(&t.tokens, &eof);
     free(t.buffer);
     return t.tokens;
 }
