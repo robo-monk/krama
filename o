@@ -1,0 +1,7 @@
+
+
+int result = 5;
+
+char ch = 0;
+
+int a = result + ch;

@@ -55,7 +55,6 @@ typedef struct {
     char* name;
     ptype_t type;
     expression_t *value;
-
 } identifier_expression_t;
 
 typedef struct {
@@ -90,6 +89,7 @@ typedef struct {
 
 struct expression {
     expression_type_t type;
+    ptype_t resultType;
     union {
         infix_expression_t infix;
         prefix_expression_t prefix;

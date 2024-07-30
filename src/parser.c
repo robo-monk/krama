@@ -89,6 +89,15 @@ token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
 
 literal_expression_t parser_parse_literal(parser_t *parser) {
     token_t current = parser_eat_and_expect(parser, TOKEN_LITERAL);
+
+    if (current.value.raw_str[0] == '\'' && current.value.raw_str[2]=='\'') {
+        return (literal_expression_t) {
+            .type = LITERAL_TYPE_CHARACTER,
+            .data = {
+                .character = current.value.raw_str[1]
+            }
+        };
+    }
     return (literal_expression_t) {
         .type = LITERAL_TYPE_I64,
         .data = {
@@ -142,10 +151,14 @@ precedence_t get_precedence(token_type_t token_type) {
 
 ptype_t parser_parse_type_hint(parser_t *parser) {
     token_t current = parser_current(parser);
-    if (current.type != TOKEN_COLON) return PTYPE_UNKNOWN;
-    parser_eat_and_expect(parser, TOKEN_COLON);
-    token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-    ptype_t primitive = get_primitive_type(type.value.raw_str);
+
+    // if (current.type != TOKEN_COLON) return PTYPE_UNKNOWN;
+    // parser_eat_and_expect(parser, TOKEN_COLON);
+
+    ptype_t primitive = get_primitive_type(current.value.raw_str);
+    if (primitive != PTYPE_UNKNOWN) {
+        token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+    }
     return primitive;
 }
 
@@ -170,12 +183,18 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
     vector_t args = vector_new(4, sizeof(expression_t));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
-        token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-        printf("\n--> ");
-        token_debug(identifier);
-        printf("\n---\n");
-
         ptype_t ptype = parser_parse_type_hint(parser);
+
+        if (ptype == PTYPE_UNKNOWN) {
+            parser_error_create(parser, parser_current(parser), "Unrecognised type `%s`", parser_current(parser).value.raw_str);
+            parser_eat(parser);
+        }
+
+        token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+        // printf("\n--> ");
+        // token_debug(identifier);
+        // printf("\n---\n");
+
 
         identifier_expression_t *param = arena_alloc(&parser->ctx.arena, sizeof(identifier_expression_t));
         param->name = identifier.value.raw_str,
@@ -266,14 +285,16 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             printf("\n table returns: %s \n", entry->identifier.name);
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
             expr->data.identifier = (identifier_expression_t) {
-                .name = identifier_name
+                .name = identifier_name,
+                .type = entry->identifier.type
             };
             return expr;
         }
-        case TOKEN_DEF: {
+        case TOKEN_FN: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
-            // parser_debug(parser, "\ntoken def here\n");
             parser_eat(parser);
+            ptype_t type = parser_parse_type_hint(parser);
+
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
             // printf("\n function name is %s \n", function_name);
@@ -292,7 +313,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             vector_t params = parser_parse_comma_seperated_params(parser, &fn_scope);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
-            ptype_t type = parser_parse_type_hint(parser);
 
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
@@ -377,9 +397,10 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence,
         if (infix_expr == NULL) return expr;
         expr = infix_expr;
     }
-    parser_debug(parser, "\nafter expression parsing: ");
+
+    // parser_debug(parser, "\nafter expression parsing: ");
     if (parser_current(parser).type == TOKEN_SEMICOLON) {
-        printf("\n EAT SEMIC COLON AFTER EXPR\n");
+        // printf("\n EAT SEMIC COLON AFTER EXPR\n");
         parser_eat_and_expect(parser, TOKEN_SEMICOLON);
     }
     if (parser_current(parser).type == TOKEN_NEW_LINE) {
@@ -398,8 +419,8 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
     switch (current.type) {
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
-            token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             ptype_t type = parser_parse_type_hint(parser);
+            token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
 
@@ -438,7 +459,7 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
             };
         }
     }
-    printf("\nUnrecoverable error\n");
+    parser_debug(parser, "failed at this token. case not covered");
     exit(0);
 }
 

@@ -2,6 +2,7 @@
 #define ARENA_IMPLEMENTATION
 #define HASHMAP_IMPLEMENTATION
 
+#include "analyser.h"
 #include "arena.h"
 #include "hashmap.h"
 #include "compiler.h"
@@ -120,8 +121,12 @@ int main(int argc, char *argv[]) {
 
     parser_t parser = parser_new();
     parse(&parser, tokens);
+    program_t p = parser.program;
+
+    analyse_program(&p);
+
     if (parser.error_idx == 0) {
-        compile(parser.program, output_file);
+        compile(p, output_file);
     }
 
     parser_destroy(&parser);

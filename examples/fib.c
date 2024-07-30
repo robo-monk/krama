@@ -1,14 +1,16 @@
 
 
-unsigned int factorial(unsigned int number)
+int a = 5;
+
+unsigned long factorial(unsigned long n)
 {
-  if (number < 1) {
+  if (n < 1) {
   return 1;
 };
-  return number * factorial(number - 1);
+  return factorial(n - 1) * n;
 };
 
-int main()
+void main(long ab)
 {
-  unsigned int result = factorial(12);
+  factorial(5);
 };

@@ -45,8 +45,9 @@ char* ptype_to_ctype(ptype_t t) {
         return "void";
     case PTYPE_UNKNOWN:
         return "[UNKNOWN]";
+    case PTYPE_BOOL:
+        return "int";
     }
-
 }
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
@@ -99,12 +100,11 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
             args = string_arena_format_overwrite(ctx->arena, expr, "%s,%s", args, expr);
         }
     }
+    if (args == NULL) return "";
     return args;
 }
 
 char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program, vector_t *params) {
-    if (params->count == 0) return "";
-
     char* args = NULL;
     for (int i = 0; i < params->count; i++) {
         identifier_expression_t* expr = vector_get(params, i);
@@ -114,6 +114,8 @@ char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program,
             args = string_arena_format_overwrite(ctx->arena, args, "%s, %s %s", args, ptype_to_ctype(expr->type), expr->name);
         }
     }
+
+    if (args == NULL) return string_arena_format(ctx->arena, "void");
     return args;
 }
 
@@ -204,8 +206,13 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
             char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
+            char* ctype = ptype_to_ctype(s->data.let.identifier.type);
+            if (s->data.let.identifier.type == PTYPE_UNKNOWN) {
+                ctype= ptype_to_ctype(s->data.expression.resultType);
+            }
             return string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
-                ptype_to_ctype(s->data.let.identifier.type),
+                // ptype_to_ctype(s->data.let.identifier.type),
+                ctype,
                 s->data.let.identifier.name,
                 exp
             );

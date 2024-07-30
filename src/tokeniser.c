@@ -8,11 +8,26 @@ const char* tokeniser_keywords[] = {
     "if",
     "else",
     "return",
-    "def",
+    "fn",
     "for",
     "loop",
     "type",
 };
+
+
+const token_type_t tokeniser_keyword_token_types[] = {
+    TOKEN_DEFER,
+    TOKEN_LET,
+    TOKEN_MUT,
+    TOKEN_IF,
+    TOKEN_ELSE,
+    TOKEN_RETURN,
+    TOKEN_FN,
+    TOKEN_FOR,
+    TOKEN_LOOP,
+    TOKEN_TYPE,
+};
+
 
 const char* primitive_types[] = {
     "i64",
@@ -26,7 +41,8 @@ const char* primitive_types[] = {
     "f32",
     "f16",
     "char",
-    "void"
+    "void",
+    "bool"
 };
 
 const ptype_t primitive_types_enum[] ={
@@ -41,20 +57,8 @@ const ptype_t primitive_types_enum[] ={
     PTYPE_F32,
     PTYPE_F16,
     PTYPE_CHAR,
-    PTYPE_VOID
-};
-
-const token_type_t tokeniser_keyword_token_types[] = {
-    TOKEN_DEFER,
-    TOKEN_LET,
-    TOKEN_MUT,
-    TOKEN_IF,
-    TOKEN_ELSE,
-    TOKEN_RETURN,
-    TOKEN_DEF,
-    TOKEN_FOR,
-    TOKEN_LOOP,
-    TOKEN_TYPE,
+    PTYPE_VOID,
+    PTYPE_BOOL
 };
 
 
@@ -98,13 +102,13 @@ token_t token_new_single_char(token_type_t type, int position, char raw) {
 
 const char* token_type_to_string(token_type_t type) {
     switch (type) {
-        case TOKEN_L_BRACE:    return "{";
-        case TOKEN_R_BRACE:    return "}";
+        case TOKEN_L_BRACE:      return "{";
+        case TOKEN_R_BRACE:      return "}";
         case TOKEN_L_BRACKET:    return "[";
         case TOKEN_R_BRACKET:    return "]";
         case TOKEN_L_PAREN:      return "(";
         case TOKEN_R_PAREN:      return ")";
-        case TOKEN_COMMA:       return ",";
+        case TOKEN_COMMA:        return ",";
         case TOKEN_SEMICOLON:    return ";";
         case TOKEN_COLON:        return ":";
         case TOKEN_SINGLE_QUOTE: return "'";
@@ -135,7 +139,7 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_EQEQ:         return "==";
         case TOKEN_ATOM:         return "ATOM";
         case TOKEN_RETURN:       return "RETURN";
-        case TOKEN_DEF:          return "DEF";
+        case TOKEN_FN:           return "FN";
         case TOKEN_FOR:          return "FOR";
         case TOKEN_LOOP:         return "LOOP";
         case TOKEN_TYPE:         return "TYPE";
@@ -170,8 +174,21 @@ ptype_t get_primitive_type(char* buffer) {
     return PTYPE_UNKNOWN;
 }
 
+const char* primitive_type_to_string(ptype_t t) {
+    for (int i = 0; i < ARRAY_SIZE(primitive_types_enum); i++) {
+        if (primitive_types_enum[i] == t) {
+            return primitive_types[i];
+        }
+    }
+    return "unknown";
+}
+
 token_type_t get_buffer_token_type(char* buffer) {
     if (isdigit(buffer[0])) {
+        return TOKEN_LITERAL;
+    }
+
+    if (buffer[0] == '\'' && buffer[2]=='\'') {
         return TOKEN_LITERAL;
     }
 
@@ -180,8 +197,6 @@ token_type_t get_buffer_token_type(char* buffer) {
             return tokeniser_keyword_token_types[i];
         }
     }
-
-
 
     return TOKEN_IDENTIFIER;
 }

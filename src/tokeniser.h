@@ -45,7 +45,7 @@ typedef enum {
     TOKEN_ATOM,
     TOKEN_DEFER,
     TOKEN_RETURN,
-    TOKEN_DEF,
+    TOKEN_FN,
     TOKEN_FOR,
     TOKEN_LOOP,
     TOKEN_IF,
@@ -72,7 +72,8 @@ typedef enum {
     PTYPE_F16,
     PTYPE_CHAR,
     PTYPE_VOID,
-    PTYPE_UNKNOWN
+    PTYPE_UNKNOWN,
+    PTYPE_BOOL
 } ptype_t;
 
 typedef union {
@@ -91,5 +92,6 @@ int tokenise(const char* data, int data_length, token_t* tokens);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
 ptype_t get_primitive_type(char* buffer);
+const char* primitive_type_to_string(ptype_t t);
 
 #endif
