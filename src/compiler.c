@@ -261,8 +261,8 @@ void compile(program_t program, const char* file_out) {
     };
 
     c_program_t cprogram = c_program_new();
-    for (int i = 0; i < program.statement_count; i++) {
-        char* stmt = compile_statement(&ctx, &cprogram, &program.statements[i]);
+    for (int i = 0; i < program.statements.count; i++) {
+        char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
         cprogram.impls[cprogram.impl_count++] = stmt;
     }
 

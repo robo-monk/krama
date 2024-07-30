@@ -112,15 +112,19 @@ int main(int argc, char *argv[]) {
     }
 
     // TODO use dynamic array here
-    token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
-    int token_count = tokenise(result.buffer, result.length, tokens);
-    for (int i = 0; i < token_count; i ++) {
-        token_debug(tokens[i]);
+    // token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
+    vector_t tokens = tokenise2(result.buffer, result.length);
+    for (int i = 0; i < tokens.count; i ++) {
+        token_t *t = vector_get(&tokens, i);
+        token_debug(*t);
         printf("\n");
     }
 
+    token_t* token_array = vector_to_array(&tokens);
+    vector_free(&tokens);
+
     parser_t parser = parser_new();
-    parse(&parser, tokens);
+    parse(&parser, token_array);
     program_t p = parser.program;
 
     analyse_program(&p);
@@ -130,7 +134,7 @@ int main(int argc, char *argv[]) {
     }
 
     parser_destroy(&parser);
-    free(tokens);
+    free(token_array);
     file_read_result_free(result);
 
     return 0;

@@ -133,14 +133,12 @@ typedef struct statement {
 } statement_t;
 
 typedef struct {
-    statement_t *statements;
-    size_t statement_count;
-    size_t statement_capacity;
+    vector_t statements;
 } program_t;
 
 program_t program_create(void);
 void program_free(program_t *program);
-int program_add_statement(program_t *program, statement_t statement);
+void program_add_statement(program_t *program, statement_t *statement);
 
 block_expression_t block_expression_new(void);
 int block_add_statement(block_expression_t *block, statement_t statement);

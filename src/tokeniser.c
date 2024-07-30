@@ -1,4 +1,5 @@
 #include "tokeniser.h"
+#include "arena.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -331,4 +332,100 @@ int tokenise(const char* data, int data_length, token_t* tokens) {
 
     tokens[token_index++] = (token_t) {.type = TOKEN_EOF };
     return token_index;
+}
+
+
+void tokeniser_flush_buffer(tokeniser_t *t, int token_position) {
+    if (t->buffer_index == 0) return;
+
+    t->buffer[t->buffer_index] = '\0';
+    token_t token = flush_buffer_to_token(t->buffer, t->buffer_index);
+    token.position = token_position;
+    vector_push(&t->tokens, &token);
+    t->buffer_index = 0;
+}
+
+vector_t tokenise2(const char* data, int data_length) {
+    tokeniser_t t = (tokeniser_t) {
+        .buffer = malloc(TOKENISER_BUFFER_SIZE*sizeof(char)),
+        .buffer_index = 0,
+        .tokens = vector_new(512, sizeof(token_t)),
+    };
+
+    for (int i = 0; i < data_length; i++) {
+        char c = data[i];
+        switch (c) {
+            case ' ':
+            case '\t':
+            case '\f':
+            case '\v':
+                // Space (0x20, ' '),
+                // Form feed (0x0c, '\f'),
+                // Line feed (0x0a, '\n'),
+                // Carriage return (0x0d, '\r'),
+                // Horizontal tab (0x09, '\t'),
+                // Vertical tab (0x0b, '\v'),
+                // commit buffer
+                tokeniser_flush_buffer(&t, i);
+                break;
+            case TOKEN_LT:
+                if (data[i+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_LTE, i, "<=");
+                    vector_push(&t.tokens, &new_t);
+                    i++;
+                    break;
+                }
+            case TOKEN_GT:
+                if (data[i+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_GTE, i, ">=");
+                    vector_push(&t.tokens, &new_t);
+                    i++;
+                    break;
+                }
+            case TOKEN_BANG:
+                if (data[i+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_NEQ, i, "!=");
+                    vector_push(&t.tokens, &new_t);
+                    i++;
+                    break;
+                }
+            case TOKEN_EQ:
+                if (data[i+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_EQEQ, i, "!=");
+                    vector_push(&t.tokens, &new_t);
+                    i++;
+                    break;
+                }
+            case TOKEN_PLUS:
+            case TOKEN_MINUS:
+            case TOKEN_ASTERISK:
+            case TOKEN_SLASH:
+            case TOKEN_NEW_LINE:
+            case TOKEN_L_BRACE:
+            case TOKEN_R_BRACE:
+            case TOKEN_L_BRACKET:
+            case TOKEN_R_BRACKET:
+            case TOKEN_L_PAREN:
+            case TOKEN_R_PAREN:
+            case TOKEN_SEMICOLON:
+            case TOKEN_COLON:
+            case TOKEN_COMMA:
+            {
+                // commit buffer
+                tokeniser_flush_buffer(&t, i);
+                token_t new_t = token_new_single_char((token_type_t) c, i, c);
+                vector_push(&t.tokens, &new_t);
+                break;
+            }
+            default: {
+                t.buffer[t.buffer_index++] = c;
+            }
+        }
+    }
+
+    token_t eof = (token_t){.type = TOKEN_EOF};
+    vector_push(&t.tokens, &eof);
+
+    free(t.buffer);
+    return t.tokens;
 }

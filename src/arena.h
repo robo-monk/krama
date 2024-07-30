@@ -32,6 +32,7 @@ vector_t vector_new(size_t initial_cap, size_t element_size);
 void* vector_get(vector_t *v, size_t i);
 void vector_push(vector_t *v, const void* e);
 void vector_free(vector_t *v);
+void* vector_to_array(vector_t *v);
 
 #ifdef ARENA_IMPLEMENTATION
 
@@ -93,6 +94,12 @@ vector_t vector_new(size_t initial_cap, size_t element_size) {
     };
 }
 
+void* vector_to_array(vector_t *v) {
+    void* array = calloc(v->count, v->element_size);
+    memcpy(array, v->data, v->count*v->element_size);
+    return array;
+}
+
 void* vector_get(vector_t *v, size_t i) {
     void* p = v->data + v->element_size*i;
     assert(i >= 0);
@@ -112,6 +119,7 @@ void vector_push(vector_t *v, const void* e) {
 void vector_free(vector_t *v) {
     free(v->data);
 }
+
 
 #endif // IMPL
 

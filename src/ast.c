@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "arena.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,9 +11,7 @@
 
 program_t program_create(void) {
     return (program_t) {
-        .statement_capacity = INITIAL_PROGRAM_CAPACITY,
-        .statement_count = 0,
-        .statements = malloc(sizeof(statement_t) * INITIAL_PROGRAM_CAPACITY)
+        .statements = vector_new(INITIAL_PROGRAM_CAPACITY, sizeof(statement_t))
     };
 }
 
@@ -26,22 +25,12 @@ void program_free(program_t *program) {
     //         program_free((program_t *)&program->statements[i].data.expression.);
     //     }
     // }
-    free(program->statements);
+    vector_free(&program->statements);
     free(program);
 }
 
-int program_add_statement(program_t *program, statement_t statement) {
-    if (program->statement_count == program->statement_capacity) {
-        program->statement_capacity *= 2;
-        program->statements = realloc(program->statements, program->statement_capacity * sizeof(statement_t));
-        if (program->statements == NULL) {
-            printf("Allocation failed.");
-            return -1;
-        }
-    }
-
-    program->statements[program->statement_count++] = statement;
-    return 0;
+void program_add_statement(program_t *program, statement_t *statement) {
+    vector_push(&program->statements, statement);
 }
 
 

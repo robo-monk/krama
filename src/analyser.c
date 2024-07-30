@@ -185,10 +185,9 @@ analyser_t analyser_new() {
 void analyse_program(program_t *program) {
     analyser_t a = analyser_new();
 
-    for (int i = 0; i < program->statement_count; i++) {
-        statement_t s = program->statements[i];
-        annotate_statement(&a, &s);
-        program->statements[i] = s;
+    for (int i = 0; i < program->statements.count; i++) {
+        statement_t * s = (statement_t*)  vector_get(&program->statements, i);
+        annotate_statement(&a, s);
     }
 
     if (a.error_idx > 0) {

@@ -508,7 +508,8 @@ void parser_parse(parser_t *parser) {
     };
 
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
-        program_add_statement(&parser->program, parser_parse_statement(parser, &scope));
+    statement_t s = parser_parse_statement(parser, &scope);
+        program_add_statement(&parser->program, &s);
         // parser_debug(parser, "---- after adding statement ---");
     }
 }
@@ -538,9 +539,9 @@ program_t parse(parser_t *parser, token_t *tokens) {
 
     parser_parse(parser);
 
-    for (int i = 0; i < parser->program.statement_count; i++) {
+    for (int i = 0; i < parser->program.statements.count; i++) {
         printf("\nSTATEMENT #%d\n", i);
-        statement_debug(&parser->program.statements[i], 0);
+        statement_debug(vector_get(&parser->program.statements, i), 0);
         printf("\n");
     }
 

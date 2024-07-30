@@ -1,6 +1,7 @@
 #ifndef TOKENISER_H
 #define TOKENISER_H
 
+#include "arena.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,8 +88,15 @@ typedef struct {
     token_value_t value;
 } token_t;
 
+typedef struct {
+    char* buffer;
+    size_t buffer_index;
+    size_t index;
+    vector_t tokens;
+} tokeniser_t;
 
 int tokenise(const char* data, int data_length, token_t* tokens);
+vector_t tokenise2(const char* data, int data_length);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
 ptype_t str_to_primitive_type(char* buffer);
