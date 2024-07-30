@@ -14,8 +14,6 @@ unsigned long factorial(unsigned long n)
 int main(void)
 {
   int result = factorial(5);
-  int b = result + result;
-  result;
-  printf(result,result,"%s",result);
+  printf("%d\n",result);
   return 1;
 };

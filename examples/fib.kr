@@ -10,9 +10,6 @@ fn u64 factorial(u64 n) {
 
 fn i32 main() {
     let result = factorial(5)
-    let b = result + result;
-    result;
-    printf(result, result, "%s", result)
-
+    printf("%d\n", result)
     return 1
 }
