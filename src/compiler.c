@@ -10,10 +10,8 @@
 
 c_program_t c_program_new() {
     return (c_program_t) {
-        .headers = {},
-        .impls = {},
-        .header_count = 0,
-        .impl_count = 0,
+        .headers = vector_new(16, sizeof(char*)),
+        .impls = vector_new(16, sizeof(char*)),
     };
 }
 
@@ -261,28 +259,31 @@ void compile(program_t program, const char* file_out) {
     };
 
     c_program_t cprogram = c_program_new();
+
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
+
     for (int i = 0; i < program.statements.count; i++) {
+        // char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
         char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
-        cprogram.impls[cprogram.impl_count++] = stmt;
+        vector_push_ptr(&cprogram.impls, stmt);
+        printf("\n[%s]\n", stmt);
     }
 
-    cprogram.headers[cprogram.header_count++] = "#include <stdio.h>";
 
     printf("\n---- %s ---- \n", file_out);
-
     FILE *file_ptr = fopen(file_out, "w");
     if (file_ptr == NULL) {
         printf("\n Error creating output `%s` file", file_out);
         exit(1);
     }
 
-    for (int i = 0; i < cprogram.header_count; i++) {
-        fprintf(file_ptr, "%s\n", cprogram.headers[i]);
+    for (int i = 0; i < cprogram.headers.count; i++) {
+        fprintf(file_ptr, "%s\n", *(char**) vector_get(&cprogram.headers, i));
     }
 
     fprintf(file_ptr, "\n");
-    for (int ii = 0; ii < cprogram.impl_count; ii++) {
-        fprintf(file_ptr, "\n%s\n", cprogram.impls[ii]);
+    for (int ii = 0; ii < cprogram.impls.count; ii++) {
+        fprintf(file_ptr, "\n%s\n", *(char**) vector_get(&cprogram.impls, ii));
     }
 
     printf("\n---\n\n");
