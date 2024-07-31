@@ -38,7 +38,6 @@ expression_t* scope_get_entry(scope_t *scope, char* key) {
         if (entry != NULL) return entry;
         scope = scope->upper;
     };
-    // printf("\n [could not find variable `%s` ]\n", key);
     return NULL;
 }
 
@@ -115,12 +114,17 @@ bool expect_type(analyser_t *analyser, ptype_t t, ptype_t expected, char* msg) {
 }
 
 ptype_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope);
+ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope);
 ptype_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope) {
     ptype_t current_type = PTYPE_VOID;
+    scope_t sub_scope = scope_create_sub(&an->ctx.arena, scope);
     for (int i = 0; i < block->statement_count; i++) {
-        ptype_t type = annotate_statement(an, &block->statements[i], scope);
-
-        if (block->statements[i].type == EXPRESSION_TYPE_RETURN) {
+        // ptype_t type = annotate_expression(an, &block->statements[i].data.expression, &sub_scope);
+        ptype_t type = annotate_statement(an, &block->statements[i], &sub_scope);
+        printf(":: %d:: %d\n", i, type);
+        if (block->statements[i].type == STATEMENT_TYPE_EXPRESSION &&
+            block->statements[i].data.expression.type == EXPRESSION_TYPE_RETURN
+        ) {
             if (current_type == PTYPE_VOID) {
                 current_type = type;
             } else {
@@ -164,12 +168,17 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
         }
         case EXPRESSION_TYPE_IDENTIFIER: {
+            printf("\nanalysing identifier stmt\n");
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
             bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
-            if (!is_defined) return PTYPE_ANY;
-            analyser_assert(entry->type != EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            if (!is_defined) return PTYPE_UNKNOWN;
+            bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            if (!is_identifier) {
+                printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
+            }
             return entry->data.identifier.type;
         }
+
         case EXPRESSION_TYPE_FUNC_DECL: {
             expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
             analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
@@ -187,25 +196,32 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
                 expression_t *idexp = arena_alloc(&an->ctx.arena, sizeof(expression_t));
                 idexp->type = EXPRESSION_TYPE_IDENTIFIER;
                 idexp->data.identifier = *id;
-                scope_define_entry(scope, id->name, idexp);
+
+                scope_define_entry(&sub_scope, id->name, idexp);
             }
 
             ptype_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
 
             if (type_hint == PTYPE_UNKNOWN) {
                 type_hint = inferred_type;
-                expression->data.func_decl.type = type_hint;
             }
 
+            // expression->data.func_decl.type = type_hint;
+            expression->data.func_decl.type = type_hint;
             analyser_assert(!(inferred_type == PTYPE_UNKNOWN && type_hint == PTYPE_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
             analyser_assert(inferred_type == type_hint, an, "Function does not return expected type in all paths");
             return inferred_type;
         }
         case EXPRESSION_TYPE_BLOCK: {
-            return annotate_block(an, &expression->data.block, scope);
+            printf("\nanalysing block stmt\n");
+            ptype_t type = annotate_block(an, &expression->data.block, scope);
+            printf("\na block tyep -> %d\n", type);
+            return type;
         }
-        case EXPRESSION_TYPE_RETURN:
+        case EXPRESSION_TYPE_RETURN: {
+            printf("\nanalysing return stmt\n");
             return annotate_expression(an, expression->data.return_exp.expression, scope);
+        }
         case EXPRESSION_TYPE_CONDITIONAL: {
             ptype_t predicate_type = annotate_expression(an, expression->data.conditional.predicate, scope);
             expect_type(an, predicate_type, PTYPE_BOOL, "Conditional predicate should be of the bool type");
@@ -260,18 +276,22 @@ ptype_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
         expression_t* entry = scope_get_entry(scope, s->data.let.identifier.name);
         analyser_assert(entry == NULL, an, "Identifier '%s' has already been declared\n", s->data.let.identifier.name);
         analyser_assert(s->data.let.identifier.value != NULL, an, "Unitialised identifier '%s' is not allowed", s->data.let.identifier.name);
-        scope_define_entry(scope, s->data.let.identifier.name, s->data.let.identifier.value);
+
+        expression_t *idexp = arena_alloc(&an->ctx.arena, sizeof(expression_t));
 
         ptype_t type_hint = s->data.let.identifier.type;
         ptype_t inferred_type = annotate_expression(an, s->data.let.identifier.value, scope);
 
         if (type_hint == PTYPE_UNKNOWN) {
             s->data.let.identifier.type = inferred_type;
-            return inferred_type;
         } else {
             expect_type(an, type_hint, inferred_type, "Type mismatch");
         }
-        return PTYPE_UNKNOWN;
+
+        idexp->type = EXPRESSION_TYPE_IDENTIFIER;
+        idexp->data.identifier = s->data.let.identifier;
+        scope_define_entry(scope, s->data.let.identifier.name, idexp);
+        return inferred_type;
     }
     case STATEMENT_TYPE_DEFER:
         analyser_error_create(an, "Don't know how to analyse statement");
@@ -304,7 +324,6 @@ void analyse_program(program_t *program) {
     for (int i = 0; i < program->statements.count; i++) {
         statement_t *s = vector_get_ptr(&program->statements, i);
         s->data.expression.resultType = annotate_statement(&a, s, &global_scope);
-        s->data.expression.resultType = PTYPE_CHAR;
     }
 
 

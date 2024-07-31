@@ -72,9 +72,9 @@ typedef enum {
     PTYPE_F16,
     PTYPE_CHAR,
     PTYPE_VOID,
-    PTYPE_UNKNOWN,
     PTYPE_BOOL,
-    PTYPE_ANY
+    PTYPE_ANY,
+    PTYPE_UNKNOWN=99,
 } ptype_t;
 
 typedef union {

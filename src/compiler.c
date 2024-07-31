@@ -217,7 +217,6 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         }
         case EXPRESSION_TYPE_CALL: {
             char* args = compile_comma_seperated_exprs(ctx, program, &e->data.call.arguments);
-            printf("\nARGS ARE %s\n", args);
             return string_arena_format(ctx->arena, "%s(%s)", arena_strdup(ctx->arena, e->data.call.identifier_name), args);
         }
         case EXPRESSION_TYPE_RETURN: {
@@ -252,9 +251,7 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
             char* ctype = ptype_to_ctype(s->data.let.identifier.type);
 
             if (s->data.let.identifier.type == PTYPE_UNKNOWN) {
-                printf("\n here! %d\n", s->data.expression.resultType);
                 ctype = ptype_to_ctype(s->data.expression.resultType);
-                printf("\nctype is %s\n", ctype);
             }
 
             char* ssk = string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
@@ -263,7 +260,6 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
                 exp
             );
 
-            printf("\n let is:: %s \n", ssk);
             return ssk;
         }
         case STATEMENT_TYPE_DEFER:
@@ -292,7 +288,6 @@ void compile(program_t program, const char* file_out) {
     for (int i = 0; i < program.statements.count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
         char* stmt = compile_statement(&ctx, &cprogram, (statement_t*) vector_get_ptr(&program.statements, i));
-        printf("\nstmt is:: %s\n",stmt);
         vector_push_ptr(&cprogram.impls, stmt);
     }
 
