@@ -45,7 +45,7 @@ char* ptype_to_ctype(ptype_t t) {
     case PTYPE_ANY:
         return "void*";
     case PTYPE_BOOL:
-        return "int";
+        return "bool";
     }
     return "[UNKNOWN]";
 }
@@ -284,6 +284,7 @@ void compile(program_t program, const char* file_out) {
 
     c_program_t cprogram = c_program_new();
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdbool.h>"));
 
     for (int i = 0; i < program.statements.count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);

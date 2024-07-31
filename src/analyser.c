@@ -121,7 +121,6 @@ ptype_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope
     for (int i = 0; i < block->statement_count; i++) {
         // ptype_t type = annotate_expression(an, &block->statements[i].data.expression, &sub_scope);
         ptype_t type = annotate_statement(an, &block->statements[i], &sub_scope);
-        printf(":: %d:: %d\n", i, type);
         if (block->statements[i].type == STATEMENT_TYPE_EXPRESSION &&
             block->statements[i].data.expression.type == EXPRESSION_TYPE_RETURN
         ) {
@@ -136,11 +135,47 @@ ptype_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope
     return current_type;
 }
 
+ptype_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t *scope) {
+    switch (infix->operand.type) {
+    case TOKEN_LT:
+    case TOKEN_GT:
+    case TOKEN_NEQ:
+    case TOKEN_EQEQ:
+    case TOKEN_LTE:
+    case TOKEN_GTE: {
+        // TODO: is_op_defined_for_args(...)
+        ptype_t ltype = annotate_expression(an, infix->left, scope);
+        printf("\nLtype is %s\n", primitive_type_to_str(ltype));
+        ptype_t rtype = annotate_expression(an, infix->right, scope);
+        printf("\nRype is %s\n", primitive_type_to_str(rtype));
+        expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
+
+        return PTYPE_BOOL;
+    }
+    case TOKEN_PLUS:
+    case TOKEN_MINUS:
+    case TOKEN_SLASH:
+    case TOKEN_ASTERISK: {
+        // TODO: is_op_defined_for_args(...)
+        ptype_t ltype = annotate_expression(an, infix->left, scope);
+        printf("\nLtype is %s\n", primitive_type_to_str(ltype));
+        ptype_t rtype = annotate_expression(an, infix->right, scope);
+        printf("\nRype is %s\n", primitive_type_to_str(rtype));
+        expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
+        return ltype;
+    }
+    default:break;
+    }
+    analyser_assert(0, an, "Invalid infix operation");
+    return PTYPE_UNKNOWN;
+}
+
 ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope) {
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
     // }
 
+    assert(expression != NULL);
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
             ptype_t ltype = annotate_expression(an, expression->data.prefix.right, scope);
@@ -148,14 +183,15 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             return ltype;
         }
         case EXPRESSION_TYPE_INFIX: {
-            debug_expression(expression, 2);
-            ptype_t ltype = annotate_expression(an, expression->data.infix.left, scope);
-            printf("\nLtype is %s\n", primitive_type_to_str(ltype));
-            ptype_t rtype = annotate_expression(an, expression->data.infix.right, scope);
-            printf("\nRype is %s\n", primitive_type_to_str(rtype));
-            expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
-            expression->resultType = ltype;
-            return ltype;
+            ptype_t t = get_infix_ptype_result(an, &expression->data.infix, scope);
+            printf("\n--->infix result is of type %d\n", t);
+            // ptype_t ltype = annotate_expression(an, expression->data.infix.left, scope);
+            // printf("\nLtype is %s\n", primitive_type_to_str(ltype));
+            // ptype_t rtype = annotate_expression(an, expression->data.infix.right, scope);
+            // printf("\nRype is %s\n", primitive_type_to_str(rtype));
+            // expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
+            expression->resultType = t;
+            return t;
         }
         case EXPRESSION_TYPE_LITERAL: {
             switch (expression->data.literal.type) {
@@ -168,7 +204,6 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
         }
         case EXPRESSION_TYPE_IDENTIFIER: {
-            printf("\nanalysing identifier stmt\n");
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
             bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
             if (!is_defined) return PTYPE_UNKNOWN;
@@ -189,6 +224,7 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
 
             ptype_t type_hint = expression->data.func_decl.type;
+            printf("\n FUNC DECL TYPE HINT is:: %d\n", type_hint);
             scope_t sub_scope = scope_create_sub(&an->ctx.arena, scope);
 
             for (int i = 0; i<expression->data.func_decl.params.count; i++) {
@@ -210,16 +246,13 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             expression->data.func_decl.type = type_hint;
             analyser_assert(!(inferred_type == PTYPE_UNKNOWN && type_hint == PTYPE_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
             analyser_assert(inferred_type == type_hint, an, "Function does not return expected type in all paths");
-            return inferred_type;
+            return type_hint;
         }
         case EXPRESSION_TYPE_BLOCK: {
-            printf("\nanalysing block stmt\n");
             ptype_t type = annotate_block(an, &expression->data.block, scope);
-            printf("\na block tyep -> %d\n", type);
             return type;
         }
         case EXPRESSION_TYPE_RETURN: {
-            printf("\nanalysing return stmt\n");
             return annotate_expression(an, expression->data.return_exp.expression, scope);
         }
         case EXPRESSION_TYPE_CONDITIONAL: {
@@ -257,11 +290,7 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
                 analyser_assert(identifier->type == exp_type || identifier->type==PTYPE_ANY, an, "Argument does not match type");
             }
 
-            // analyser_assert(entry == NULL, an, "Function '%s' is not defined\n", expression->data.func_decl.name);
-
-            return PTYPE_UNKNOWN;
-            // TODO use vtable
-            // return annotate_block(an, expression->data.call.);
+            return entry->data.identifier.type;
         }
         break;
     }

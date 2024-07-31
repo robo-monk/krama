@@ -272,6 +272,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat(parser);
             ptype_t type = parser_parse_type_hint(parser);
+            printf("\n parser type hint for function is : %d\n", type);
 
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
@@ -307,6 +308,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_expect(parser, TOKEN_L_BRACE);
             expr->data.conditional.success_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            expr->data.conditional.fail_branch = NULL;
             if (parser_current(parser).type == TOKEN_ELSE) {
                 parser_eat_and_expect(parser, TOKEN_ELSE);
                 expr->data.conditional.fail_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
