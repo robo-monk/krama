@@ -37,6 +37,7 @@ void* vector_get(vector_t *v, size_t i);
 void vector_push(vector_t *v, const void* e);
 void vector_free(vector_t *v);
 void* vector_to_array(vector_t *v);
+void vector_insert(vector_t *v, const size_t i, const void* e);
 
 #ifdef ARENA_IMPLEMENTATION
 
@@ -124,6 +125,22 @@ void vector_push(vector_t *v, const void* e) {
     void* p = (char*) v->data + v->element_size*(v->count++);
     memcpy(p, e, v->element_size);
 }
+
+void vector_insert(vector_t *v, const size_t i, const void* e) {
+    // shift all elements
+    // memcpy((char*) v->data+(i+2)*v->element_size), (char*) v->data+(i+1)*v->element_size), );
+    // vector_push(v, NULL); // ensure adding element is possible
+    void* insert_p = (char*) v->data + i*v->count*v->element_size;
+    void* next_p = (char*)v->data + (i+1)*v->count*v->element_size;
+    size_t move_size = (v->count-i)*v->element_size;
+    memcpy(next_p, insert_p, move_size);
+    memcpy(insert_p, e, v->element_size);
+    v->count++;
+    // [ a, b, c, d, e] // count = 5
+    // insert(1, o)
+    // [ a, o, b, c, d, e]
+}
+
 
 void vector_push_ptr(vector_t *v, const void* ptr) {
     assert(v->element_size == sizeof(void*));

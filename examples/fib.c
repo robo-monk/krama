@@ -2,6 +2,11 @@
 #include <stdbool.h>
 
 
+int to_i32(void* n)
+{
+  return ((int) n);
+};
+
 long fac(long a)
 {
   if (a <= 1) {
@@ -14,5 +19,5 @@ int main(void)
 {
   long a = fac(5);
   printf("result~%ld",a);
-  return ((int) 0);
+  return to_i32(0,5);
 };

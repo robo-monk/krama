@@ -297,7 +297,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             parser_eat_and_expect(parser, TOKEN_RETURN);
             expr->type = EXPRESSION_TYPE_RETURN;
             expr->data.return_exp = (return_expression_t) {
-                .expression = parser_parse_expression(parser, PRECEDENCE_CALL)
+                .expression = parser_parse_expression(parser, PRECEDENCE_LOWEST)
             };
             return expr;
         }
@@ -344,6 +344,14 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
                 .left = left
             };
             return expr;
+        }
+        // 5:to_i32
+        case TOKEN_COLON: {
+            parser_eat_and_expect(parser, TOKEN_COLON);
+            expression_t *right = parser_parse_expression(parser, PRECEDENCE_CALL);
+            assert(right->type == EXPRESSION_TYPE_CALL);
+            vector_insert(&right->data.call.arguments, 0, left);
+            return right;
         }
         default:
             return NULL;
