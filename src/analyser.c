@@ -164,12 +164,15 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
         }
         case EXPRESSION_TYPE_IDENTIFIER: {
-            return expression->data.identifier.type;
+            expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
+            bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
+            if (!is_defined) return PTYPE_ANY;
+            analyser_assert(entry->type != EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            return entry->data.identifier.type;
         }
         case EXPRESSION_TYPE_FUNC_DECL: {
             expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
             analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
-
             scope_define_entry(scope, expression->data.func_decl.name, expression);
 
             if (expression->data.func_decl.value == NULL) {
@@ -177,7 +180,17 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
 
             ptype_t type_hint = expression->data.func_decl.type;
-            ptype_t inferred_type = annotate_expression(an, expression->data.func_decl.value, scope);
+            scope_t sub_scope = scope_create_sub(&an->ctx.arena, scope);
+
+            for (int i = 0; i<expression->data.func_decl.params.count; i++) {
+                identifier_expression_t *id = vector_get(&expression->data.func_decl.params, i);
+                expression_t *idexp = arena_alloc(&an->ctx.arena, sizeof(expression_t));
+                idexp->type = EXPRESSION_TYPE_IDENTIFIER;
+                idexp->data.identifier = *id;
+                scope_define_entry(scope, id->name, idexp);
+            }
+
+            ptype_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
 
             if (type_hint == PTYPE_UNKNOWN) {
                 type_hint = inferred_type;
@@ -243,6 +256,12 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
 ptype_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
     switch (s->type) {
     case STATEMENT_TYPE_LET: {
+
+        expression_t* entry = scope_get_entry(scope, s->data.let.identifier.name);
+        analyser_assert(entry == NULL, an, "Identifier '%s' has already been declared\n", s->data.let.identifier.name);
+        analyser_assert(s->data.let.identifier.value != NULL, an, "Unitialised identifier '%s' is not allowed", s->data.let.identifier.name);
+        scope_define_entry(scope, s->data.let.identifier.name, s->data.let.identifier.value);
+
         ptype_t type_hint = s->data.let.identifier.type;
         ptype_t inferred_type = annotate_expression(an, s->data.let.identifier.value, scope);
 

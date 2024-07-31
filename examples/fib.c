@@ -3,7 +3,7 @@
 
 void main(unsigned long a)
 {
-  [UNKNOWN] original = a;
+  unsigned long original = a;
   long b = 15;
   int hello = ((int) 139);
   [UNKNOWN] boing = hello;
