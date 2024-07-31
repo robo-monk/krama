@@ -11,7 +11,7 @@
 
 program_t program_create(void) {
     return (program_t) {
-        .statements = vector_new(INITIAL_PROGRAM_CAPACITY, sizeof(statement_t))
+        .statements = vector_new(INITIAL_PROGRAM_CAPACITY, sizeof(statement_t*))
     };
 }
 
@@ -29,8 +29,11 @@ void program_free(program_t *program) {
     free(program);
 }
 
-void program_add_statement(program_t *program, statement_t *statement) {
-    vector_push(&program->statements, statement);
+void program_add_statement(program_t *program, statement_t* statement) {
+    printf("adding statement...\n");
+    statement_debug(statement, 0);
+    printf("---");
+    vector_push_ptr(&program->statements, statement);
 }
 
 
@@ -42,7 +45,7 @@ block_expression_t block_expression_new(void) {
     };
 }
 
-int block_add_statement(block_expression_t *block, statement_t statement) {
+int block_add_statement(block_expression_t *block, statement_t *statement) {
     if (block->statement_count == block->statement_capacity) {
         block->statement_capacity *= 2;
         block->statements = realloc(block->statements, block->statement_capacity * sizeof(statement_t));
@@ -52,7 +55,7 @@ int block_add_statement(block_expression_t *block, statement_t statement) {
         }
     }
 
-    block->statements[block->statement_count++] = statement;
+    block->statements[block->statement_count++] = *statement;
     return 0;
 }
 
@@ -147,16 +150,17 @@ void debug_expression(expression_t *expression, int ident) {
     case EXPRESSION_TYPE_FOR:
         printf("expr FOR\n");
         break;
+    case EXPRESSION_TYPE_STATIC_CALL:
     case EXPRESSION_TYPE_CALL: {
-        printf("expr CALL '%s' \n", expression->data.call.identifier_name);
-        for (int i = 0; i < expression->data.call.arguments.count; i++) {
-            expression_t* e = vector_get(&expression->data.call.arguments, i);
-            // add_tabs(ident+1);
-            debug_expression(e, ident+1);
-            printf("\n");
+            printf("expr CALL '%s' \n", expression->data.call.identifier_name);
+            for (int i = 0; i < expression->data.call.arguments.count; i++) {
+                expression_t* e = vector_get(&expression->data.call.arguments, i);
+                // add_tabs(ident+1);
+                debug_expression(e, ident+1);
+                printf("\n");
+            }
+            break;
         }
-        break;
-    }
     }
 }
 
@@ -167,8 +171,6 @@ void statement_debug(statement_t *s, int ident) {
         add_tabs(ident);
         printf("LET `%s` = ", s->data.let.identifier.name);
         printf("\n");
-        // add_tabs(ident);
-        // printf("└─ ");
         return debug_expression(s->data.let.identifier.value, ident+1);
     }
     case STATEMENT_TYPE_EXPRESSION: {

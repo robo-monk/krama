@@ -115,24 +115,6 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
 }
 
 
-void scope_define_entry(parser_t *parser, scope_t *scope, scope_entry_t entry) {
-    scope_entry_t *ptr = (scope_entry_t*) arena_alloc(
-        &parser->ctx.arena,
-        sizeof(entry));
-    ptr->identifier = entry.identifier;
-    hashmap_insert(scope->table, entry.identifier.name, ptr);
-}
-
-scope_entry_t* scope_get_entry(parser_t* parser, scope_t *scope, char* key) {
-    while (scope != NULL && scope->table != NULL) {
-        scope_entry_t *entry = hashmap_get(scope->table, key);
-        if (entry != NULL) return entry;
-        scope = scope->upper;
-    };
-    // printf("\n [could not find variable `%s` ]\n", key);
-    return NULL;
-}
-
 precedence_t get_precedence(token_type_t token_type) {
     switch (token_type) {
         case TOKEN_EQEQ:
@@ -170,25 +152,25 @@ ptype_t parser_parse_type_hint(parser_t *parser) {
     return primitive;
 }
 
-expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence, scope_t *scope);
-statement_t parser_parse_statement(parser_t *parser, scope_t *scope);
+expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
+statement_t* parser_parse_statement(parser_t *parser);
 
-vector_t parser_parse_comma_seperated_args(parser_t *parser, scope_t *scope) {
+vector_t parser_parse_comma_seperated_args(parser_t *parser) {
     vector_t args = vector_new(8, sizeof(expression_t));
-    expression_t *arg = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+    expression_t *arg = parser_parse_expression(parser, PRECEDENCE_LOWEST);
 
     while (arg != NULL) {
         vector_push(&args, arg);
         if (parser_current(parser).type != TOKEN_COMMA) break;
         parser_eat_and_expect(parser, TOKEN_COMMA);
         parser_debug(parser, "here\n");
-        arg = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+        arg = parser_parse_expression(parser, PRECEDENCE_LOWEST);
     }
     parser_optional_eat(parser, TOKEN_COMMA); // allow trailing comma
     return args;
 }
 
-vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
+vector_t parser_parse_comma_seperated_params(parser_t *parser) {
     vector_t args = vector_new(8, sizeof(expression_t));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
@@ -209,12 +191,6 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
         param->name = identifier.value.raw_str,
         param->type = ptype;
 
-        if (scope != NULL) {
-            scope_define_entry(parser, scope, (scope_entry_t) {
-                .identifier = *param
-            });
-        }
-
         vector_push(&args, param);
     } while (parser_optional_eat(parser, TOKEN_COMMA));
 
@@ -222,7 +198,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser, scope_t *scope) {
 }
 
 
-expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
+expression_t* parser_parse_prefix_expression(parser_t *parser) {
     // parse prefix
     switch (parser_current(parser).type) {
         case TOKEN_L_BRACE: {
@@ -231,15 +207,10 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
 
-            scope_t block_scope = (scope_t) {
-                .table = hashmap_create(NULL),
-                .upper = scope
-            };
-
             while (parser_current(parser).type != TOKEN_R_BRACE) {
                 // parser_debug(parser, "\nbefore block parsing\n");
                 block_add_statement(&expr->data.block,
-                    parser_parse_statement(parser, &block_scope)
+                    parser_parse_statement(parser)
                 );
                 // parser_debug(parser, "\nafter block parsing\n");
             };
@@ -250,7 +221,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
         case TOKEN_L_PAREN: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
-            expr = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+            expr = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
             return expr;
         }
@@ -267,7 +238,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expr->type = EXPRESSION_TYPE_PREFIX;
             expr->data.prefix = (prefix_expression_t) {
                 .operand = parser_eat(parser),
-                .right = parser_parse_expression(parser, PRECEDENCE_PREFIX, scope)
+                .right = parser_parse_expression(parser, PRECEDENCE_PREFIX)
             };
             return expr;
         }
@@ -277,10 +248,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
 
             if (parser_current(parser).type == TOKEN_L_PAREN) {
                 parser_eat_and_expect(parser, TOKEN_L_PAREN);
-                vector_t args = parser_parse_comma_seperated_args(parser, scope);
+                vector_t args = parser_parse_comma_seperated_args(parser);
                 parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
-                expr->type = EXPRESSION_TYPE_CALL;
+                expr->type =
+                    identifier_name[0] == '@' ?
+                    EXPRESSION_TYPE_STATIC_CALL :
+                    EXPRESSION_TYPE_CALL;
+
                 expr->data.call = (call_expression_t) {
                     .identifier_name = identifier_name,
                     .arguments = args
@@ -288,16 +263,9 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
                 return expr;
             }
 
-            scope_entry_t *entry = scope_get_entry(parser, scope, identifier_name);
-            if (entry == NULL) {
-                parser_error_create(parser, parser_current(parser), "identifier `%s` is not declared.", identifier_name);
-                break;
-            }
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
-            expr->data.identifier = (identifier_expression_t) {
-                .name = identifier_name,
-                .type = entry->identifier.type
-            };
+            expr->data.identifier.name = identifier_name;
+            printf("=========> %s\n", expr->data.identifier.name);
             return expr;
         }
         case TOKEN_FN: {
@@ -308,19 +276,9 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
             // printf("\n function name is %s \n", function_name);
-            scope_entry_t *entry = scope_get_entry(parser, scope, function_name);
-            if (entry != NULL) {
-                parser_error_create(parser, parser_current(parser), "function `%s` has already been declared.", function_name);
-                break;
-            }
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
 
-            scope_t fn_scope = (scope_t) {
-                .table = hashmap_create(NULL),
-                .upper = scope
-            };
-
-            vector_t params = parser_parse_comma_seperated_params(parser, &fn_scope);
+            vector_t params = parser_parse_comma_seperated_params(parser);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
 
@@ -328,7 +286,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expr->data.func_decl = (func_decl_expression_t) {
                 .params = params,
                 .name = arena_strdup(&parser->ctx.arena, function_name),
-                .value = parser_parse_expression(parser, PRECEDENCE_CALL, &fn_scope),
+                .value = parser_parse_expression(parser, PRECEDENCE_CALL),
                 .type = type
             };
             return expr;
@@ -338,7 +296,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             parser_eat_and_expect(parser, TOKEN_RETURN);
             expr->type = EXPRESSION_TYPE_RETURN;
             expr->data.return_exp = (return_expression_t) {
-                .expression = parser_parse_expression(parser, PRECEDENCE_CALL, scope)
+                .expression = parser_parse_expression(parser, PRECEDENCE_CALL)
             };
             return expr;
         }
@@ -346,12 +304,12 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_IF);
             expr->type = EXPRESSION_TYPE_CONDITIONAL;
-            expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+            expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_expect(parser, TOKEN_L_BRACE);
-            expr->data.conditional.success_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+            expr->data.conditional.success_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             if (parser_current(parser).type == TOKEN_ELSE) {
                 parser_eat_and_expect(parser, TOKEN_ELSE);
-                expr->data.conditional.fail_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+                expr->data.conditional.fail_branch = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             }
             return expr;
         }
@@ -362,7 +320,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser, scope_t *scope) {
     return NULL;
 }
 
-expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left, scope_t *scope) {
+expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
 
     switch (parser_current(parser).type) {
         case TOKEN_PLUS:
@@ -380,7 +338,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
             precedence_t precedence = get_precedence(operand.type);
             expr->data.infix = (infix_expression_t) {
                 .operand = operand,
-                .right = parser_parse_expression(parser, precedence, scope),
+                .right = parser_parse_expression(parser, precedence),
                 .left = left
             };
             return expr;
@@ -390,8 +348,8 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
     }
 }
 
-expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence, scope_t *scope) {
-    expression_t *expr = parser_parse_prefix_expression(parser, scope);
+expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence) {
+    expression_t *expr = parser_parse_prefix_expression(parser);
     if (expr == NULL) {
         return NULL;
     }
@@ -403,7 +361,7 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence,
         && next.type != TOKEN_NEW_LINE
         && next.type != TOKEN_EOF
         && precedence < get_precedence(next.type)) {
-        expression_t *infix_expr = parser_parse_infix_expression(parser, expr, scope);
+        expression_t *infix_expr = parser_parse_infix_expression(parser, expr);
         if (infix_expr == NULL) return expr;
         expr = infix_expr;
     }
@@ -420,7 +378,8 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence,
     return expr;
 }
 
-statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
+statement_t* parser_parse_statement(parser_t *parser) {
+    statement_t *s = arena_alloc(&parser->ctx.arena, sizeof(statement_t));
     token_t current;
     while (current = parser_current(parser), current.type == TOKEN_NEW_LINE || current.type == TOKEN_SEMICOLON) {
         parser_eat(parser);
@@ -436,24 +395,13 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
 
             identifier_expression_t idexpr = (identifier_expression_t) {
                 .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
-                .value = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope),
+                .value = parser_parse_expression(parser, PRECEDENCE_LOWEST),
                 .type = type
             };
-            scope_entry_t *entry = scope_get_entry(parser, scope, idexpr.name);
 
-            if (entry != NULL) {
-                parser_error_create(parser, current, "Identifier `%s` has already been declared.", idexpr.name);
-            }
-
-            scope_define_entry(parser, scope, (scope_entry_t) {
-                .identifier = idexpr
-            });
-            return (statement_t) {
-                .type = STATEMENT_TYPE_LET,
-                .data.let = {
-                    .identifier = idexpr
-                }
-            };
+            s->type = STATEMENT_TYPE_LET;
+            s->data.let.identifier = idexpr;
+            return s;
         }
         case TOKEN_EXTERN: {
             parser_eat_and_expect(parser, TOKEN_EXTERN);
@@ -465,7 +413,7 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
             token_t fn_identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
-            vector_t params = parser_parse_comma_seperated_params(parser, NULL);
+            vector_t params = parser_parse_comma_seperated_params(parser);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
@@ -476,23 +424,22 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
                 .value = NULL,
                 .type = type
             };
-            return (statement_t) {
-                .type = STATEMENT_TYPE_EXPRESSION,
-                .data.expression = *expr
-            };
+
+            s->type = STATEMENT_TYPE_EXPRESSION;
+            s->data.expression = *expr;
+            return s;
         }
         default: {
-            expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST, scope);
+            expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
 
             if (exp == NULL) {
                 parser_error_create(parser, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
                 break;
             }
 
-            return (statement_t) {
-                .type = STATEMENT_TYPE_EXPRESSION,
-                .data.expression = *exp
-            };
+            s->type = STATEMENT_TYPE_EXPRESSION;
+            s->data.expression = *exp;
+            return s;
         }
     }
     parser_debug(parser, "failed at this token. case not covered");
@@ -501,16 +448,10 @@ statement_t parser_parse_statement(parser_t *parser, scope_t *scope) {
 
 void parser_parse(parser_t *parser) {
     token_t current;
-
-    scope_t scope = (scope_t) {
-        .table = hashmap_create(NULL),
-        .upper = NULL
-    };
-
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
-    statement_t s = parser_parse_statement(parser, &scope);
-        program_add_statement(&parser->program, &s);
-        // parser_debug(parser, "---- after adding statement ---");
+        statement_t *s = parser_parse_statement(parser);
+        vector_push_ptr(&parser->program.statements, s);
+        // program_add_statement(&parser->program, s);
     }
 }
 
@@ -545,6 +486,7 @@ program_t parse(parser_t *parser, token_t *tokens) {
         printf("\n");
     }
 
+    printf("\n\n");
     if (parser->error_idx > 0) {
         for (int i = 0; i < parser->error_idx; i++) {
             parser_error_print(parser->errors[i]);

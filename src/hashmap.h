@@ -76,13 +76,24 @@ unsigned int hashmap_hash_string(char *key) {
     return hash;
 }
 
-void hashmap_insert(hashmap_t *map, char* key, void* value) {
+void hashmap_insert2(hashmap_t *map, char* key, void* value) {
     unsigned int idx = hashmap_hash_string(key) % map->capacity;
     // printf("\nINS idx is %d\n", idx);
     hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
     entry->next = map->entries[idx];
     entry->key = strdup(key);
     // printf("\nVAL::%s", value);
+    entry->val = value;
+    map->entries[idx] = entry;
+    map->count++;
+}
+
+void hashmap_insert(hashmap_t *map, char* key, void* value) {
+    unsigned int idx = hashmap_hash_string(key) % map->capacity;
+    // printf("\nINS idx is %d\n", idx);
+    hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
+    entry->next = map->entries[idx];
+    entry->key = key;
     entry->val = value;
     map->entries[idx] = entry;
     map->count++;

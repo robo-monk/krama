@@ -125,13 +125,16 @@ int main(int argc, char *argv[]) {
 
     parser_t parser = parser_new();
     parse(&parser, token_array);
+
+    if (parser.error_idx > 0) {
+        exit(1);
+    }
+
     program_t p = parser.program;
 
     analyse_program(&p);
 
-    if (parser.error_idx == 0) {
-        compile(p, output_file);
-    }
+    compile(p, output_file);
 
     parser_destroy(&parser);
     free(token_array);

@@ -6,14 +6,14 @@
 #include "tokeniser.h"
 #include "hashmap.h"
 
-typedef struct scope_t {
-    hashmap_t *table;
-    struct scope_t *upper;
-} scope_t;
+// typedef struct scope_t {
+//     hashmap_t *table;
+//     struct scope_t *upper;
+// } scope_t;
 
-typedef struct {
-    identifier_expression_t identifier;
-} scope_entry_t;
+// typedef struct {
+//     identifier_expression_t identifier;
+// } scope_entry_t;
 
 typedef struct {
     char* message;

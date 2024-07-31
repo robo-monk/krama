@@ -1,6 +1,18 @@
 #ifndef KRAMA_ANALYSER_H
 #define KRAMA_ANALYSER_H
 #include "ast.h"
+#include "hashmap.h"
+#include "tokeniser.h"
+
+typedef struct scope_t {
+    hashmap_t *table;
+    struct scope_t *upper;
+} scope_t;
+
+typedef struct {
+    char* name;
+    expression_t *expression;
+} scope_entry_t;
 
 typedef struct {
     char* message;

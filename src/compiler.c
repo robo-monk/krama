@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-
 c_program_t c_program_new() {
     return (c_program_t) {
         .headers = vector_new(16, sizeof(char*)),
@@ -48,30 +47,9 @@ char* ptype_to_ctype(ptype_t t) {
     case PTYPE_BOOL:
         return "int";
     }
+    return "[UNKNOWN]";
 }
 
-char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
-    // printf("\nfmt: [%s]\n", fmt);
-    assert(overwrite_ptr != NULL);
-    assert(overwrite_ptr == arena->last_ptr);
-    size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
-    arena->offset -= last_bytes; // go back
-
-    va_list args;
-    va_start(args, fmt);
-
-    va_list copy;
-    va_copy(copy, args);
-    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
-    char* tempstr = malloc(length * sizeof(char));
-    vsnprintf(tempstr, length, fmt, args);
-    char* str = arena_alloc(arena, length * sizeof(char));
-    strcpy(str, tempstr);
-    va_end(args);
-    free(tempstr);
-    return str;
-}
 
 char* string_arena_format(Arena *arena, const char* fmt, ...) {
     va_list args;
@@ -87,8 +65,48 @@ char* string_arena_format(Arena *arena, const char* fmt, ...) {
 }
 
 
+char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
+    // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
+    // printf("\nfmt: [%s]\n", fmt);
+
+    assert(overwrite_ptr != NULL);
+    assert(overwrite_ptr == arena->last_ptr);
+    size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
+    arena->offset -= last_bytes; // go back
+
+    va_list args;
+    va_start(args, fmt);
+
+    va_list copy;
+    va_copy(copy, args);
+
+    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
+
+    char* tempstr = malloc(length * sizeof(char));
+
+    assert(tempstr != NULL);
+    vsnprintf(tempstr, length, fmt, args);
+    char* str = arena_alloc(arena, length * sizeof(char));
+    strcpy(str, tempstr);
+    va_end(args);
+    free(tempstr);
+    return str;
+}
+
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e);
+
+char* compile_static_call(CompilerContext *ctx, c_program_t *program, expression_t *exp) {
+    assert(strcmp(exp->data.call.identifier_name, "@cast") ==0 );
+    assert(exp->data.call.arguments.count == 2);
+    expression_t *type_expression = vector_get(&exp->data.call.arguments, 1);
+    ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
+    char* ctype = ptype_to_ctype(t);
+    char* cast_expr = compile_expression(ctx, program, vector_get(&exp->data.call.arguments, 0));
+    assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
+    return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
+}
+
 
 char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, vector_t *args_vector) {
     char* args = NULL;
@@ -194,6 +212,9 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             }
             return string_arena_format_overwrite(ctx->arena, block, "{\n%s\n}", block);
         }
+        case EXPRESSION_TYPE_STATIC_CALL: {
+            return compile_static_call(ctx, program, e);
+        }
         case EXPRESSION_TYPE_CALL: {
             char* args = compile_comma_seperated_exprs(ctx, program, &e->data.call.arguments);
             printf("\nARGS ARE %s\n", args);
@@ -227,16 +248,23 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
             char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
+            // s->data.let.identifier.type = PTYPE_F64;
             char* ctype = ptype_to_ctype(s->data.let.identifier.type);
+
             if (s->data.let.identifier.type == PTYPE_UNKNOWN) {
-                ctype= ptype_to_ctype(s->data.expression.resultType);
+                printf("\n here! %d\n", s->data.expression.resultType);
+                ctype = ptype_to_ctype(s->data.expression.resultType);
+                printf("\nctype is %s\n", ctype);
             }
-            return string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
-                // ptype_to_ctype(s->data.let.identifier.type),
+
+            char* ssk = string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
                 ctype,
                 s->data.let.identifier.name,
                 exp
             );
+
+            printf("\n let is:: %s \n", ssk);
+            return ssk;
         }
         case STATEMENT_TYPE_DEFER:
             return string_arena_format(ctx->arena, " [Not implemented defer stmt] ");
@@ -262,7 +290,9 @@ void compile(program_t program, const char* file_out) {
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
 
     for (int i = 0; i < program.statements.count; i++) {
-        char* stmt = compile_statement(&ctx, &cprogram, vector_get(&program.statements, i));
+        // statement_t **s = (statement_t**) vector_get(&program.statements, i);
+        char* stmt = compile_statement(&ctx, &cprogram, (statement_t*) vector_get_ptr(&program.statements, i));
+        printf("\nstmt is:: %s\n",stmt);
         vector_push_ptr(&cprogram.impls, stmt);
     }
 
@@ -271,17 +301,17 @@ void compile(program_t program, const char* file_out) {
     FILE *file_ptr = fopen(file_out, "w");
 
     if (file_ptr == NULL) {
-        printf("\n Error creating output `%s` file", file_out);
+        printf("\n Error creating output `%s` file\n", file_out);
         exit(1);
     }
 
     for (int i = 0; i < cprogram.headers.count; i++) {
-        fprintf(file_ptr, "%s\n", *(char**) vector_get(&cprogram.headers, i));
+        fprintf(file_ptr, "%s\n", (char*) vector_get_ptr(&cprogram.headers, i));
     }
 
     fprintf(file_ptr, "\n");
     for (int ii = 0; ii < cprogram.impls.count; ii++) {
-        fprintf(file_ptr, "\n%s\n", *(char**) vector_get(&cprogram.impls, ii));
+        fprintf(file_ptr, "\n%s\n", (char*) vector_get_ptr(&cprogram.impls, ii));
     }
 
     printf("\n---\n\n");

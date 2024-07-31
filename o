@@ -1,7 +1,23 @@
+#include <stdio.h>
 
 
-int result = 5;
+// external void printf(void* fmt, void* arg);
 
-char ch = 0;
+void add(long a, long b)
+{
+  return a + b;
+  unsigned long ab = 0;
+  return ab;
+};
 
-int a = result + ch;
+void test(void)
+{
+  int test = "boooo";
+  return test;
+};
+
+void main(void)
+{
+  printf("Addition~~%d",add(25,420));
+  return 0;
+};

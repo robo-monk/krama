@@ -29,11 +29,12 @@ typedef struct {
 
 vector_t vector_new_arena(Arena *arena, size_t initial_cap, size_t element_size);
 vector_t vector_new(size_t initial_cap, size_t element_size);
-void* vector_get(vector_t *v, size_t i);
-void vector_push(vector_t *v, const void* e);
-// void vector_push_ptr(vector_t *v, const size_t ptr);
 
 void vector_push_ptr(vector_t *v, const void* ptr);
+void* vector_get_ptr(vector_t *v, size_t i);
+
+void* vector_get(vector_t *v, size_t i);
+void vector_push(vector_t *v, const void* e);
 void vector_free(vector_t *v);
 void* vector_to_array(vector_t *v);
 
@@ -59,7 +60,7 @@ void* arena_alloc(Arena *arena, size_t bytes) {
     size_t size = align_size(bytes);
 
     if (arena->offset + size > arena->capacity) {
-        printf("\n arena out of memory, implement resizing or regions...");
+        printf("\n arena out of memory, implement resizing or regions...\n");
         exit(1);
     }
 
@@ -106,6 +107,11 @@ void* vector_to_array(vector_t *v) {
 void* vector_get(vector_t *v, size_t i) {
     void* p = v->data + v->element_size*i;
     assert(i >= 0);
+
+    if (!(p < (v->data + (v->element_size*v->count)))) {
+        return NULL;
+    };
+
     assert(p < (v->data + (v->element_size*v->count)));
     return p;
 }
@@ -129,6 +135,12 @@ void vector_push_ptr(vector_t *v, const void* ptr) {
 
     (((size_t*) v->data))[v->count++] = (size_t) ptr;
 }
+
+void* vector_get_ptr(vector_t *v, size_t i) {
+    assert(v->element_size == sizeof(void*));
+    return *(void**) vector_get(v, i);
+}
+
 
 void vector_free(vector_t *v) {
     free(v->data);

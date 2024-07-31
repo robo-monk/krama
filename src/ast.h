@@ -27,6 +27,7 @@ typedef enum {
     EXPRESSION_TYPE_CONDITIONAL,
     EXPRESSION_TYPE_FOR,
     EXPRESSION_TYPE_CALL,
+    EXPRESSION_TYPE_STATIC_CALL
 } expression_type_t;
 
 typedef struct expression expression_t;
@@ -141,7 +142,7 @@ void program_free(program_t *program);
 void program_add_statement(program_t *program, statement_t *statement);
 
 block_expression_t block_expression_new(void);
-int block_add_statement(block_expression_t *block, statement_t statement);
+int block_add_statement(block_expression_t *block, statement_t *statement);
 
 void statement_debug(statement_t *s, int ident);
 #endif

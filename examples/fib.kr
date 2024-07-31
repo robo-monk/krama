@@ -1,9 +1,7 @@
-let a = 590390;
-
-fn add(u64 a, u64 b) {
-    return a
-}
-
-fn main() {
-    return 0
+fn main(u64 a){
+    let original = a
+    let b = 15
+    let hello = @cast(139, i32)
+    let boing = hello
+    return boing
 }

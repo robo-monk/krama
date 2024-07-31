@@ -212,6 +212,7 @@ token_t flush_buffer_to_token(char* buffer, int buffer_len) {
 
     if (first == '"') {
         is_str = true;
+        printf("buffer is: %s\n", buffer);
         assert(buffer[buffer_len-1] == '"');
         printf("STRING");
     } else if (first == '\'') {

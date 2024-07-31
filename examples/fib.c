@@ -1,14 +1,11 @@
 #include <stdio.h>
 
 
-int a = 590390;
-
-unsigned long add(unsigned long a, unsigned long b)
+void main(unsigned long a)
 {
-  return a;
-};
-
-long main(void)
-{
-  return 0;
+  [UNKNOWN] original = a;
+  long b = 15;
+  int hello = ((int) 139);
+  [UNKNOWN] boing = hello;
+  return boing;
 };
