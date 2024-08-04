@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "arena.h"
 #include "ast.h"
+#include "compiler.h"
 #include "hashmap.h"
 #include "tokeniser.h"
 #include <stdarg.h>
@@ -24,11 +25,11 @@ void parser_error_create(parser_t *parser, token_t token, const char *format, ..
     va_list args;
     va_start(args, format);
 
-    parser_error_t *error = arena_alloc(&parser->ctx.arena, sizeof(parser_error_t));
+    parser_error_t *error = arena_alloc(parser->ctx->arena, sizeof(parser_error_t));
 
     // Allocate memory for the message
     int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(&parser->ctx.arena, msg_len);
+    error->message = arena_alloc(parser->ctx->arena, msg_len);
 
     // Format the message
     vsnprintf(error->message, msg_len, format, args);
@@ -101,7 +102,7 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
         return (literal_expression_t) {
             .type = LITERAL_TYPE_STRING,
             .data = {
-                .string = arena_strdup(&parser->ctx.arena, current.value.raw_str)
+                .string = arena_strdup(parser->ctx->arena, current.value.raw_str)
             }
         };
     }
@@ -142,11 +143,11 @@ precedence_t get_precedence(token_type_t token_type) {
 
 
 void parser_register_type(parser_t *parser, char* identifier, char* ctype, size_t size) {
-    type_info_t* type_info = arena_alloc(&parser->ctx.arena, sizeof(type_info_t));
+    type_info_t* type_info = arena_alloc(parser->ctx->arena, sizeof(type_info_t));
     // printf("\ntype info does not implement size right now...");
     type_info->size = size;
-    type_info->ctype = arena_strdup(&parser->ctx.arena, ctype);
-    hashmap_insert(parser->ctx.types, identifier, type_info);
+    type_info->ctype = arena_strdup(parser->ctx->arena, ctype);
+    hashmap_insert(parser->ctx->types, identifier, type_info);
 }
 
 void parser_debug_type(type_t* t) {
@@ -162,7 +163,7 @@ void parser_debug_type(type_t* t) {
 
 type_t parser_parse_type_hint2(parser_t *parser) {
     token_t current = parser_current(parser);
-    type_info_t *type_info = hashmap_get(parser->ctx.types, current.value.raw_str);
+    type_info_t *type_info = hashmap_get(parser->ctx->types, current.value.raw_str);
 
     if (type_info == NULL) {
         if (parser_peek(parser).type == TOKEN_ASTERISK) {
@@ -225,7 +226,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
         // printf("\n---\n");
 
 
-        identifier_expression_t *param = arena_alloc(&parser->ctx.arena, sizeof(identifier_expression_t));
+        identifier_expression_t *param = arena_alloc(parser->ctx->arena, sizeof(identifier_expression_t));
         param->name = identifier.value.raw_str,
         param->type = type_info;
 
@@ -240,7 +241,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
     // parse prefix
     switch (parser_current(parser).type) {
         case TOKEN_L_BRACE: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_BLOCK;
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
@@ -257,14 +258,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             return expr;
         }
         case TOKEN_L_PAREN: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_L_PAREN);
             expr = parser_parse_expression(parser, PRECEDENCE_LOWEST);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
             return expr;
         }
         case TOKEN_LITERAL: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_LITERAL;
             expr->data.literal = parser_parse_literal(parser);
             return expr;
@@ -272,7 +273,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_PLUS:
         case TOKEN_BANG:
         case TOKEN_MINUS: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_PREFIX;
             expr->data.prefix = (prefix_expression_t) {
                 .operand = parser_eat(parser),
@@ -281,8 +282,8 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             return expr;
         }
         case TOKEN_IDENTIFIER: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
-            char* identifier_name = arena_strdup(&parser->ctx.arena, parser_eat(parser).value.raw_str);
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
+            char* identifier_name = arena_strdup(parser->ctx->arena, parser_eat(parser).value.raw_str);
 
             if (parser_current(parser).type == TOKEN_L_PAREN) {
                 parser_eat_and_expect(parser, TOKEN_L_PAREN);
@@ -307,7 +308,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             return expr;
         }
         case TOKEN_FN: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat(parser);
 
             type_t type_info = parser_parse_type_hint2(parser);
@@ -325,14 +326,14 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
                 .params = params,
-                .name = arena_strdup(&parser->ctx.arena, function_name),
+                .name = arena_strdup(parser->ctx->arena, function_name),
                 .value = parser_parse_expression(parser, PRECEDENCE_CALL),
                 .type = type_info
             };
             return expr;
         }
         case TOKEN_RETURN: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_RETURN);
             expr->type = EXPRESSION_TYPE_RETURN;
             expr->data.return_exp = (return_expression_t) {
@@ -341,7 +342,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             return expr;
         }
         case TOKEN_IF: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat_and_expect(parser, TOKEN_IF);
             expr->type = EXPRESSION_TYPE_CONDITIONAL;
             expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST);
@@ -380,7 +381,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
         case TOKEN_GTE:
         case TOKEN_LTE:
         case TOKEN_EQEQ: {
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_INFIX;
             token_t operand = parser_eat(parser);
             precedence_t precedence = get_precedence(operand.type);
@@ -443,7 +444,7 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
 }
 
 statement_t* parser_parse_statement(parser_t *parser) {
-    statement_t *s = arena_alloc(&parser->ctx.arena, sizeof(statement_t));
+    statement_t *s = arena_alloc(parser->ctx->arena, sizeof(statement_t));
     token_t current;
     while (current = parser_current(parser), current.type == TOKEN_NEW_LINE || current.type == TOKEN_SEMICOLON) {
         parser_eat(parser);
@@ -462,7 +463,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
 
             identifier_expression_t idexpr = (identifier_expression_t) {
-                .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
+                .name = arena_strdup(parser->ctx->arena, identifier.value.raw_str),
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST),
                 .type = type_info
             };
@@ -487,11 +488,11 @@ statement_t* parser_parse_statement(parser_t *parser) {
             vector_t params = parser_parse_comma_seperated_params(parser);
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
-            expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
+            expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
                 .params = params,
-                .name = arena_strdup(&parser->ctx.arena,  fn_identifier.value.raw_str),
+                .name = arena_strdup(parser->ctx->arena,  fn_identifier.value.raw_str),
                 .value = NULL,
                 .type = type_info
             };
@@ -526,22 +527,19 @@ void parser_parse(parser_t *parser) {
     }
 }
 
-parser_t parser_new() {
+parser_t parser_new(CompilerContext *ctx) {
     return (parser_t) {
         .index = 0,
         .program = program_create(),
         .error_idx = 0,
-        .ctx = (ParserContext) {
-            .arena = arena_new(1024*1024),
-            .types = hashmap_create(NULL)
-        }
+        .ctx = ctx
     };
 }
 
-void parser_destroy(parser_t *parser) {
-    printf("[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx.arena.offset, parser->ctx.arena.capacity, 100*parser->ctx.arena.offset/parser->ctx.arena.capacity);
-    arena_destroy(&parser->ctx.arena);
-}
+// void parser_destroy(parser_t *parser) {
+//     printf("[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx->arena.offset, parser->ctx->arena.capacity, 100*parser->ctx->arena.offset/parser->ctx->arena.capacity);
+//     arena_destroy(parser->ctx->arena);
+// }
 
 
 program_t parse(parser_t *parser, token_t *tokens) {

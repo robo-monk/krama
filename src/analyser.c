@@ -1,6 +1,7 @@
 #include "arena.h"
 #include "analyser.h"
 #include "ast.h"
+#include "compiler.h"
 #include "hashmap.h"
 #include "parser.h"
 #include "tokeniser.h"
@@ -47,11 +48,11 @@ void analyser_error_create(analyser_t *analyser, const char *format, ...) {
     va_list args;
     va_start(args, format);
 
-    analyser_error_t *error = arena_alloc(&analyser->ctx.arena, sizeof(analyser_error_t));
+    analyser_error_t *error = arena_alloc(analyser->ctx->arena, sizeof(analyser_error_t));
 
     // Allocate memory for the message
     int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(&analyser->ctx.arena, msg_len);
+    error->message = arena_alloc(analyser->ctx->arena, msg_len);
 
     // Format the message
     vsnprintf(error->message, msg_len, format, args);
@@ -78,11 +79,11 @@ bool analyser_assert(bool predicate, analyser_t *analyser, const char *format, .
     va_list args;
     va_start(args, format);
 
-    analyser_error_t *error = arena_alloc(&analyser->ctx.arena, sizeof(analyser_error_t));
+    analyser_error_t *error = arena_alloc(analyser->ctx->arena, sizeof(analyser_error_t));
 
     // Allocate memory for the message
     int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(&analyser->ctx.arena, msg_len);
+    error->message = arena_alloc(analyser->ctx->arena, msg_len);
 
     // Format the message
     vsnprintf(error->message, msg_len, format, args);
@@ -115,7 +116,7 @@ type_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope)
         .unknown = true
     };
 
-    scope_t sub_scope = scope_create_sub(&an->ctx.arena, scope);
+    scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
     for (int i = 0; i < block->statement_count; i++) {
         type_t type = annotate_statement(an, &block->statements[i], &sub_scope);
         if (block->statements[i].type == STATEMENT_TYPE_EXPRESSION &&
@@ -140,7 +141,7 @@ type_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope)
 }
 
 type_t get_ctype(analyser_t *an, char* typeid, bool is_ref) {
-    type_info_t *type_info = hashmap_get(an->ctx.types, typeid);
+    type_info_t *type_info = hashmap_get(an->ctx->types, typeid);
     assert(type_info != NULL);
     return (type_t) {
         .type_info = *type_info,
@@ -247,14 +248,13 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             }
 
             type_t type_hint = expression->data.func_decl.type;
-            scope_t sub_scope = scope_create_sub(&an->ctx.arena, scope);
+            scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
 
             for (int i = 0; i<expression->data.func_decl.params.count; i++) {
                 identifier_expression_t *id = vector_get(&expression->data.func_decl.params, i);
-                expression_t *idexp = arena_alloc(&an->ctx.arena, sizeof(expression_t));
+                expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
                 idexp->type = EXPRESSION_TYPE_IDENTIFIER;
                 idexp->data.identifier = *id;
-
                 scope_define_entry(&sub_scope, id->name, idexp);
             }
 
@@ -337,7 +337,7 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
         analyser_assert(entry == NULL, an, "Identifier '%s' has already been declared\n", s->data.let.identifier.name);
         analyser_assert(s->data.let.identifier.value != NULL, an, "Unitialised identifier '%s' is not allowed", s->data.let.identifier.name);
 
-        expression_t *idexp = arena_alloc(&an->ctx.arena, sizeof(expression_t));
+        expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
 
         type_t type_hint = s->data.let.identifier.type;
         type_t inferred_type = annotate_expression(an, s->data.let.identifier.value, scope);
@@ -362,19 +362,17 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
     return (type_t) { .unknown = true };
 }
 
-analyser_t analyser_new() {
+analyser_t analyser_new(CompilerContext *ctx) {
     return (analyser_t) {
         .index = 0,
         .error_idx = 0,
-        .ctx = {
-            .arena = arena_new(1024*1024)
-        }
+        .ctx = ctx
     };
 }
 
-void analyse_program(parser_t *parser) {
-    analyser_t a = analyser_new();
-    a.ctx.types = parser->ctx.types;
+void analyse_program(parser_t *parser, CompilerContext *ctx) {
+    analyser_t a = analyser_new(ctx);
+    // a.ctx.types = parser->ctx.types;
 
     printf("\nAnalyzing..\n");
 

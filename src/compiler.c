@@ -68,7 +68,6 @@ char* compile_type(CompilerContext *ctx, type_t *type) {
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e);
 
-
 typedef char* (*macro_compile_callback)(CompilerContext *ctx, c_program_t *program, vector_t *arguments);
 
 void register_macro_handler(CompilerContext *ctx, char* id, macro_compile_callback cb) {
@@ -299,29 +298,29 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     }
 }
 
-void compile(parser_t* parser, const char* file_out) {
-    Arena arena = arena_new(1024*1024);
-    hashmap_t *macros = hashmap_create(NULL);
+void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
+    // Arena arena = arena_new(1024*1024);
+    // hashmap_t *macros = hashmap_create(NULL);
 
-    CompilerContext ctx = (CompilerContext) {
-        .arena = &arena,
-        .macros = macros,
-        .types = parser->ctx.types
-    };
+    // CompilerContext ctx = (CompilerContext) {
+    //     .arena = &arena,
+    //     .macros = macros,
+    //     .types = parser->ctx.types
+    // };
 
-    register_macro_handler(&ctx, "@cast", cast_compile_callback);
-    register_macro_handler(&ctx, "@malloc", malloc_compile_callback);
-    register_macro_handler(&ctx, "@free", free_compile_callback);
-    register_macro_handler(&ctx, "@set", set_compile_callback);
+    register_macro_handler(ctx, "@cast", cast_compile_callback);
+    register_macro_handler(ctx, "@malloc", malloc_compile_callback);
+    register_macro_handler(ctx, "@free", free_compile_callback);
+    register_macro_handler(ctx, "@set", set_compile_callback);
 
     c_program_t cprogram = c_program_new();
-    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
-    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdlib.h>"));
-    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdbool.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdio.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdlib.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdbool.h>"));
 
-    for (int i = 0; i < parser->program.statements.count; i++) {
+    for (int i = 0; i < program->statements.count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
-        char* stmt = compile_statement(&ctx, &cprogram, (statement_t*) vector_get_ptr(&parser->program.statements, i));
+        char* stmt = compile_statement(ctx, &cprogram, (statement_t*) vector_get_ptr(&program->statements, i));
         vector_push_ptr(&cprogram.impls, stmt);
     }
 
@@ -344,9 +343,9 @@ void compile(parser_t* parser, const char* file_out) {
     }
 
     printf("\n---\n\n");
-    printf("[Compiler Stats] Compiler Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", arena.offset, arena.capacity, 100*arena.offset/arena.capacity);
+    // printf("[Compiler Stats] Compiler Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", arena.offset, arena.capacity, 100*arena.offset/arena.capacity);
 
     vector_free(&cprogram.impls);
     vector_free(&cprogram.headers);
-    arena_destroy(&arena);
+    // arena_destroy(&arena);
 }
