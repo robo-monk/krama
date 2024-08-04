@@ -130,11 +130,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    program_t p = parser.program;
-
-    analyse_program(&p);
-
-    compile(p, output_file);
+    analyse_program(&parser);
+    compile(&parser, output_file);
 
     parser_destroy(&parser);
     free(token_array);

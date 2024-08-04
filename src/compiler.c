@@ -3,6 +3,7 @@
 #include "ast.h"
 #include "hashmap.h"
 // #include "macros.h"
+#include "parser.h"
 #include "stdarg.h"
 #include "tokeniser.h"
 #include <assert.h>
@@ -14,42 +15,6 @@ c_program_t c_program_new() {
         .headers = vector_new(16, sizeof(char*)),
         .impls = vector_new(16, sizeof(char*)),
     };
-}
-
-char* ptype_to_ctype(ptype_t t) {
-    switch (t) {
-    case PTYPE_I64:
-        return "long";
-    case PTYPE_I32:
-        return "int";
-    case PTYPE_I16:
-        return "short";
-    case PTYPE_U64:
-        return "unsigned long";
-    case PTYPE_U32:
-        return "unsigned int";
-    case PTYPE_U16:
-        return "unsigned short";
-    case PTYPE_U8:
-        return "char";
-    case PTYPE_F64:
-        return "double";
-    case PTYPE_F32:
-        return "float";
-    case PTYPE_F16:
-        return "float";
-    case PTYPE_CHAR:
-        return "char";
-    case PTYPE_VOID:
-        return "void";
-    case PTYPE_UNKNOWN:
-        return "[UNKNOWN]";
-    case PTYPE_ANY:
-        return "void*";
-    case PTYPE_BOOL:
-        return "bool";
-    }
-    return "[UNKNOWN]";
 }
 
 
@@ -68,8 +33,8 @@ char* string_arena_format(Arena *arena, const char* fmt, ...) {
 
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
-    // printf("\nfmt: [%s]\n", fmt);
+    printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
+    printf("\nfmt: [%s]\n", fmt);
 
     assert(overwrite_ptr != NULL);
     assert(overwrite_ptr == arena->last_ptr);
@@ -95,6 +60,11 @@ char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, con
     return str;
 }
 
+char* compile_type(CompilerContext *ctx, type_t *type) {
+    if (type->unknown) return string_arena_format(ctx->arena, "(unknown)");
+    return string_arena_format(ctx->arena, "%s%s", type->type_info.ctype, type->is_ref ? "*" : "");
+}
+
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e);
 
@@ -106,29 +76,43 @@ void register_macro_handler(CompilerContext *ctx, char* id, macro_compile_callba
 }
 
 static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
-    assert(args->count == 2);
-    expression_t *type_expression = vector_get(args, 1);
-    ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
-    char* ctype = ptype_to_ctype(t);
-    char* cast_expr = compile_expression(ctx, program, vector_get(args, 0));
-    assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
-    return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
+    assert(0);
+    // assert(args->count == 2);
+    // expression_t *type_expression = vector_get(args, 1);
+    // ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
+    // char* ctype = ptype_to_ctype(t);
+    // char* cast_expr = compile_expression(ctx, program, vector_get(args, 0));
+    // assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
+    // return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
 }
 
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(0);
     assert(args->count == 1);
     expression_t *exp = vector_get(args, 0);
-
     // printf("\n\n result type is %s \n", ptype_to_ctype(exp->resultType));
-    assert(exp->resultType == PTYPE_I64);
+    // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
     return string_arena_format_overwrite(ctx->arena, size_expr, "malloc(%s)", size_expr);
+}
+
+static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 2);
+    expression_t *exp = vector_get(args, 0);
+    assert(exp->type == EXPRESSION_TYPE_IDENTIFIER);
+    // has to be pointer
+    // assert(exp->data.identifier.type == PTYPE_I64);
+    char* ptr_expression = compile_expression(ctx, program, exp);
+
+    expression_t *val_exp = vector_get(args, 1);
+    char* val = compile_expression(ctx, program, val_exp);
+    return string_arena_format_overwrite(ctx->arena, val, "*%s = %s", ptr_expression, val);
 }
 
 static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 1);
     expression_t *exp = vector_get(args, 0);
-    assert(exp->resultType == PTYPE_I64);
+    // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
     return string_arena_format_overwrite(ctx->arena, size_expr, "free(%s)", size_expr);
 }
@@ -160,9 +144,10 @@ char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program,
     for (int i = 0; i < params->count; i++) {
         identifier_expression_t* expr = vector_get(params, i);
         if (args == NULL) {
-            args = string_arena_format(ctx->arena, "%s %s", ptype_to_ctype(expr->type), expr->name);
+            // args = string_arena_format(ctx->arena, "%s %s", ptype_to_ctype(expr->type), expr->name);
+            args = string_arena_format(ctx->arena, "%s %s", compile_type(ctx, &expr->type), expr->name);
         } else {
-            args = string_arena_format_overwrite(ctx->arena, args, "%s, %s %s", args, ptype_to_ctype(expr->type), expr->name);
+            args = string_arena_format_overwrite(ctx->arena, args, "%s, %s %s", args, compile_type(ctx, &expr->type), expr->name);
         }
     }
 
@@ -216,18 +201,19 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             return string_arena_format_overwrite(ctx->arena, val, "%s = %s", e->data.identifier.name, val);
         }
         case EXPRESSION_TYPE_FUNC_DECL:{
+            char* return_type = compile_type(ctx, &e->data.func_decl.type);
             char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
             if (e->data.func_decl.value != NULL) {
                 char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
                 return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
-                    ptype_to_ctype(e->data.func_decl.type),
+                    return_type,
                     e->data.func_decl.name,
                     params,
                     fn_body);
             } else {
                 // return "\0";
                 return string_arena_format(ctx->arena, "// external %s %s(%s)",
-                    ptype_to_ctype(e->data.func_decl.type),
+                    return_type,
                     e->data.func_decl.name,
                     params);
             }
@@ -282,13 +268,11 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s) {
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
-            char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
-            // s->data.let.identifier.type = PTYPE_F64;
-            char* ctype = ptype_to_ctype(s->data.let.identifier.type);
+            char* ctype = s->data.let.identifier.type.unknown ?
+                compile_type(ctx, &s->data.expression.resultType)
+                : compile_type(ctx, &s->data.let.identifier.type);
 
-            if (s->data.let.identifier.type == PTYPE_UNKNOWN) {
-                ctype = ptype_to_ctype(s->data.expression.resultType);
-            }
+            char* exp = compile_expression(ctx, program, s->data.let.identifier.value);
 
             char* ssk = string_arena_format_overwrite(ctx->arena, exp, "%s %s = %s;",
                 ctype,
@@ -312,27 +296,29 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
     }
 }
 
-void compile(program_t program, const char* file_out) {
+void compile(parser_t* parser, const char* file_out) {
     Arena arena = arena_new(1024*1024);
     hashmap_t *macros = hashmap_create(NULL);
 
     CompilerContext ctx = (CompilerContext) {
         .arena = &arena,
-        .macros = macros
+        .macros = macros,
+        .types = parser->ctx.types
     };
 
     register_macro_handler(&ctx, "@cast", cast_compile_callback);
     register_macro_handler(&ctx, "@malloc", malloc_compile_callback);
     register_macro_handler(&ctx, "@free", free_compile_callback);
+    register_macro_handler(&ctx, "@set", set_compile_callback);
 
     c_program_t cprogram = c_program_new();
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdlib.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdbool.h>"));
 
-    for (int i = 0; i < program.statements.count; i++) {
+    for (int i = 0; i < parser->program.statements.count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
-        char* stmt = compile_statement(&ctx, &cprogram, (statement_t*) vector_get_ptr(&program.statements, i));
+        char* stmt = compile_statement(&ctx, &cprogram, (statement_t*) vector_get_ptr(&parser->program.statements, i));
         vector_push_ptr(&cprogram.impls, stmt);
     }
 

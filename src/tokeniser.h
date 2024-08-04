@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 typedef enum {
     TOKEN_L_BRACE = '{',
@@ -76,6 +77,17 @@ typedef enum {
     PTYPE_ANY,
     PTYPE_UNKNOWN=99,
 } ptype_t;
+
+typedef struct {
+    size_t size;
+    char* ctype;
+} type_info_t;
+
+typedef struct {
+    bool unknown;
+    bool is_ref;
+    type_info_t type_info;
+} type_t;
 
 typedef union {
     char* raw_str;

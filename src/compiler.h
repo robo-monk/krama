@@ -4,10 +4,12 @@
 #include "ast.h"
 #include "arena.h"
 #include "hashmap.h"
+#include "parser.h"
 
 typedef struct {
     Arena* arena;
     hashmap_t* macros;
+    hashmap_t* types;
 } CompilerContext;
 
 typedef struct c_program_t {
@@ -15,5 +17,6 @@ typedef struct c_program_t {
     vector_t impls;
 } c_program_t;
 
-void compile(program_t program, const char* file_out);
+void compile(parser_t* parser, const char* file_out);
+// void compile(program_t program, const char* file_out);
 #endif

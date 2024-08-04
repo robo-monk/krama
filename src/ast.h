@@ -55,13 +55,13 @@ typedef struct {
 
 typedef struct {
     char* name;
-    ptype_t type;
+    type_t type;
     expression_t *value;
 } identifier_expression_t;
 
 typedef struct {
     char* name;
-    ptype_t type;
+    type_t type;
     vector_t params;
     expression_t *value;
 } func_decl_expression_t;
@@ -91,7 +91,7 @@ typedef struct {
 
 struct expression {
     expression_type_t type;
-    ptype_t resultType;
+    type_t resultType;
     union {
         infix_expression_t infix;
         prefix_expression_t prefix;

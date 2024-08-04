@@ -1,25 +1,4 @@
-extern fn void printf(any v, any b);
-
-fn print(any fmt, i64 value) {
-    printf(fmt, value);
-}
-
-fn println(any fmt, i64 value) {
-    printf(fmt, value);
-    printf("\n", "");
-}
-
-fn times(i64 n) {
-    if n > 1 {
-        times(n-1)
-    }
-    println("times$%d", n);
-}
-
-fn main() {
+fn i32 main() {
     let hello = 5
-    println("helloisbefore__%d", hello);
-    hello = (hello + hello*2)*hello
-    println("helloisnow__%d", hello);
-    return 0
+    return hello
 }

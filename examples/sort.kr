@@ -1,16 +1,22 @@
+atom u64 = U64
+atom Day = MON | TUE | WED | THU | FRI | SAT | SUN
 
-atom Day =
-    | MON
-    | TUE
-    | WED
-    | THU
-    | FRI
-    | SAT
-    | SUN
+def id(Player &p) {}
 
 
-atom TokenType = OP(char)
+type Player {
+    i64 id,
+    string name
+}
 
-let p = PLAYER({
-    string id
-});
+fn &Player new(Player, i64 id) {
+    let p = @malloc(@sizeof(Player.id) + @sizeof(Player.name))
+    return p
+}
+
+fn i64 id(Player p) {
+    p
+}
+
+let p = Player:new(302)
+p:id:set(590)

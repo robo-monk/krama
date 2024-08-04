@@ -6,15 +6,6 @@
 #include "tokeniser.h"
 #include "hashmap.h"
 
-// typedef struct scope_t {
-//     hashmap_t *table;
-//     struct scope_t *upper;
-// } scope_t;
-
-// typedef struct {
-//     identifier_expression_t identifier;
-// } scope_entry_t;
-
 typedef struct {
     char* message;
     token_t token;
@@ -22,6 +13,7 @@ typedef struct {
 
 typedef struct {
     Arena arena;
+    hashmap_t *types;
 } ParserContext;
 
 #define PARSER_MAX_ERROR_COUNT 8

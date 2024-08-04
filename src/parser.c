@@ -151,7 +151,52 @@ ptype_t parser_parse_type_hint(parser_t *parser) {
     if (primitive != PTYPE_UNKNOWN) {
         token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
     }
+
+    if (parser_current(parser).type == TOKEN_ASTERISK) {
+        printf("its a pointer bro\n");
+        exit(1);
+    }
+
     return primitive;
+}
+
+void parser_register_type(parser_t *parser, char* identifier, char* ctype, size_t size) {
+    type_info_t* type_info = arena_alloc(&parser->ctx.arena, sizeof(type_info_t));
+    // printf("\ntype info does not implement size right now...");
+    type_info->size = size;
+    type_info->ctype = arena_strdup(&parser->ctx.arena, ctype);
+    hashmap_insert(parser->ctx.types, identifier, type_info);
+}
+
+void parser_debug_type(type_t* t) {
+    assert(t != NULL);
+    printf(":::: ");
+    if (t->unknown) {
+        printf("[Unknown Type] \n");
+        return;
+    }
+    printf("[Type] %s `%s` with size %zu", t->is_ref ? "POINTER" : "VALUE", t->type_info.ctype, t->type_info.size);
+    printf("\n");
+}
+
+type_t parser_parse_type_hint2(parser_t *parser) {
+    token_t current = parser_current(parser);
+    type_info_t *type_info = hashmap_get(parser->ctx.types, current.value.raw_str);
+    if (type_info == NULL) return (type_t) {
+        .unknown = true
+    };
+
+    token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+    bool is_ref = false;
+    if (parser_current(parser).type == TOKEN_ASTERISK) {
+        is_ref = true;
+    }
+
+    return (type_t) {
+        .is_ref = is_ref,
+        .type_info = *type_info,
+        .unknown = false
+    };
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
@@ -176,9 +221,10 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
     vector_t args = vector_new(8, sizeof(expression_t));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
-        ptype_t ptype = parser_parse_type_hint(parser);
+        type_t type_info = parser_parse_type_hint2(parser);
+        parser_debug_type(&type_info);
 
-        if (ptype == PTYPE_UNKNOWN) {
+        if (type_info.unknown) {
             parser_error_create(parser, parser_current(parser), "Unrecognised type `%s`", parser_current(parser).value.raw_str);
             parser_eat(parser);
         }
@@ -191,7 +237,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
 
         identifier_expression_t *param = arena_alloc(&parser->ctx.arena, sizeof(identifier_expression_t));
         param->name = identifier.value.raw_str,
-        param->type = ptype;
+        param->type = type_info;
 
         vector_push(&args, param);
     } while (parser_optional_eat(parser, TOKEN_COMMA));
@@ -273,8 +319,9 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_FN: {
             expression_t *expr = arena_alloc(&parser->ctx.arena, sizeof(expression_t));
             parser_eat(parser);
-            ptype_t type = parser_parse_type_hint(parser);
-            printf("\n parser type hint for function is : %d\n", type);
+
+            type_t type_info = parser_parse_type_hint2(parser);
+            parser_debug_type(&type_info);
 
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
             char* function_name = identifier.value.raw_str;
@@ -290,7 +337,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
                 .params = params,
                 .name = arena_strdup(&parser->ctx.arena, function_name),
                 .value = parser_parse_expression(parser, PRECEDENCE_CALL),
-                .type = type
+                .type = type_info
             };
             return expr;
         }
@@ -415,7 +462,11 @@ statement_t* parser_parse_statement(parser_t *parser) {
     switch (current.type) {
         case TOKEN_LET: {
             token_t let = parser_eat(parser);
-            ptype_t type = parser_parse_type_hint(parser);
+            // ptype_t type = parser_parse_type_hint(parser);
+
+            type_t type_info = parser_parse_type_hint2(parser);
+            parser_debug_type(&type_info);
+
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
             token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
@@ -423,7 +474,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             identifier_expression_t idexpr = (identifier_expression_t) {
                 .name = arena_strdup(&parser->ctx.arena, identifier.value.raw_str),
                 .value = parser_parse_expression(parser, PRECEDENCE_LOWEST),
-                .type = type
+                .type = type_info
             };
 
             s->type = STATEMENT_TYPE_LET;
@@ -433,8 +484,11 @@ statement_t* parser_parse_statement(parser_t *parser) {
         case TOKEN_EXTERN: {
             parser_eat_and_expect(parser, TOKEN_EXTERN);
             parser_eat_and_expect(parser, TOKEN_FN); // only fn can be external
-            ptype_t type = parser_parse_type_hint(parser);
-            if (type == PTYPE_UNKNOWN) {
+
+            type_t type_info = parser_parse_type_hint2(parser);
+            parser_debug_type(&type_info);
+
+            if (type_info.unknown) {
                 parser_error_create(parser, parser_current(parser), "External functional need to define return type");
             }
             token_t fn_identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -449,7 +503,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
                 .params = params,
                 .name = arena_strdup(&parser->ctx.arena,  fn_identifier.value.raw_str),
                 .value = NULL,
-                .type = type
+                .type = type_info
             };
 
             s->type = STATEMENT_TYPE_EXPRESSION;
@@ -488,7 +542,8 @@ parser_t parser_new() {
         .program = program_create(),
         .error_idx = 0,
         .ctx = (ParserContext) {
-            .arena = arena_new(1024*1024)
+            .arena = arena_new(1024*1024),
+            .types = hashmap_create(NULL)
         }
     };
 }
@@ -504,6 +559,14 @@ program_t parse(parser_t *parser, token_t *tokens) {
     parser->index = 0;
     parser->error_idx = 0;
     parser->program = program_create();
+
+    parser_register_type(parser, "u32", "unsigned int", 4);
+    parser_register_type(parser, "i32", "int", 4);
+    parser_register_type(parser, "i64", "long", 8);
+    parser_register_type(parser, "f32", "float", 4);
+    parser_register_type(parser, "f64", "double", 8);
+    parser_register_type(parser, "char", "char", 1);
+    parser_register_type(parser, "byte", "char", 1);
 
     parser_parse(parser);
 

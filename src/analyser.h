@@ -1,7 +1,9 @@
 #ifndef KRAMA_ANALYSER_H
 #define KRAMA_ANALYSER_H
+
 #include "ast.h"
 #include "hashmap.h"
+#include "parser.h"
 #include "tokeniser.h"
 
 typedef struct scope_t {
@@ -21,6 +23,7 @@ typedef struct {
 
 typedef struct {
     Arena arena;
+    hashmap_t *types;
 } AnalyserContext;
 
 #define ANALYSER_MAX_ERROR_COUNT 28
@@ -35,5 +38,5 @@ typedef struct {
 
 analyser_t analyser_new();
 void analyser_destroy(analyser_t *a);
-void analyse_program(program_t *program);
+void analyse_program(parser_t *parser);
 #endif
