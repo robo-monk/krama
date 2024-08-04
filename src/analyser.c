@@ -141,6 +141,7 @@ type_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope)
 
 type_t get_ctype(analyser_t *an, char* typeid, bool is_ref) {
     type_info_t *type_info = hashmap_get(an->ctx.types, typeid);
+    assert(type_info != NULL);
     return (type_t) {
         .type_info = *type_info,
         .is_ref = is_ref,
@@ -296,7 +297,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 type_t exp_type = annotate_expression(an, exp, scope);
                 exp->resultType = exp_type;
             }
-            return (type_t) {.unknown = true };
+
+            return get_ctype(an, "void", true);
         }
         case EXPRESSION_TYPE_CALL: {
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);

@@ -1,4 +1,15 @@
+extern fn void printf(any fmt, any val);
+
 fn i32 main() {
-    let hello = 5
-    return hello
+    let char* test = @malloc(1024*8);
+    @set(test+0, 'h')
+    @set(test+1, 'e')
+    @set(test+2, 'l')
+    @set(test+3, 'l')
+    @set(test+4, 'o')
+    @set(test+5, 'o')
+    @set(test+6, 0)
+    @free(test)
+    test:printf
+    return 0;
 }

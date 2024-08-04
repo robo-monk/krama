@@ -141,25 +141,6 @@ precedence_t get_precedence(token_type_t token_type) {
 }
 
 
-ptype_t parser_parse_type_hint(parser_t *parser) {
-    token_t current = parser_current(parser);
-
-    // if (current.type != TOKEN_COLON) return PTYPE_UNKNOWN;
-    // parser_eat_and_expect(parser, TOKEN_COLON);
-
-    ptype_t primitive = str_to_primitive_type(current.value.raw_str);
-    if (primitive != PTYPE_UNKNOWN) {
-        token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-    }
-
-    if (parser_current(parser).type == TOKEN_ASTERISK) {
-        printf("its a pointer bro\n");
-        exit(1);
-    }
-
-    return primitive;
-}
-
 void parser_register_type(parser_t *parser, char* identifier, char* ctype, size_t size) {
     type_info_t* type_info = arena_alloc(&parser->ctx.arena, sizeof(type_info_t));
     // printf("\ntype info does not implement size right now...");
@@ -182,13 +163,22 @@ void parser_debug_type(type_t* t) {
 type_t parser_parse_type_hint2(parser_t *parser) {
     token_t current = parser_current(parser);
     type_info_t *type_info = hashmap_get(parser->ctx.types, current.value.raw_str);
-    if (type_info == NULL) return (type_t) {
-        .unknown = true
-    };
+
+    if (type_info == NULL) {
+        if (parser_peek(parser).type == TOKEN_ASTERISK) {
+            printf("\nunrecognised type\n");
+            exit(1);
+        }
+        return (type_t) {
+            .unknown = true
+        };
+    }
 
     token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
     bool is_ref = false;
+
     if (parser_current(parser).type == TOKEN_ASTERISK) {
+        parser_eat(parser);
         is_ref = true;
     }
 
@@ -563,10 +553,14 @@ program_t parse(parser_t *parser, token_t *tokens) {
     parser_register_type(parser, "u32", "unsigned int", 4);
     parser_register_type(parser, "i32", "int", 4);
     parser_register_type(parser, "i64", "long", 8);
+    parser_register_type(parser, "u64", "unsigned long", 8);
+    parser_register_type(parser, "u32", "unsigned int", 4);
     parser_register_type(parser, "f32", "float", 4);
     parser_register_type(parser, "f64", "double", 8);
     parser_register_type(parser, "char", "char", 1);
     parser_register_type(parser, "byte", "char", 1);
+    parser_register_type(parser, "void", "void", 0);
+    parser_register_type(parser, "any", "void*", 0);
 
     parser_parse(parser);
 

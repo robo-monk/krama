@@ -87,7 +87,6 @@ static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, v
 }
 
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
-    assert(0);
     assert(args->count == 1);
     expression_t *exp = vector_get(args, 0);
     // printf("\n\n result type is %s \n", ptype_to_ctype(exp->resultType));
@@ -99,14 +98,17 @@ static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program,
 static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 2);
     expression_t *exp = vector_get(args, 0);
-    assert(exp->type == EXPRESSION_TYPE_IDENTIFIER);
+    // assert(exp->type == EXPRESSION_TYPE_IDENTIFIER);
     // has to be pointer
     // assert(exp->data.identifier.type == PTYPE_I64);
     char* ptr_expression = compile_expression(ctx, program, exp);
 
     expression_t *val_exp = vector_get(args, 1);
+    printf("\n ---> value is \n");
+    debug_expression(val_exp, 0);
+    printf("\n ---> value is \n");
     char* val = compile_expression(ctx, program, val_exp);
-    return string_arena_format_overwrite(ctx->arena, val, "*%s = %s", ptr_expression, val);
+    return string_arena_format_overwrite(ctx->arena, val, "*(%s) = %s", ptr_expression, val);
 }
 
 static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -143,11 +145,12 @@ char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program,
     char* args = NULL;
     for (int i = 0; i < params->count; i++) {
         identifier_expression_t* expr = vector_get(params, i);
+        char* type = compile_type(ctx, &expr->type);
         if (args == NULL) {
             // args = string_arena_format(ctx->arena, "%s %s", ptype_to_ctype(expr->type), expr->name);
-            args = string_arena_format(ctx->arena, "%s %s", compile_type(ctx, &expr->type), expr->name);
+            args = string_arena_format_overwrite(ctx->arena, type, "%s %s", type, expr->name);
         } else {
-            args = string_arena_format_overwrite(ctx->arena, args, "%s, %s %s", args, compile_type(ctx, &expr->type), expr->name);
+            args = string_arena_format_overwrite(ctx->arena, type, "%s, %s %s", args, type, expr->name);
         }
     }
 
@@ -188,7 +191,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                 case LITERAL_TYPE_F64:
                     return string_arena_format(ctx->arena, "%lf", e->data.literal.data.f64);
                 case LITERAL_TYPE_CHARACTER:
-                    return string_arena_format(ctx->arena, "%c", e->data.literal.data.character);
+                    return string_arena_format(ctx->arena, "'%c'", e->data.literal.data.character);
                 case LITERAL_TYPE_STRING:
                     // return  e->data.literal.data.string;
                     return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
