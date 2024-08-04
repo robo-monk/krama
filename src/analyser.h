@@ -22,11 +22,6 @@ typedef struct {
     token_t token;
 } analyser_error_t;
 
-typedef struct {
-    Arena arena;
-    hashmap_t *types;
-} AnalyserContext;
-
 #define ANALYSER_MAX_ERROR_COUNT 28
 typedef struct {
     int index;

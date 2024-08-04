@@ -154,7 +154,7 @@ void debug_expression(expression_t *expression, int ident) {
     case EXPRESSION_TYPE_CALL: {
             printf("expr CALL '%s' \n", expression->data.call.identifier_name);
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
-                expression_t* e = vector_get(&expression->data.call.arguments, i);
+                expression_t* e = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 // add_tabs(ident+1);
                 debug_expression(e, ident+1);
                 printf("\n");

@@ -130,7 +130,8 @@ int main(int argc, char *argv[]) {
     CompilerContext ctx = (CompilerContext) {
         .arena = &arena,
         .macros = macros,
-        .types = types
+        .types = types,
+        .fn_mangle = fn_expr_name_mangle
     };
 
     parser_t parser = parser_new(&ctx);

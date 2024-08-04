@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "stdarg.h"
 
 #define ALIGNMENT (_Alignof(max_align_t))
 
@@ -17,6 +18,9 @@ typedef struct {
 Arena arena_new(size_t capacity);
 void* arena_alloc(Arena *arena, size_t size);
 void arena_destroy(Arena *arena);
+
+char* string_arena_format(Arena *arena, const char* fmt, ...);
+char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...);
 
 char* arena_strdup(Arena *arena, const char* s);
 
@@ -35,9 +39,11 @@ void* vector_get_ptr(vector_t *v, size_t i);
 
 void* vector_get(vector_t *v, size_t i);
 void vector_push(vector_t *v, const void* e);
+void vector_set(vector_t *v, size_t i, const void* e);
 void vector_free(vector_t *v);
 void* vector_to_array(vector_t *v);
 void vector_insert(vector_t *v, const size_t i, const void* e);
+void vector_insert_ptr(vector_t *v, const size_t i, const void* ptr);
 
 #ifdef ARENA_IMPLEMENTATION
 
@@ -89,6 +95,48 @@ char* arena_strdup(Arena *arena, const char* s) {
     return (char*) memcpy(new, s, len);
 }
 
+char* string_arena_format(Arena *arena, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    va_list copy;
+    va_copy(copy, args);
+    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
+    char* str = arena_alloc(arena, length * sizeof(char));
+    vsnprintf(str, length, fmt, args);
+    va_end(args);
+    return str;
+}
+
+
+char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
+    // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
+    // printf("\nfmt: [%s]\n", fmt);
+
+    assert(overwrite_ptr != NULL);
+    assert(overwrite_ptr == arena->last_ptr);
+    size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
+    arena->offset -= last_bytes; // go back
+
+    va_list args;
+    va_start(args, fmt);
+
+    va_list copy;
+    va_copy(copy, args);
+
+    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
+
+    char* tempstr = malloc(length * sizeof(char));
+
+    assert(tempstr != NULL);
+    vsnprintf(tempstr, length, fmt, args);
+    char* str = arena_alloc(arena, length * sizeof(char));
+    strcpy(str, tempstr);
+    va_end(args);
+    free(tempstr);
+    return str;
+}
+
 
 vector_t vector_new(size_t initial_cap, size_t element_size) {
     return (vector_t) {
@@ -117,6 +165,15 @@ void* vector_get(vector_t *v, size_t i) {
     return p;
 }
 
+void vector_set(vector_t *v, size_t i, const void* e) {
+    void* p = (char*) v->data + v->element_size*i;
+    assert(i >= 0);
+    assert(p < (v->data + (v->element_size*v->count)));
+    // return p;
+    // void* p = (char*) v->data + v->element_size*(v->count++);
+    memcpy(p, e, v->element_size);
+}
+
 void vector_push(vector_t *v, const void* e) {
     if (v->capacity == v->count) {
         v->capacity *= 2;
@@ -135,12 +192,30 @@ void vector_insert(vector_t *v, const size_t i, const void* e) {
     size_t move_size = (v->count-i)*v->element_size;
     memcpy(next_p, insert_p, move_size);
     memcpy(insert_p, e, v->element_size);
+
     v->count++;
     // [ a, b, c, d, e] // count = 5
     // insert(1, o)
     // [ a, o, b, c, d, e]
 }
 
+void vector_insert_ptr(vector_t *v, const size_t i, const void* ptr) {
+    assert(v->element_size == sizeof(void*));
+
+    if (v->capacity >= v->count) {
+        v->capacity *= 2;
+        v->data = realloc(v->data, v->capacity);
+    }
+
+    void* insert_p = (char*) v->data + i*v->count*v->element_size;
+    void* next_p = (char*)v->data + (i+1)*v->count*v->element_size;
+    size_t move_size = (v->count-i)*v->element_size;
+    memcpy(next_p, insert_p, move_size);
+    // memcpy(insert_p, e, v->element_size);
+
+    (((size_t*) v->data))[i] = (size_t) ptr;
+    v->count++;
+}
 
 void vector_push_ptr(vector_t *v, const void* ptr) {
     assert(v->element_size == sizeof(void*));

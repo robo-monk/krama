@@ -5,6 +5,11 @@
 
 // external void printf(void* fmt, void* val);
 
+long bing_long(long hello)
+{
+  return hello;
+};
+
 int main(void)
 {
   char* test = malloc(1024 * 8);
@@ -16,6 +21,6 @@ int main(void)
   *(test + 5) = 'o';
   *(test + 6) = 0;
   free(test);
-  printf(test);
+  bing_long(1);
   return 0;
 };

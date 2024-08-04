@@ -5,19 +5,22 @@
 #include "arena.h"
 #include "hashmap.h"
 
-typedef char* (*fn_name_mangler)(char* fn_name, vector_t *arg_types);
-typedef struct {
+typedef struct CompilerContext CompilerContext;
+typedef char* (*fn_name_mangler)(CompilerContext *ctx, expression_t *exp);
+
+struct CompilerContext {
     Arena* arena;
     hashmap_t* macros;
     hashmap_t* types;
     fn_name_mangler fn_mangle;
-} CompilerContext;
+};
 
 typedef struct c_program_t {
     vector_t headers;
     vector_t impls;
 } c_program_t;
 
+char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp);
 void compile(program_t *program, CompilerContext *ctx, const char* file_out);
 // void compile(program_t program, const char* file_out);
 #endif

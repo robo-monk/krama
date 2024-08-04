@@ -10,6 +10,32 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+
+
+char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
+    if (exp->type == EXPRESSION_TYPE_FUNC_DECL) {
+        char* fn_name = arena_strdup(ctx->arena, exp->data.func_decl.name);
+        for (int i = 0; i<exp->data.func_decl.params.count; i++) {
+            identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&exp->data.func_decl.params, i);
+            assert(!id->type.unknown);
+            fn_name = string_arena_format_overwrite(ctx->arena, fn_name, "%s_%s", fn_name, id->type.type_info.ctype);
+        }
+        return fn_name;
+    } else if (exp->type == EXPRESSION_TYPE_CALL) {
+        char* fn_name = arena_strdup(ctx->arena, exp->data.call.identifier_name);
+        for (int i = 0; i<exp->data.call.arguments.count; i++) {
+            expression_t *arg = (expression_t*) vector_get_ptr(&exp->data.call.arguments, i);
+            assert(exp && !exp->resultType.unknown);
+            assert(arg != NULL);
+            fn_name = string_arena_format(ctx->arena, "%s_%s", fn_name, arg->resultType.type_info.ctype);
+        }
+        return fn_name;
+    }
+    assert(0);
+    // return string_arena_format_overwrite(ctx->arena, fn_name, "%s__%s", fn_name, exp->data.func_decl.type.type_info.ctype);
+}
+
+
 c_program_t c_program_new() {
     return (c_program_t) {
         .headers = vector_new(16, sizeof(char*)),
@@ -18,47 +44,7 @@ c_program_t c_program_new() {
 }
 
 
-char* string_arena_format(Arena *arena, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
 
-    va_list copy;
-    va_copy(copy, args);
-    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
-    char* str = arena_alloc(arena, length * sizeof(char));
-    vsnprintf(str, length, fmt, args);
-    va_end(args);
-    return str;
-}
-
-
-char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
-    printf("\nfmt: [%s]\n", fmt);
-
-    assert(overwrite_ptr != NULL);
-    assert(overwrite_ptr == arena->last_ptr);
-    size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
-    arena->offset -= last_bytes; // go back
-
-    va_list args;
-    va_start(args, fmt);
-
-    va_list copy;
-    va_copy(copy, args);
-
-    size_t length = vsnprintf(NULL, 0, fmt, copy) + 1;
-
-    char* tempstr = malloc(length * sizeof(char));
-
-    assert(tempstr != NULL);
-    vsnprintf(tempstr, length, fmt, args);
-    char* str = arena_alloc(arena, length * sizeof(char));
-    strcpy(str, tempstr);
-    va_end(args);
-    free(tempstr);
-    return str;
-}
 
 char* compile_type(CompilerContext *ctx, type_t *type) {
     if (type->unknown) return string_arena_format(ctx->arena, "(unknown)");
@@ -87,7 +73,7 @@ static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, v
 
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 1);
-    expression_t *exp = vector_get(args, 0);
+    expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
     // printf("\n\n result type is %s \n", ptype_to_ctype(exp->resultType));
     // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
@@ -96,13 +82,13 @@ static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program,
 
 static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 2);
-    expression_t *exp = vector_get(args, 0);
+    expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
     // assert(exp->type == EXPRESSION_TYPE_IDENTIFIER);
     // has to be pointer
     // assert(exp->data.identifier.type == PTYPE_I64);
     char* ptr_expression = compile_expression(ctx, program, exp);
 
-    expression_t *val_exp = vector_get(args, 1);
+    expression_t *val_exp = (expression_t*) vector_get_ptr(args, 1);
     printf("\n ---> value is \n");
     debug_expression(val_exp, 0);
     printf("\n ---> value is \n");
@@ -112,7 +98,7 @@ static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, ve
 
 static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 1);
-    expression_t *exp = vector_get(args, 0);
+    expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
     // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
     return string_arena_format_overwrite(ctx->arena, size_expr, "free(%s)", size_expr);
@@ -128,8 +114,8 @@ char* compile_static_call(CompilerContext *ctx, c_program_t *program, expression
 char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, vector_t *args_vector) {
     char* args = NULL;
     for (int i = 0; i < args_vector->count; i++) {
-        char* expr = compile_expression(ctx, program, vector_get(args_vector, i));
-        expression_t* e = vector_get(args_vector, i);
+        char* expr = compile_expression(ctx, program, (expression_t*) vector_get_ptr(args_vector, i));
+        expression_t* e = (expression_t*) vector_get_ptr(args_vector, i);
         if (args == NULL) {
             args = expr;
         } else {
@@ -143,7 +129,7 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
 char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program, vector_t *params) {
     char* args = NULL;
     for (int i = 0; i < params->count; i++) {
-        identifier_expression_t* expr = vector_get(params, i);
+        identifier_expression_t* expr = (identifier_expression_t*) vector_get_ptr(params, i);
         char* type = compile_type(ctx, &expr->type);
         if (args == NULL) {
             // args = string_arena_format(ctx->arena, "%s %s", ptype_to_ctype(expr->type), expr->name);

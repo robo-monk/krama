@@ -194,11 +194,11 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
 statement_t* parser_parse_statement(parser_t *parser);
 
 vector_t parser_parse_comma_seperated_args(parser_t *parser) {
-    vector_t args = vector_new(8, sizeof(expression_t));
+    vector_t args = vector_new(8, sizeof(expression_t*));
     expression_t *arg = parser_parse_expression(parser, PRECEDENCE_LOWEST);
 
     while (arg != NULL) {
-        vector_push(&args, arg);
+        vector_push_ptr(&args, arg);
         if (parser_current(parser).type != TOKEN_COMMA) break;
         parser_eat_and_expect(parser, TOKEN_COMMA);
         parser_debug(parser, "here\n");
@@ -209,7 +209,7 @@ vector_t parser_parse_comma_seperated_args(parser_t *parser) {
 }
 
 vector_t parser_parse_comma_seperated_params(parser_t *parser) {
-    vector_t args = vector_new(8, sizeof(expression_t));
+    vector_t args = vector_new(8, sizeof(expression_t*));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
         type_t type_info = parser_parse_type_hint2(parser);
@@ -230,7 +230,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
         param->name = identifier.value.raw_str,
         param->type = type_info;
 
-        vector_push(&args, param);
+        vector_push_ptr(&args, param);
     } while (parser_optional_eat(parser, TOKEN_COMMA));
 
     return args;

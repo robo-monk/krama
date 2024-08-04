@@ -241,7 +241,6 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         case EXPRESSION_TYPE_FUNC_DECL: {
             expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
             analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
-            scope_define_entry(scope, expression->data.func_decl.name, expression);
 
             if (expression->data.func_decl.value == NULL) {
                 return expression->data.func_decl.type;
@@ -251,21 +250,23 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
 
             for (int i = 0; i<expression->data.func_decl.params.count; i++) {
-                identifier_expression_t *id = vector_get(&expression->data.func_decl.params, i);
+                identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
                 expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
                 idexp->type = EXPRESSION_TYPE_IDENTIFIER;
                 idexp->data.identifier = *id;
                 scope_define_entry(&sub_scope, id->name, idexp);
             }
 
-            type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
 
+            type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
             if (type_hint.unknown) {
                 type_hint = inferred_type;
             }
 
-            // expression->data.func_decl.type = type_hint;
             expression->data.func_decl.type = type_hint;
+            expression->data.func_decl.name = an->ctx->fn_mangle(an->ctx, expression);
+
+            scope_define_entry(scope, expression->data.func_decl.name, expression);
             analyser_assert(!(inferred_type.unknown && type_hint.unknown), an, "Cannot infer the return type of function. Please add a type hint.");
             analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function does not return expected type in all paths");
             return type_hint;
@@ -293,7 +294,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return (type_t) {};
         case EXPRESSION_TYPE_STATIC_CALL: {
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
-                expression_t *exp = vector_get(&expression->data.call.arguments, i);
+                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 type_t exp_type = annotate_expression(an, exp, scope);
                 exp->resultType = exp_type;
             }
@@ -301,13 +302,23 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return get_ctype(an, "void", true);
         }
         case EXPRESSION_TYPE_CALL: {
+
+            // annotate arguments expressions
+            for (int i = 0; i < expression->data.call.arguments.count; i++) {
+                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
+                type_t exp_type = annotate_expression(an, exp, scope);
+                exp->resultType = exp_type;
+            }
+
+            expression->data.call.identifier_name = an->ctx->fn_mangle(an->ctx, expression);
+
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
             bool is_defined = analyser_assert(entry != NULL, an, "Function '%s' is not defined\n", expression->data.func_decl.name);
             if (!is_defined) return (type_t) {.unknown = true };
 
             for (int i = 0; i < entry->data.func_decl.params.count; i++) {
-                identifier_expression_t *identifier = vector_get(&entry->data.func_decl.params, i);
-                expression_t *exp = vector_get(&expression->data.call.arguments, i);
+                identifier_expression_t *identifier = (identifier_expression_t*) vector_get_ptr(&entry->data.func_decl.params, i);
+                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
 
                 if (!analyser_assert(exp != NULL, an,
                         "Too few arguments for call '%s'. Missing argument '%s'",
@@ -372,10 +383,8 @@ analyser_t analyser_new(CompilerContext *ctx) {
 
 void analyse_program(parser_t *parser, CompilerContext *ctx) {
     analyser_t a = analyser_new(ctx);
-    // a.ctx.types = parser->ctx.types;
 
     printf("\nAnalyzing..\n");
-
     scope_t global_scope = (scope_t) {
         .table = hashmap_create(NULL),
         .upper = NULL

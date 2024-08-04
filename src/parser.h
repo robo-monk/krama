@@ -12,11 +12,6 @@ typedef struct {
     token_t token;
 } parser_error_t;
 
-// typedef struct {
-//     Arena* arena;
-//     hashmap_t *types;
-// } ParserContext;
-
 #define PARSER_MAX_ERROR_COUNT 8
 typedef struct {
     int index;
