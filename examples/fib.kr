@@ -1,17 +1,25 @@
-fn to_i32(any n) {
-    return @cast(n, i32);
+extern fn void printf(any v, any b);
+
+fn print(any fmt, i64 value) {
+    printf(fmt, value);
 }
 
-fn i64 fac(i64 a) {
-    if a <= 1 {
-        return 1
-    }
+fn println(any fmt, i64 value) {
+    printf(fmt, value);
+    printf("\n", "");
+}
 
-    return a * fac(a-1)
+fn times(i64 n) {
+    if n > 1 {
+        times(n-1)
+    }
+    println("times$%d", n);
 }
 
 fn main() {
-    let a = fac(5);
-    printf("result~%ld", a);
-    return 0:to_i32(5)
+    let hello = 5
+    println("helloisbefore__%d", hello);
+    hello = (hello + hello*2)*hello
+    println("helloisnow__%d", hello);
+    return 0
 }

@@ -133,6 +133,8 @@ precedence_t get_precedence(token_type_t token_type) {
         case TOKEN_SLASH:
         case TOKEN_ASTERISK:
             return PRECEDENCE_PROD;
+        case TOKEN_EQ:
+            return PRECEDENCE_CALL;
         default:
             return PRECEDENCE_LOWEST;
     }
@@ -325,6 +327,13 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
 expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
 
     switch (parser_current(parser).type) {
+        case TOKEN_EQ: {
+            parser_eat_and_expect(parser, TOKEN_EQ);
+            assert(left->type == EXPRESSION_TYPE_IDENTIFIER);
+            left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+            left->type = EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT;
+            return left;
+        }
         case TOKEN_PLUS:
         case TOKEN_MINUS:
         case TOKEN_SLASH:
@@ -349,6 +358,14 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
         case TOKEN_COLON: {
             parser_eat_and_expect(parser, TOKEN_COLON);
             expression_t *right = parser_parse_expression(parser, PRECEDENCE_CALL);
+            if (right->type == EXPRESSION_TYPE_IDENTIFIER) {
+                // omited ()
+                right->type = EXPRESSION_TYPE_CALL;
+                char* name = right->data.identifier.name;
+                right->data.call.identifier_name = name;
+                right->data.call.arguments = vector_new(8, sizeof(expression_t));
+            }
+
             assert(right->type == EXPRESSION_TYPE_CALL);
             vector_insert(&right->data.call.arguments, 0, left);
             return right;

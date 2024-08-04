@@ -1,6 +1,8 @@
 #include "compiler.h"
 #include "arena.h"
 #include "ast.h"
+#include "hashmap.h"
+// #include "macros.h"
 #include "stdarg.h"
 #include "tokeniser.h"
 #include <assert.h>
@@ -96,15 +98,45 @@ char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, con
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e);
 
-char* compile_static_call(CompilerContext *ctx, c_program_t *program, expression_t *exp) {
-    assert(strcmp(exp->data.call.identifier_name, "@cast") ==0 );
-    assert(exp->data.call.arguments.count == 2);
-    expression_t *type_expression = vector_get(&exp->data.call.arguments, 1);
+
+typedef char* (*macro_compile_callback)(CompilerContext *ctx, c_program_t *program, vector_t *arguments);
+
+void register_macro_handler(CompilerContext *ctx, char* id, macro_compile_callback cb) {
+    hashmap_insert(ctx->macros, id, cb);
+}
+
+static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 2);
+    expression_t *type_expression = vector_get(args, 1);
     ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
     char* ctype = ptype_to_ctype(t);
-    char* cast_expr = compile_expression(ctx, program, vector_get(&exp->data.call.arguments, 0));
+    char* cast_expr = compile_expression(ctx, program, vector_get(args, 0));
     assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
     return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
+}
+
+static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 1);
+    expression_t *exp = vector_get(args, 0);
+
+    // printf("\n\n result type is %s \n", ptype_to_ctype(exp->resultType));
+    assert(exp->resultType == PTYPE_I64);
+    char* size_expr = compile_expression(ctx, program, exp);
+    return string_arena_format_overwrite(ctx->arena, size_expr, "malloc(%s)", size_expr);
+}
+
+static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 1);
+    expression_t *exp = vector_get(args, 0);
+    assert(exp->resultType == PTYPE_I64);
+    char* size_expr = compile_expression(ctx, program, exp);
+    return string_arena_format_overwrite(ctx->arena, size_expr, "free(%s)", size_expr);
+}
+
+char* compile_static_call(CompilerContext *ctx, c_program_t *program, expression_t *exp) {
+    macro_compile_callback cb = hashmap_get(ctx->macros, exp->data.call.identifier_name);
+    assert(cb != NULL);
+    return cb(ctx, program, &exp->data.call.arguments);
 }
 
 
@@ -179,6 +211,10 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         }
         case EXPRESSION_TYPE_IDENTIFIER:
             return string_arena_format(ctx->arena, "%s", e->data.identifier.name);
+        case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT: {
+            char* val = compile_expression(ctx, program, e->data.identifier.value);
+            return string_arena_format_overwrite(ctx->arena, val, "%s = %s", e->data.identifier.name, val);
+        }
         case EXPRESSION_TYPE_FUNC_DECL:{
             char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
             if (e->data.func_decl.value != NULL) {
@@ -278,12 +314,20 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
 
 void compile(program_t program, const char* file_out) {
     Arena arena = arena_new(1024*1024);
+    hashmap_t *macros = hashmap_create(NULL);
+
     CompilerContext ctx = (CompilerContext) {
-        .arena = &arena
+        .arena = &arena,
+        .macros = macros
     };
+
+    register_macro_handler(&ctx, "@cast", cast_compile_callback);
+    register_macro_handler(&ctx, "@malloc", malloc_compile_callback);
+    register_macro_handler(&ctx, "@free", free_compile_callback);
 
     c_program_t cprogram = c_program_new();
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdio.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdlib.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx.arena, "#include <stdbool.h>"));
 
     for (int i = 0; i < program.statements.count; i++) {

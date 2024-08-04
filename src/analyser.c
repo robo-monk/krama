@@ -2,24 +2,14 @@
 #include "analyser.h"
 #include "ast.h"
 #include "hashmap.h"
+#include "macros.h"
 #include "parser.h"
 #include "tokeniser.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 
-// typedef struct scope_t {
-//     hashmap_t *table;
-//     struct scope_t *upper;
-// } scope_t;
-
-ptype_t get_ptype_from_static_call(scope_t *scope, expression_t *exp) {
-    assert(strcmp(exp->data.call.identifier_name, "@cast") ==0 );
-    assert(exp->data.call.arguments.count == 2);
-    expression_t *type_expression = vector_get(&exp->data.call.arguments, 1);
-    assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
-    return str_to_primitive_type(type_expression->data.identifier.name);
-}
 
 void scope_define_entry(scope_t *scope, char* name, expression_t* exp) {
     hashmap_insert(scope->table, name, exp);
@@ -174,7 +164,6 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
     // }
-
     assert(expression != NULL);
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
@@ -194,14 +183,30 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             return t;
         }
         case EXPRESSION_TYPE_LITERAL: {
+            printf("...literal \n");
             switch (expression->data.literal.type) {
             case LITERAL_TYPE_I64: return PTYPE_I64;
             case LITERAL_TYPE_F64: return PTYPE_F64;
             case LITERAL_TYPE_CHARACTER: return PTYPE_CHAR;
             case LITERAL_TYPE_STRING: {
+                    printf("=> literal \n");
                     return PTYPE_ANY;
                 };
             }
+            printf("\n unsupported literal?\n");
+            assert(0);
+        }
+        case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT: {
+            expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
+            bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
+            if (!is_defined) return PTYPE_UNKNOWN;
+            bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            if (!is_identifier) {
+                printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
+            }
+            ptype_t ass_type = annotate_expression(an, expression->data.identifier.value, scope);
+            analyser_assert(entry->data.identifier.type == ass_type, an, "Assigment expression does not match identifier type!");
+            return ass_type;
         }
         case EXPRESSION_TYPE_IDENTIFIER: {
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
@@ -213,7 +218,6 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
             }
             return entry->data.identifier.type;
         }
-
         case EXPRESSION_TYPE_FUNC_DECL: {
             expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
             analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
@@ -269,9 +273,12 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
         case EXPRESSION_TYPE_FOR:
             return PTYPE_UNKNOWN;
         case EXPRESSION_TYPE_STATIC_CALL: {
-            ptype_t type = get_ptype_from_static_call(scope, expression);
-            expression->resultType = type;
-            return type;
+            for (int i = 0; i < expression->data.call.arguments.count; i++) {
+                expression_t *exp = vector_get(&expression->data.call.arguments, i);
+                ptype_t exp_type = annotate_expression(an, exp, scope);
+                exp->resultType = exp_type;
+            }
+            return PTYPE_ANY;
         }
         case EXPRESSION_TYPE_CALL: {
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
@@ -282,7 +289,11 @@ ptype_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *s
                 identifier_expression_t *identifier = vector_get(&entry->data.func_decl.params, i);
                 expression_t *exp = vector_get(&expression->data.call.arguments, i);
 
-                if (!analyser_assert(exp != NULL, an, "Too few arguments")) {
+                if (!analyser_assert(exp != NULL, an,
+                        "Too few arguments for call '%s'. Missing argument '%s'",
+                        expression->data.call.identifier_name,
+                        identifier->name
+                )) {
                     continue;
                 }
                 ptype_t exp_type = annotate_expression(an, exp, scope);

@@ -1,5 +1,16 @@
-function sum(numbers) {
-	mut sum = 0
-	numbers:each((n) -> sum = sum + n)
-	sum
-}
+
+atom Day =
+    | MON
+    | TUE
+    | WED
+    | THU
+    | FRI
+    | SAT
+    | SUN
+
+
+atom TokenType = OP(char)
+
+let p = PLAYER({
+    string id
+});

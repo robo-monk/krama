@@ -3,9 +3,11 @@
 
 #include "ast.h"
 #include "arena.h"
+#include "hashmap.h"
 
 typedef struct {
     Arena* arena;
+    hashmap_t* macros;
 } CompilerContext;
 
 typedef struct c_program_t {

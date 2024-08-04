@@ -1,23 +1,34 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 
-int to_i32(void* n)
+// external void printf(void* v, void* b);
+
+void print(void* fmt, long value)
 {
-  return ((int) n);
+  printf(fmt,value);
 };
 
-long fac(long a)
+void println(void* fmt, long value)
 {
-  if (a <= 1) {
-  return 1;
-};
-  return a * fac(a - 1);
+  printf(fmt,value);
+  printf("\n","");
 };
 
-int main(void)
+void times(long n)
 {
-  long a = fac(5);
-  printf("result~%ld",a);
-  return to_i32(0,5);
+  if (n > 1) {
+  times(n - 1);
+};
+  println("times$%d",n);
+};
+
+long main(void)
+{
+  long hello = 5;
+  println("helloisbefore__%d",hello);
+  hello = hello + hello * 2 * hello = hello;
+  println("helloisnow__%d",hello);
+  return 0;
 };
