@@ -135,7 +135,7 @@ precedence_t get_precedence(token_type_t token_type) {
         case TOKEN_ASTERISK:
             return PRECEDENCE_PROD;
         case TOKEN_EQ:
-            return PRECEDENCE_CALL;
+            // return PRECEDENCE_CALL;
         default:
             return PRECEDENCE_LOWEST;
     }
@@ -366,12 +366,15 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
 
     switch (parser_current(parser).type) {
         case TOKEN_EQ: {
-            parser_eat_and_expect(parser, TOKEN_EQ);
-            assert(left->type == EXPRESSION_TYPE_IDENTIFIER);
-            left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);
-            left->type = EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT;
-            return left;
+            if (left->type == EXPRESSION_TYPE_IDENTIFIER) {
+                parser_eat_and_expect(parser, TOKEN_EQ);
+                assert(left->type == EXPRESSION_TYPE_IDENTIFIER);
+                left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);
+                left->type = EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT;
+                return left;
+            }
         }
+        case TOKEN_AS:
         case TOKEN_PLUS:
         case TOKEN_MINUS:
         case TOKEN_SLASH:
@@ -384,6 +387,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_INFIX;
             token_t operand = parser_eat(parser);
+
             precedence_t precedence = get_precedence(operand.type);
             expr->data.infix = (infix_expression_t) {
                 .operand = operand,
@@ -401,11 +405,11 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
                 right->type = EXPRESSION_TYPE_CALL;
                 char* name = right->data.identifier.name;
                 right->data.call.identifier_name = name;
-                right->data.call.arguments = vector_new(8, sizeof(expression_t));
+                right->data.call.arguments = vector_new(8, sizeof(expression_t*));
             }
 
             assert(right->type == EXPRESSION_TYPE_CALL);
-            vector_insert(&right->data.call.arguments, 0, left);
+            vector_insert_ptr(&right->data.call.arguments, 0, left);
             return right;
         }
         default:
@@ -425,7 +429,7 @@ expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence)
         next.type != TOKEN_SEMICOLON
         && next.type != TOKEN_NEW_LINE
         && next.type != TOKEN_EOF
-        && precedence < get_precedence(next.type)) {
+        && precedence <= get_precedence(next.type)) {
         expression_t *infix_expr = parser_parse_infix_expression(parser, expr);
         if (infix_expr == NULL) return expr;
         expr = infix_expr;
@@ -489,7 +493,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             parser_eat_and_expect(parser, TOKEN_R_PAREN);
 
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
-            expr->type = EXPRESSION_TYPE_FUNC_DECL;
+            expr->type = EXPRESSION_TYPE_EXTERN_FUNC_DECL;
             expr->data.func_decl = (func_decl_expression_t) {
                 .params = params,
                 .name = arena_strdup(parser->ctx->arena,  fn_identifier.value.raw_str),

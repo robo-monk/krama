@@ -15,6 +15,7 @@ const char* tokeniser_keywords[] = {
     "for",
     "loop",
     "type",
+    "as",
     "extern",
 };
 
@@ -30,52 +31,14 @@ const token_type_t tokeniser_keyword_token_types[] = {
     TOKEN_FOR,
     TOKEN_LOOP,
     TOKEN_TYPE,
+    TOKEN_AS,
     TOKEN_EXTERN
-};
-
-
-const char* primitive_types[] = {
-    "i64",
-    "i32",
-    "i16",
-    "u64",
-    "u32",
-    "u16",
-    "u8",
-    "f64",
-    "f32",
-    "f16",
-    "char",
-    "void",
-    "bool",
-    "any"
-};
-
-const ptype_t primitive_types_enum[] ={
-    PTYPE_I64,
-    PTYPE_I32,
-    PTYPE_I16,
-    PTYPE_U64,
-    PTYPE_U32,
-    PTYPE_U16,
-    PTYPE_U8,
-    PTYPE_F64,
-    PTYPE_F32,
-    PTYPE_F16,
-    PTYPE_CHAR,
-    PTYPE_VOID,
-    PTYPE_BOOL,
-    PTYPE_ANY
 };
 
 
 #define ARRAY_SIZE(arr) (sizeof(arr))/(sizeof(arr[0]))
 static_assert(ARRAY_SIZE(tokeniser_keywords) == ARRAY_SIZE(tokeniser_keyword_token_types),
     "keywords and keyword token types should have the same size");
-
-static_assert(ARRAY_SIZE(primitive_types_enum) == ARRAY_SIZE(primitive_types),
-    "primitive types and primitive types enum should have the same size");
-
 
 token_t token_new_mult_char(token_type_t type, int position, char* raw) {
     return (token_t) {
@@ -151,6 +114,7 @@ const char* token_type_to_string(token_type_t type) {
         case TOKEN_LOOP:         return "LOOP";
         case TOKEN_TYPE:         return "TYPE";
         case TOKEN_EXTERN:       return "EXTERN";
+        case TOKEN_AS:           return "AS";
         default:                 return "INVALID_TOKEN_TYPE";
         break;
         }
@@ -170,24 +134,6 @@ void token_debug(token_t token) {
         default:
             printf("Token %s", token_type_to_string(token.type));
     }
-}
-
-ptype_t str_to_primitive_type(char* buffer) {
-    for (int i = 0; i < ARRAY_SIZE(primitive_types); i++) {
-        if (strcmp(primitive_types[i], buffer) == 0) {
-            return primitive_types_enum[i];
-        }
-    }
-    return PTYPE_UNKNOWN;
-}
-
-const char* primitive_type_to_str(ptype_t t) {
-    for (int i = 0; i < ARRAY_SIZE(primitive_types_enum); i++) {
-        if (primitive_types_enum[i] == t) {
-            return primitive_types[i];
-        }
-    }
-    return "unknown";
 }
 
 token_type_t get_buffer_token_type(char* buffer) {

@@ -18,7 +18,7 @@ char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
         for (int i = 0; i<exp->data.func_decl.params.count; i++) {
             identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&exp->data.func_decl.params, i);
             assert(!id->type.unknown);
-            fn_name = string_arena_format_overwrite(ctx->arena, fn_name, "%s_%s", fn_name, id->type.type_info.ctype);
+            fn_name = string_arena_format_overwrite(ctx->arena, fn_name, "%s_%s%s", fn_name, id->type.is_ref ? "ptr_" : "", id->type.type_info.ctype);
         }
         return fn_name;
     } else if (exp->type == EXPRESSION_TYPE_CALL) {
@@ -27,7 +27,7 @@ char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
             expression_t *arg = (expression_t*) vector_get_ptr(&exp->data.call.arguments, i);
             assert(exp && !exp->resultType.unknown);
             assert(arg != NULL);
-            fn_name = string_arena_format(ctx->arena, "%s_%s", fn_name, arg->resultType.type_info.ctype);
+            fn_name = string_arena_format(ctx->arena, "%s_%s%s", fn_name, arg->resultType.is_ref ? "ptr_" : "", arg->resultType.type_info.ctype);
         }
         return fn_name;
     }
@@ -65,7 +65,7 @@ static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, v
     // assert(args->count == 2);
     // expression_t *type_expression = vector_get(args, 1);
     // ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
-    // char* ctype = ptype_to_ctype(t);
+    // // char* ctype = ptype_to_ctype(t);
     // char* cast_expr = compile_expression(ctx, program, vector_get(args, 0));
     // assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
     // return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
@@ -94,6 +94,13 @@ static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, ve
     printf("\n ---> value is \n");
     char* val = compile_expression(ctx, program, val_exp);
     return string_arena_format_overwrite(ctx->arena, val, "*(%s) = %s", ptr_expression, val);
+}
+
+static char* get_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 1);
+    expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
+    char* ptr_expression = compile_expression(ctx, program, exp);
+    return string_arena_format_overwrite(ctx->arena, ptr_expression, "*(%s)", ptr_expression, exp);
 }
 
 static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -160,6 +167,18 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             );
         }
         case EXPRESSION_TYPE_INFIX: {
+            if (e->data.prefix.operand.type == TOKEN_AS) {
+                char* compiled_type = compile_type(ctx, &e->data.infix.left->resultType);
+                char* left_expr = compile_expression(ctx, program, e->data.infix.left);
+
+                return string_arena_format_overwrite(ctx->arena, left_expr,
+                                "(%s)(%s)",
+                                compiled_type,
+                                left_expr
+                            );
+                // assert(0);
+            }
+
             char* left_expr = compile_expression(ctx, program, e->data.infix.left);
             char* right_expr = compile_expression(ctx, program, e->data.infix.right);
             return string_arena_format_overwrite(ctx->arena, right_expr,
@@ -188,6 +207,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             char* val = compile_expression(ctx, program, e->data.identifier.value);
             return string_arena_format_overwrite(ctx->arena, val, "%s = %s", e->data.identifier.name, val);
         }
+        case EXPRESSION_TYPE_EXTERN_FUNC_DECL:
         case EXPRESSION_TYPE_FUNC_DECL:{
             char* return_type = compile_type(ctx, &e->data.func_decl.type);
             char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
@@ -298,6 +318,7 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
     register_macro_handler(ctx, "@malloc", malloc_compile_callback);
     register_macro_handler(ctx, "@free", free_compile_callback);
     register_macro_handler(ctx, "@set", set_compile_callback);
+    register_macro_handler(ctx, "@get", get_compile_callback);
 
     c_program_t cprogram = c_program_new();
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdio.h>"));

@@ -57,6 +57,7 @@ typedef enum {
     TOKEN_UNKNOWN,
     TOKEN_TYPE,
     TOKEN_EXTERN,
+    TOKEN_AS,
     TOKEN_EOF,
 } token_type_t;
 

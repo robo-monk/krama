@@ -1,23 +1,68 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 
-// external void printf(void* fmt, void* arg);
+// external void printf(void);
 
-void add(long a, long b)
+void println_ptr_char(char* str)
 {
-  return a + b;
-  unsigned long ab = 0;
-  return ab;
+  printf("%s\n",str);
 };
 
-void test(void)
+void println_ptr_char_ptr_char(char* fmt, char* str)
 {
-  int test = "boooo";
-  return test;
+  printf(fmt,str);
+  printf("\n");
 };
 
-void main(void)
+long bing_long(long hello)
 {
-  printf("Addition~~%d",add(25,420));
+  return hello;
+};
+
+char bing_char(char hello)
+{
+  return hello;
+};
+
+void* malloc_long(long size)
+{
+  return malloc(size);
+};
+
+void put_int(int i)
+{
+  printf("\n___%d",i);
+};
+
+int id_ptr_void(void* player)
+{
+  return *((int*)(player));
+};
+
+void set_id_ptr_void_long(void* player, long id)
+{
+  *((int*)(player)) = id;
+};
+
+char* name_ptr_void(void* player)
+{
+  return (char*)(player + 4);
+};
+
+int main(void)
+{
+  void* test = (char*)(malloc(1024));
+  set_id_ptr_void_long(test,420);
+  *((char*)(test + 4)) = 'b';
+  *((char*)(test + 5)) = 'o';
+  *((char*)(test + 6)) = 'b';
+  *((char*)(test + 7)) = 0;
+  int n = id_ptr_void(test);
+  put_int(n);
+  printf("~~%d\n",n);
+  char* np = name_ptr_void(test);
+  printf("~~%s\n",np);
   return 0;
 };

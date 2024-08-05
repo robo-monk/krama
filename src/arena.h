@@ -202,19 +202,20 @@ void vector_insert(vector_t *v, const size_t i, const void* e) {
 void vector_insert_ptr(vector_t *v, const size_t i, const void* ptr) {
     assert(v->element_size == sizeof(void*));
 
-    if (v->capacity >= v->count) {
+    if (v->capacity == v->count) {
         v->capacity *= 2;
         v->data = realloc(v->data, v->capacity);
     }
 
-    void* insert_p = (char*) v->data + i*v->count*v->element_size;
-    void* next_p = (char*)v->data + (i+1)*v->count*v->element_size;
-    size_t move_size = (v->count-i)*v->element_size;
-    memcpy(next_p, insert_p, move_size);
-    // memcpy(insert_p, e, v->element_size);
-
-    (((size_t*) v->data))[i] = (size_t) ptr;
+    printf("\n count right now is... %d\n", v->count);
+    // assert(v->count == 0);
+    // void* insert_p = (char*) v->data + i*v->count*v->element_size;
+    void* insert_p = (char*) v->data + i*v->element_size;
+    void* next_p = (char*)v->data + (i+1)*v->element_size;
+    size_t move_size = (v->count-i) * v->element_size;
+    memmove(next_p, insert_p, move_size);
     v->count++;
+    (((size_t*) v->data))[i] = (size_t) ptr;
 }
 
 void vector_push_ptr(vector_t *v, const void* ptr) {

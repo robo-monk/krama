@@ -150,8 +150,31 @@ type_t get_ctype(analyser_t *an, char* typeid, bool is_ref) {
     };
 }
 
+type_t consume_type(analyser_t *an, expression_t *exp) {
+    if (exp->type == EXPRESSION_TYPE_IDENTIFIER) {
+        return get_ctype(an, exp->data.identifier.name, false);
+    } else if (exp->type == EXPRESSION_TYPE_INFIX) {
+        // this is a terrible hack
+        assert(exp->data.infix.operand.type == TOKEN_ASTERISK);
+        assert(exp->data.infix.right == NULL);
+        assert(exp->data.infix.left->type == EXPRESSION_TYPE_IDENTIFIER);
+        return get_ctype(an, exp->data.infix.left->data.identifier.name, true);
+    }
+    return (type_t) { .unknown = true };
+}
+
 type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t *scope) {
     switch (infix->operand.type) {
+    case TOKEN_AS: {
+        debug_expression(infix->right, 0);
+        type_t ctype = consume_type(an, infix->right);
+        analyser_assert(!ctype.unknown, an, "RHS of a cast should be a type");
+        infix->left->resultType = ctype;
+        return ctype;
+        // type_t ltye = annotate_expression(an, infix->left, scope);
+        //    type_t rtype = annotate_expression(an, infix->right, scope);
+    }
+    case TOKEN_EQ:
     case TOKEN_LT:
     case TOKEN_GT:
     case TOKEN_NEQ:
@@ -161,6 +184,7 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
         // TODO: is_op_defined_for_args(...)
         type_t ltype = annotate_expression(an, infix->left, scope);
         type_t rtype = annotate_expression(an, infix->right, scope);
+
         analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
         return get_ctype(an, "bool", false);
     }
@@ -174,7 +198,8 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
         analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
         return ltype;
     }
-    default:break;
+    default:
+        break;
     }
     analyser_assert(0, an, "Invalid infix operation");
     return (type_t) { .unknown = true };
@@ -238,13 +263,16 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             }
             return entry->data.identifier.type;
         }
+        case EXPRESSION_TYPE_EXTERN_FUNC_DECL: {
+            type_t type_hint = expression->data.func_decl.type;
+            scope_define_entry(scope, expression->data.func_decl.name, expression);
+            return expression->data.func_decl.type;
+        }
         case EXPRESSION_TYPE_FUNC_DECL: {
             expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
             analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
 
-            if (expression->data.func_decl.value == NULL) {
-                return expression->data.func_decl.type;
-            }
+            assert(expression->data.func_decl.value != NULL);
 
             type_t type_hint = expression->data.func_decl.type;
             scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
@@ -302,6 +330,12 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return get_ctype(an, "void", true);
         }
         case EXPRESSION_TYPE_CALL: {
+            // check for extern functions (skip mangle)
+            expression_t* unmangled_entry = scope_get_entry(scope, expression->data.call.identifier_name);
+            if (unmangled_entry != NULL && unmangled_entry->type == EXPRESSION_TYPE_EXTERN_FUNC_DECL) {
+                // TODO: check for parameters
+                return unmangled_entry->data.func_decl.type;
+            }
 
             // annotate arguments expressions
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
@@ -313,7 +347,9 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             expression->data.call.identifier_name = an->ctx->fn_mangle(an->ctx, expression);
 
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
-            bool is_defined = analyser_assert(entry != NULL, an, "Function '%s' is not defined\n", expression->data.func_decl.name);
+
+            bool is_defined = analyser_assert(entry != NULL, an, "Function signature '%s' is not defined\n", expression->data.func_decl.name);
+
             if (!is_defined) return (type_t) {.unknown = true };
 
             for (int i = 0; i < entry->data.func_decl.params.count; i++) {
