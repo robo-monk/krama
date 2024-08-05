@@ -47,7 +47,9 @@ c_program_t c_program_new() {
 
 
 char* compile_type(CompilerContext *ctx, type_t *type) {
+    assert(type != NULL);
     if (type->unknown) return string_arena_format(ctx->arena, "(unknown)");
+    assert(type->type_info.ctype != NULL);
     return string_arena_format(ctx->arena, "%s%s", type->type_info.ctype, type->is_ref ? "*" : "");
 }
 
@@ -62,13 +64,6 @@ void register_macro_handler(CompilerContext *ctx, char* id, macro_compile_callba
 
 static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(0);
-    // assert(args->count == 2);
-    // expression_t *type_expression = vector_get(args, 1);
-    // ptype_t t = str_to_primitive_type(type_expression->data.identifier.name);
-    // // char* ctype = ptype_to_ctype(t);
-    // char* cast_expr = compile_expression(ctx, program, vector_get(args, 0));
-    // assert(type_expression->type == EXPRESSION_TYPE_IDENTIFIER);
-    // return string_arena_format_overwrite(ctx->arena, cast_expr, "((%s) %s)", ctype, cast_expr);
 }
 
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -100,7 +95,8 @@ static char* get_compile_callback(CompilerContext *ctx, c_program_t *program, ve
     assert(args->count == 1);
     expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
     char* ptr_expression = compile_expression(ctx, program, exp);
-    return string_arena_format_overwrite(ctx->arena, ptr_expression, "*(%s)", ptr_expression, exp);
+    assert(ptr_expression != NULL);
+    return string_arena_format_overwrite(ctx->arena, ptr_expression, "*(%s)", ptr_expression);
 }
 
 static char* free_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -171,12 +167,13 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                 char* compiled_type = compile_type(ctx, &e->data.infix.left->resultType);
                 char* left_expr = compile_expression(ctx, program, e->data.infix.left);
 
+                assert(compiled_type != NULL);
+                assert(left_expr != NULL);
                 return string_arena_format_overwrite(ctx->arena, left_expr,
-                                "(%s)(%s)",
+                                "((%s) %s)",
                                 compiled_type,
                                 left_expr
                             );
-                // assert(0);
             }
 
             char* left_expr = compile_expression(ctx, program, e->data.infix.left);

@@ -163,6 +163,32 @@ type_t consume_type(analyser_t *an, expression_t *exp) {
     return (type_t) { .unknown = true };
 }
 
+type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scope_t *scope) {
+    switch (prefix->operand.type) {
+    case TOKEN_ASTERISK:{
+        type_t rtype = annotate_expression(an, prefix->right, scope);
+        prefix->right->resultType = rtype;
+        analyser_assert(prefix->right->resultType.is_ref, an, "Cannnot dereference a non pointer");
+        rtype.is_ref = false;
+        return rtype;
+    }
+    case TOKEN_BANG:{
+        return get_ctype(an, "bool", false);
+    }
+    case TOKEN_PLUS:
+    case TOKEN_MINUS:
+    {
+        type_t ltype = annotate_expression(an, prefix->right, scope);
+        prefix->right->resultType = ltype;
+        // analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
+        return ltype;
+    }
+    default:
+        break;
+    }
+    analyser_assert(0, an, "Invalid prefix operation");
+    return (type_t) { .unknown = true };
+}
 type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t *scope) {
     switch (infix->operand.type) {
     case TOKEN_AS: {
@@ -212,7 +238,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
     assert(expression != NULL);
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
-            type_t ltype = annotate_expression(an, expression->data.prefix.right, scope);
+            // type_t ltype = annotate_expression(an, expression->data.prefix.right, scope);
+            type_t ltype = get_prefix_ptype_result(an, &expression->data.prefix, scope);
             expression->resultType = ltype;
             return ltype;
         }
@@ -296,7 +323,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             scope_define_entry(scope, expression->data.func_decl.name, expression);
             analyser_assert(!(inferred_type.unknown && type_hint.unknown), an, "Cannot infer the return type of function. Please add a type hint.");
-            analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function does not return expected type in all paths");
+            analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
             return type_hint;
         }
         case EXPRESSION_TYPE_BLOCK: {
@@ -319,15 +346,14 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_FOR:
             assert(0);
-            return (type_t) {};
+            return (type_t) { .unknown = true };
         case EXPRESSION_TYPE_STATIC_CALL: {
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 type_t exp_type = annotate_expression(an, exp, scope);
                 exp->resultType = exp_type;
             }
-
-            return get_ctype(an, "void", true);
+            return get_ctype(an, "any", false);
         }
         case EXPRESSION_TYPE_CALL: {
             // check for extern functions (skip mangle)
@@ -417,7 +443,7 @@ analyser_t analyser_new(CompilerContext *ctx) {
     };
 }
 
-void analyse_program(parser_t *parser, CompilerContext *ctx) {
+analyser_t analyse_program(parser_t *parser, CompilerContext *ctx) {
     analyser_t a = analyser_new(ctx);
 
     printf("\nAnalyzing..\n");
@@ -438,5 +464,6 @@ void analyse_program(parser_t *parser, CompilerContext *ctx) {
             analyser_error_print(a.errors[i]);
         }
     }
-    printf("\nComplete anlaysis\n");
+
+    return a;
 }

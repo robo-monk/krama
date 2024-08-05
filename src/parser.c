@@ -270,6 +270,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->data.literal = parser_parse_literal(parser);
             return expr;
         }
+        case TOKEN_ASTERISK:
         case TOKEN_PLUS:
         case TOKEN_BANG:
         case TOKEN_MINUS: {

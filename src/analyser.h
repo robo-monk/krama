@@ -34,5 +34,5 @@ typedef struct {
 
 analyser_t analyser_new(CompilerContext *ctx);
 void analyser_destroy(analyser_t *a);
-void analyse_program(parser_t *parser, CompilerContext *ctx);
+analyser_t analyse_program(parser_t *parser, CompilerContext *ctx);
 #endif

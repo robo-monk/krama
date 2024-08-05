@@ -1,53 +1,7 @@
-extern fn void printf();
-
-fn println(char* str) {
-    printf("%s\n", str)
-}
-
-fn println(char* fmt, char* str) {
-    printf(fmt, str)
-    printf("\n")
-}
-
-fn bing(i64 hello) {
-    return hello
-}
-
-fn bing(char hello) {
-    return hello
-}
-
-fn malloc(i64 size) {
-    return @malloc(size)
-}
-
-fn i32 id(void* player) {
-    return @get(player as i32*)
-}
-
-fn set_id(void* player, i64 id) {
-    @set(player as i32*, id)
-}
-
-fn char* name(void* player) {
-    return player+4 as char*
-}
-
-fn char* new_string(i64 len) {
-    return len:malloc as char*
-}
-
-fn void set_char(char* str, char c, i64 idx) {
-    @set(str+idx as char*, c)
+fn id(void* player) {
+    return *(player as i32*)
 }
 
 fn i32 main() {
-    let s = new_string(16)
-    s:set_char('h', 0)
-    s:set_char('e', 1)
-    s:set_char('l', 2)
-    s:set_char('l', 3)
-    s:set_char('o', 4)
-    ("%s" as char*):println(s)
-    return 0;
+    return 0
 }
