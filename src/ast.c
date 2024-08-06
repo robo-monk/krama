@@ -104,6 +104,10 @@ void debug_expression(expression_t *expression, int ident) {
     case EXPRESSION_TYPE_IDENTIFIER:
         printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
         break;
+    case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT:
+        printf("expr IDENTIFIER ASSIGNMENT (%s) =", expression->data.identifier.name);
+        debug_expression(expression->data.identifier.value, ident+1);
+        break;
     case EXPRESSION_TYPE_BLOCK: {
         // add_tabs(ident);
         printf("block {\n");
@@ -160,6 +164,9 @@ void debug_expression(expression_t *expression, int ident) {
             }
             break;
         }
+    case EXPRESSION_TYPE_EXTERN_FUNC_DECL:
+        printf("EXTERN FUNC DECL\n");
+        break;
     }
 }
 

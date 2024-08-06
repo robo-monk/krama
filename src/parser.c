@@ -168,8 +168,8 @@ void parser_debug_type(type_t* t) {
 }
 
 type_t parser_parse_type_hint2(parser_t *parser) {
-    token_t current = parser_current(parser);
-    type_t* type = hashmap_get(parser->ctx->types, current.value.raw_str);
+    token_t type_id = parser_current(parser);
+    type_t* type = hashmap_get(parser->ctx->types, type_id.value.raw_str);
 
     if (type == NULL) {
         if (parser_peek(parser).type == TOKEN_ASTERISK) {
@@ -181,8 +181,7 @@ type_t parser_parse_type_hint2(parser_t *parser) {
         };
     }
 
-    token_t type_id = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-    type_kind_t kind = TYPE_KIND_PRIMITIVE;
+    parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
     while (parser_current(parser).type == TOKEN_ASTERISK) {
         parser_eat(parser);
@@ -474,15 +473,14 @@ statement_t* parser_parse_statement(parser_t *parser) {
 
     switch (current.type) {
         case TOKEN_LET: {
-            token_t let = parser_eat(parser);
-            // ptype_t type = parser_parse_type_hint(parser);
+            parser_eat_and_expect(parser, TOKEN_LET);
 
             type_t type_info = parser_parse_type_hint2(parser);
             parser_debug_type(&type_info);
 
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
-            token_t eq = parser_eat_and_expect(parser, TOKEN_EQ);
+            parser_eat_and_expect(parser, TOKEN_EQ);
 
             identifier_expression_t idexpr = (identifier_expression_t) {
                 .name = arena_strdup(parser->ctx->arena, identifier.value.raw_str),

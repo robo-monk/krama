@@ -207,7 +207,6 @@ void vector_insert_ptr(vector_t *v, const size_t i, const void* ptr) {
         v->data = realloc(v->data, v->capacity);
     }
 
-    printf("\n count right now is... %d\n", v->count);
     // assert(v->count == 0);
     // void* insert_p = (char*) v->data + i*v->count*v->element_size;
     void* insert_p = (char*) v->data + i*v->element_size;

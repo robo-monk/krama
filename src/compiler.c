@@ -124,7 +124,6 @@ char* compile_comma_seperated_exprs(CompilerContext *ctx, c_program_t *program, 
     char* args = NULL;
     for (int i = 0; i < args_vector->count; i++) {
         char* expr = compile_expression(ctx, program, (expression_t*) vector_get_ptr(args_vector, i));
-        expression_t* e = (expression_t*) vector_get_ptr(args_vector, i);
         if (args == NULL) {
             args = expr;
         } else {

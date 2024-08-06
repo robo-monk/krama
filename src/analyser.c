@@ -304,7 +304,6 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return entry->data.identifier.type;
         }
         case EXPRESSION_TYPE_EXTERN_FUNC_DECL: {
-            type_t type_hint = expression->data.func_decl.type;
             scope_define_entry(scope, expression->data.func_decl.name, expression);
             return expression->data.func_decl.type;
         }
@@ -348,7 +347,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_CONDITIONAL: {
             type_t predicate_type = annotate_expression(an, expression->data.conditional.predicate, scope);
-            // expect_type(an, predicate_type, PTYPE_BOOL, "Conditional predicate should be of the bool type");
+            type_t bool_type = get_ctype(an, "bool", false);
+            analyser_assert(type_eq(&predicate_type, &bool_type), an, "Conditional predicate should be of the bool type");
 
             type_t sbranch_type = annotate_expression(an, expression->data.conditional.success_branch, scope);
             if (expression->data.conditional.fail_branch != NULL) {
