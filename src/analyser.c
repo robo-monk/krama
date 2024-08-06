@@ -193,7 +193,10 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
     switch (prefix->operand.type) {
     case TOKEN_ASTERISK:{
         type_t rtype = annotate_expression(an, prefix->right, scope);
-        analyser_assert(rtype.kind == TYPE_KIND_PRIMITIVE, an, "Cannnot dereference a non pointer");
+        printf("\n\n\n");
+        debug_type(&rtype);
+        printf("...");
+        analyser_assert(rtype.kind == TYPE_KIND_POINTER, an, "Cannnot dereference a non pointer");
         analyser_assert(rtype.info.pointer != NULL, an, "Pointer to invalid type");
         prefix->right->resultType = *rtype.info.pointer;
         return prefix->right->resultType;

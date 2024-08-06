@@ -1,6 +1,6 @@
 fn id(void* player) {
     let a = player
-    return player
+    return *(player as i32*)
 }
 
 fn main() {

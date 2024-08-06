@@ -3,10 +3,10 @@
 #include <stdbool.h>
 
 
-void* id_void_(void* player)
+int id_void_(void* player)
 {
   void* a = player;
-  return player;
+  return *((int*) player);
 };
 
 int main(void)
