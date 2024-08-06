@@ -132,10 +132,11 @@ bool type_eq(type_t* a, type_t* b) {
         return type_eq(a->info.pointer, b->info.pointer);
     }
 
-    assert(a->kind == TYPE_KIND_PRIMITIVE);
-    assert(b->kind == TYPE_KIND_PRIMITIVE);
+    if (a->kind == TYPE_KIND_PRIMITIVE && b->kind == TYPE_KIND_PRIMITIVE) {
+        return strcmp(a->info.primitive, a->info.primitive) == 0;
+    }
 
-    return strcmp(a->info.primitive, a->info.primitive) == 0;
+    return false;
 }
 
 type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope);
@@ -176,19 +177,6 @@ type_t get_ctype(analyser_t *an, char* typeid, bool is_ref) {
     }
 }
 
-type_t consume_type(analyser_t *an, expression_t *exp) {
-    if (exp->type == EXPRESSION_TYPE_IDENTIFIER) {
-        return get_ctype(an, exp->data.identifier.name, false);
-    } else if (exp->type == EXPRESSION_TYPE_INFIX) {
-        // this is a terrible hack
-        assert(exp->data.infix.operand.type == TOKEN_ASTERISK);
-        assert(exp->data.infix.right == NULL);
-        assert(exp->data.infix.left->type == EXPRESSION_TYPE_IDENTIFIER);
-        return get_ctype(an, exp->data.infix.left->data.identifier.name, true);
-    }
-    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
-}
-
 type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scope_t *scope) {
     switch (prefix->operand.type) {
     case TOKEN_ASTERISK:{
@@ -209,7 +197,6 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
     {
         type_t ltype = annotate_expression(an, prefix->right, scope);
         prefix->right->resultType = ltype;
-        // analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
         return ltype;
     }
     default:
@@ -221,13 +208,14 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
 type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t *scope) {
     switch (infix->operand.type) {
     case TOKEN_AS: {
-        debug_expression(infix->right, 0);
-        type_t ctype = consume_type(an, infix->right);
-        analyser_assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "RHS of a cast should be a type");
+        assert(infix->right != NULL);
+        analyser_assert(infix->right->type == EXPRESSION_TYPE_LITERAL, an, "RHS of a cast should be a literal type");
+        printf("=-=> %d, %d\n", infix->right->data.literal.kind, LITERAL_KIND_TYPE);
+        analyser_assert(infix->right->data.literal.kind == LITERAL_KIND_TYPE, an, "RHS of a cast should be a type. Literal is not type");
+        type_t ctype = infix->right->data.literal.data.type;
+        analyser_assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "Type is unknown");
         infix->left->resultType = ctype;
         return ctype;
-        // type_t ltye = annotate_expression(an, infix->left, scope);
-        //    type_t rtype = annotate_expression(an, infix->right, scope);
     }
     case TOKEN_EQ:
     case TOKEN_LT:
@@ -280,11 +268,12 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_LITERAL: {
             printf("...literal \n");
-            switch (expression->data.literal.type) {
-            case LITERAL_TYPE_I64: return get_ctype(an, "i64", false);
-            case LITERAL_TYPE_F64: return get_ctype(an, "f64", false);
-            case LITERAL_TYPE_CHARACTER: return get_ctype(an, "char", false);
-            case LITERAL_TYPE_STRING: {
+            switch (expression->data.literal.kind) {
+            case LITERAL_KIND_I64: return get_ctype(an, "i64", false);
+            case LITERAL_KIND_F64: return get_ctype(an, "f64", false);
+            case LITERAL_KIND_CHARACTER: return get_ctype(an, "char", false);
+            case LITERAL_KIND_TYPE: return expression->data.literal.data.type;
+            case LITERAL_KIND_STRING: {
                     printf("=> literal \n");
                     return get_ctype(an, "char", true);
                 };
@@ -380,6 +369,13 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return get_ctype(an, "any", false);
         }
         case EXPRESSION_TYPE_CALL: {
+             // annotate arguments expressions
+            for (int i = 0; i < expression->data.call.arguments.count; i++) {
+                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
+                type_t exp_type = annotate_expression(an, exp, scope);
+                exp->resultType = exp_type;
+            }
+
             // check for extern functions (skip mangle)
             expression_t* unmangled_entry = scope_get_entry(scope, expression->data.call.identifier_name);
             if (unmangled_entry != NULL && unmangled_entry->type == EXPRESSION_TYPE_EXTERN_FUNC_DECL) {
@@ -387,15 +383,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 return unmangled_entry->data.func_decl.type;
             }
 
-            // annotate arguments expressions
-            for (int i = 0; i < expression->data.call.arguments.count; i++) {
-                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
-                type_t exp_type = annotate_expression(an, exp, scope);
-                exp->resultType = exp_type;
-            }
 
             expression->data.call.identifier_name = an->ctx->fn_mangle(an->ctx, expression);
-
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
 
             bool is_defined = analyser_assert(entry != NULL, an, "Function signature '%s' is not defined\n", expression->data.func_decl.name);

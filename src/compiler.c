@@ -192,28 +192,31 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
             );
         }
         case EXPRESSION_TYPE_LITERAL: {
-            switch (e->data.literal.type) {
-                case LITERAL_TYPE_I64:
+            switch (e->data.literal.kind) {
+                case LITERAL_KIND_I64:
                     return string_arena_format(ctx->arena, "%ld", e->data.literal.data.i64);
-                case LITERAL_TYPE_F64:
+                case LITERAL_KIND_F64:
                     return string_arena_format(ctx->arena, "%lf", e->data.literal.data.f64);
-                case LITERAL_TYPE_CHARACTER:
+                case LITERAL_KIND_CHARACTER:
                     return string_arena_format(ctx->arena, "'%c'", e->data.literal.data.character);
-                case LITERAL_TYPE_STRING: {
+                case LITERAL_KIND_STRING: {
 
                     return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
                     // return  e->data.literal.data.string;
-                    int len = strlen(e->data.literal.data.string);
-                    assert(len >= 2);
-                    char* str = string_arena_format(ctx->arena, "{");
-                    for (int i = 1; i < len-1; i++) {
-                        str = string_arena_format_overwrite(ctx->arena, str, "%s'%c',", str, e->data.literal.data.string[i]);
-                    }
-                    str = string_arena_format_overwrite(ctx->arena, str, "%s}", str);
-                    printf("\n->%s\n",str);
-                    // assert(0);
-                    // return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
-                    return str;
+                    // int len = strlen(e->data.literal.data.string);
+                    // assert(len >= 2);
+                    // char* str = string_arena_format(ctx->arena, "{");
+                    // for (int i = 1; i < len-1; i++) {
+                    //     str = string_arena_format_overwrite(ctx->arena, str, "%s'%c',", str, e->data.literal.data.string[i]);
+                    // }
+                    // str = string_arena_format_overwrite(ctx->arena, str, "%s}", str);
+                    // printf("\n->%s\n",str);
+                    // // assert(0);
+                    // // return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
+                    // return str;
+                }
+                case LITERAL_KIND_TYPE: {
+                    assert(0);
                 }
             }
         }

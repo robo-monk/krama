@@ -8,11 +8,12 @@
 // LITERAL TYPES
 
 typedef enum {
-    LITERAL_TYPE_I64,
-    LITERAL_TYPE_F64,
-    LITERAL_TYPE_CHARACTER,
-    LITERAL_TYPE_STRING,
-} literal_type_t;
+    LITERAL_KIND_I64,
+    LITERAL_KIND_F64,
+    LITERAL_KIND_CHARACTER,
+    LITERAL_KIND_STRING,
+    LITERAL_KIND_TYPE,
+} literal_kind_t;
 
 
 // EXPRESSIONS
@@ -35,12 +36,13 @@ typedef enum {
 typedef struct expression expression_t;
 
 typedef struct {
-    literal_type_t type;
+    literal_kind_t kind;
     union {
         long i64;
         double f64;
         char character;
         char* string;
+        type_t type;
     } data;
 } literal_expression_t;
 

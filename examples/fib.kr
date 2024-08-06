@@ -1,9 +1,24 @@
+extern fn void printf();
+
+fn void* new_player(i64 id, char* name) {
+    let size = 8 + 8;
+    let p = @malloc(size) as void*
+    @set(p as i64*, id)
+    @set(p+8 as char**, name)
+    return p
+}
+
 fn id(void* player) {
-    let a = player
-    return *(player as i32*)
+    return *(player as i64*)
+}
+
+fn name(void* player) {
+    return *(player+8 as char**)
 }
 
 fn main() {
     let b = "hello there people";
+    let p = new_player(15, "mike");
+    printf("player name is: %s", p:name);
     return 0 as i32
 }

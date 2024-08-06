@@ -93,14 +93,14 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
     const char first = current.value.raw_str[0];
     if (first == '\'') {
         return (literal_expression_t) {
-            .type = LITERAL_TYPE_CHARACTER,
+            .kind = LITERAL_KIND_CHARACTER,
             .data = {
                 .character = current.value.raw_str[1]
             }
         };
     } else if (first == '"') {
         return (literal_expression_t) {
-            .type = LITERAL_TYPE_STRING,
+            .kind = LITERAL_KIND_STRING,
             .data = {
                 .string = arena_strdup(parser->ctx->arena, current.value.raw_str)
             }
@@ -108,7 +108,7 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
     }
 
     return (literal_expression_t) {
-        .type = LITERAL_TYPE_I64,
+        .kind = LITERAL_KIND_I64,
         .data = {
             .i64 = atoi(current.value.raw_str)
         }
@@ -184,19 +184,14 @@ type_t parser_parse_type_hint2(parser_t *parser) {
     token_t type_id = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
     type_kind_t kind = TYPE_KIND_PRIMITIVE;
 
-    if (parser_current(parser).type == TOKEN_ASTERISK) {
+    while (parser_current(parser).type == TOKEN_ASTERISK) {
         parser_eat(parser);
-        return (type_t) {
-            .kind = TYPE_KIND_POINTER,
-            .info.pointer = type
-        };
-    } else {
-        return *type;
-        // return (type_t) {
-        //     .kind = TYPE_KIND_PRIMITIVE,
-        //     .info.primitive = current.value.raw_str
-        // };
+        type_t *upper = arena_alloc(parser->ctx->arena, sizeof(type_t));
+        upper->kind = TYPE_KIND_POINTER;
+        upper->info.pointer = type;
+        type = upper;
     }
+    return *type;
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
@@ -293,7 +288,20 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         }
         case TOKEN_IDENTIFIER: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
-            char* identifier_name = arena_strdup(parser->ctx->arena, parser_eat(parser).value.raw_str);
+            char* identifier_name = arena_strdup(parser->ctx->arena, parser_current(parser).value.raw_str);
+
+            if (hashmap_get(parser->ctx->types, identifier_name) != NULL) {
+                type_t type = parser_parse_type_hint2(parser);
+                printf("\n\n ---");
+                parser_debug_type(&type);
+                printf("\n\n ---");
+                expr->type = EXPRESSION_TYPE_LITERAL;
+                expr->data.literal.kind = LITERAL_KIND_TYPE;
+                expr->data.literal.data.type = type;
+                return expr;
+            }
+
+            parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
             if (parser_current(parser).type == TOKEN_L_PAREN) {
                 parser_eat_and_expect(parser, TOKEN_L_PAREN);

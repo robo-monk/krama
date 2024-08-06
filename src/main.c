@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
         //     int len = strlen(inp);
 
         //     token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
-        //     int token_count = tokenise(inp, len, tokens);
 
         //     // printf("inp is:: `%s`\n", inp);
         //     for (int i = 0; i < token_count; i ++) {

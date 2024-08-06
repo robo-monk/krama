@@ -99,7 +99,6 @@ void debug_expression(expression_t *expression, int ident) {
         debug_expression(expression->data.infix.right, ident+1);
         break;
     case EXPRESSION_TYPE_LITERAL:
-        // add_tabs(ident);
         printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
         break;
     case EXPRESSION_TYPE_IDENTIFIER:
