@@ -3,12 +3,14 @@
 #include <stdbool.h>
 
 
-int id_ptr_void(void* player)
+void* id_void_(void* player)
 {
-  return *((int*) player);
+  void* a = player;
+  return player;
 };
 
 int main(void)
 {
-  return 0;
+  char* b = "hello there people";
+  return ((int) 0);
 };

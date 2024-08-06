@@ -11,6 +11,23 @@
 #include <assert.h>
 
 
+void debug_type(type_t* t) {
+    assert(t != NULL);
+    switch (t->kind) {
+        case TYPE_KIND_PRIMITIVE:
+            printf("[Type] PRIMITIVE `%s` with size %zu\n", t->info.primitive, t->size);
+        break;
+        case TYPE_KIND_POINTER: {
+            printf("[Type] POINTER to ");
+            debug_type(t->info.pointer);
+        }
+        break;
+        case TYPE_KIND_UNKNOWN:
+        printf("[Type] UNKNOWN \n");
+        break;
+    }
+}
+
 void scope_define_entry(scope_t *scope, char* name, expression_t* exp) {
     hashmap_insert(scope->table, name, exp);
 }
@@ -96,58 +113,67 @@ bool analyser_assert(bool predicate, analyser_t *analyser, const char *format, .
     return false;
 }
 
-bool type_eq(type_t* a, type_t* b) {
-    assert(!a->unknown);
-    assert(!b->unknown);
-    return a->is_ref == b->is_ref &&
-        strcmp(a->type_info.ctype, a->type_info.ctype) == 0;
+char* type_get_primitive(type_t *t) {
+    if (t->kind == TYPE_KIND_PRIMITIVE) {
+        return t->info.primitive;
+    } else if (t->kind == TYPE_KIND_POINTER) {
+        return type_get_primitive(t->info.pointer);
+    } else {
+        assert(0);
+        return "(unknown)";
+    }
 }
 
-bool type_is(type_t* a, char* ctype) {
-    assert(!a->unknown);
-    assert(ctype != NULL);
-    return strcmp(a->type_info.ctype, ctype) == 0;
+bool type_eq(type_t* a, type_t* b) {
+    assert(a->kind != TYPE_KIND_UNKNOWN);
+    assert(b->kind != TYPE_KIND_UNKNOWN);
+
+    if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
+        return type_eq(a->info.pointer, b->info.pointer);
+    }
+
+    assert(a->kind == TYPE_KIND_PRIMITIVE);
+    assert(b->kind == TYPE_KIND_PRIMITIVE);
+
+    return strcmp(a->info.primitive, a->info.primitive) == 0;
 }
 
 type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope);
 type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope);
 type_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope) {
-    type_t current_type = (type_t) {
-        .unknown = true
-    };
-
+    type_t current_type = (type_t) { .kind = TYPE_KIND_UNKNOWN };
     scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
+
     for (int i = 0; i < block->statement_count; i++) {
         type_t type = annotate_statement(an, &block->statements[i], &sub_scope);
+        // printf("%d ==> \n", i);
+        // debug_type(&type);
+
         if (block->statements[i].type == STATEMENT_TYPE_EXPRESSION &&
             block->statements[i].data.expression.type == EXPRESSION_TYPE_RETURN
         ) {
             // if (!type_is(&type, "void")) {
-            if (!current_type.unknown) {
+            if (current_type.kind != TYPE_KIND_UNKNOWN) {
                 analyser_assert(type_eq(&current_type, &type), an, "There are paths in this block evaluating to different types...");
             }
             current_type = type;
-            // }
         }
     }
 
-    return current_type.unknown ? (type_t) {
-        .unknown = false,
-        .type_info = (type_info_t) {
-            .ctype = "void",
-            .size = 0
-        }
-    } : current_type;
+    return (current_type.kind == TYPE_KIND_UNKNOWN) ? (*(type_t*) (hashmap_get(an->ctx->types, "void"))) : current_type;
 }
 
 type_t get_ctype(analyser_t *an, char* typeid, bool is_ref) {
-    type_info_t *type_info = hashmap_get(an->ctx->types, typeid);
+    type_t *type_info = hashmap_get(an->ctx->types, typeid);
     assert(type_info != NULL);
-    return (type_t) {
-        .type_info = *type_info,
-        .is_ref = is_ref,
-        .unknown = false
-    };
+    if (is_ref) {
+        return (type_t) {
+            .kind = TYPE_KIND_POINTER,
+            .info.pointer = type_info
+        };
+    } else {
+        return *type_info;
+    }
 }
 
 type_t consume_type(analyser_t *an, expression_t *exp) {
@@ -160,17 +186,17 @@ type_t consume_type(analyser_t *an, expression_t *exp) {
         assert(exp->data.infix.left->type == EXPRESSION_TYPE_IDENTIFIER);
         return get_ctype(an, exp->data.infix.left->data.identifier.name, true);
     }
-    return (type_t) { .unknown = true };
+    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
 type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scope_t *scope) {
     switch (prefix->operand.type) {
     case TOKEN_ASTERISK:{
         type_t rtype = annotate_expression(an, prefix->right, scope);
-        prefix->right->resultType = rtype;
-        analyser_assert(prefix->right->resultType.is_ref, an, "Cannnot dereference a non pointer");
-        rtype.is_ref = false;
-        return rtype;
+        analyser_assert(rtype.kind == TYPE_KIND_PRIMITIVE, an, "Cannnot dereference a non pointer");
+        analyser_assert(rtype.info.pointer != NULL, an, "Pointer to invalid type");
+        prefix->right->resultType = *rtype.info.pointer;
+        return prefix->right->resultType;
     }
     case TOKEN_BANG:{
         return get_ctype(an, "bool", false);
@@ -187,14 +213,14 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
         break;
     }
     analyser_assert(0, an, "Invalid prefix operation");
-    return (type_t) { .unknown = true };
+    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t *scope) {
     switch (infix->operand.type) {
     case TOKEN_AS: {
         debug_expression(infix->right, 0);
         type_t ctype = consume_type(an, infix->right);
-        analyser_assert(!ctype.unknown, an, "RHS of a cast should be a type");
+        analyser_assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "RHS of a cast should be a type");
         infix->left->resultType = ctype;
         return ctype;
         // type_t ltye = annotate_expression(an, infix->left, scope);
@@ -228,7 +254,7 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
         break;
     }
     analyser_assert(0, an, "Invalid infix operation");
-    return (type_t) { .unknown = true };
+    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
 type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope) {
@@ -245,12 +271,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_INFIX: {
             type_t t = get_infix_ptype_result(an, &expression->data.infix, scope);
-            // printf("\n--->infix result is of type %d\n", t);
-            // ptype_t ltype = annotate_expression(an, expression->data.infix.left, scope);
-            // printf("\nLtype is %s\n", primitive_type_to_str(ltype));
-            // ptype_t rtype = annotate_expression(an, expression->data.infix.right, scope);
-            // printf("\nRype is %s\n", primitive_type_to_str(rtype));
-            // expect_type(an, ltype, rtype, "Infix operations must be inbetween same types");
+
             expression->resultType = t;
             return t;
         }
@@ -262,7 +283,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             case LITERAL_TYPE_CHARACTER: return get_ctype(an, "char", false);
             case LITERAL_TYPE_STRING: {
                     printf("=> literal \n");
-                    return get_ctype(an, "void", true);
+                    return get_ctype(an, "char", true);
                 };
             }
             printf("\n unsupported literal?\n");
@@ -271,7 +292,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT: {
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
             bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
-            if (!is_defined) return (type_t) { .unknown = true };
+            if (!is_defined) return (type_t) { .kind = TYPE_KIND_UNKNOWN };
             bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
             if (!is_identifier) {
                 printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
@@ -283,7 +304,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         case EXPRESSION_TYPE_IDENTIFIER: {
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
             bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
-            if (!is_defined) return (type_t) { .unknown = true };
+            if (!is_defined) return (type_t) { .kind = TYPE_KIND_UNKNOWN };
             bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
             if (!is_identifier) {
                 printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
@@ -314,7 +335,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
 
             type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
-            if (type_hint.unknown) {
+            if (type_hint.kind == TYPE_KIND_UNKNOWN) {
                 type_hint = inferred_type;
             }
 
@@ -322,7 +343,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             expression->data.func_decl.name = an->ctx->fn_mangle(an->ctx, expression);
 
             scope_define_entry(scope, expression->data.func_decl.name, expression);
-            analyser_assert(!(inferred_type.unknown && type_hint.unknown), an, "Cannot infer the return type of function. Please add a type hint.");
+            analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
             analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
             return type_hint;
         }
@@ -346,7 +367,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_FOR:
             assert(0);
-            return (type_t) { .unknown = true };
+            return (type_t) { .kind = TYPE_KIND_UNKNOWN };
         case EXPRESSION_TYPE_STATIC_CALL: {
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
@@ -376,7 +397,9 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             bool is_defined = analyser_assert(entry != NULL, an, "Function signature '%s' is not defined\n", expression->data.func_decl.name);
 
-            if (!is_defined) return (type_t) {.unknown = true };
+            if (!is_defined) {
+                return (type_t) { .kind = TYPE_KIND_UNKNOWN };
+            }
 
             for (int i = 0; i < entry->data.func_decl.params.count; i++) {
                 identifier_expression_t *identifier = (identifier_expression_t*) vector_get_ptr(&entry->data.func_decl.params, i);
@@ -390,7 +413,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                     continue;
                 }
                 type_t exp_type = annotate_expression(an, exp, scope);
-                type_t any_type = get_ctype(an, "any", exp_type.is_ref);
+                type_t any_type = get_ctype(an, "any", exp_type.kind == TYPE_KIND_POINTER);
                 analyser_assert(type_eq(&identifier->type, &exp_type) || type_eq(&identifier->type, &any_type), an, "Argument does not match type");
             }
 
@@ -399,7 +422,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         break;
     }
 
-    return (type_t) { .unknown = true };
+    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 };
 
 type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
@@ -415,7 +438,7 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
         type_t type_hint = s->data.let.identifier.type;
         type_t inferred_type = annotate_expression(an, s->data.let.identifier.value, scope);
 
-        if (type_hint.unknown) {
+        if (type_hint.kind == TYPE_KIND_UNKNOWN) {
             s->data.let.identifier.type = inferred_type;
         } else {
             analyser_assert(type_eq(&type_hint, &inferred_type), an, "Type mismatch");
@@ -432,7 +455,7 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
     case STATEMENT_TYPE_EXPRESSION:
         return annotate_expression(an, &s->data.expression, scope);
     }
-    return (type_t) { .unknown = true };
+    return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
 analyser_t analyser_new(CompilerContext *ctx) {

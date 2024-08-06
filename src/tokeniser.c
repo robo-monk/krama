@@ -159,7 +159,7 @@ token_t flush_buffer_to_token(char* buffer, int buffer_len) {
     if (first == '"') {
         is_str = true;
         printf("buffer is: %s\n", buffer);
-        assert(buffer[buffer_len-1] == '"');
+        // assert(buffer[buffer_len-1] == '"');
         printf("STRING");
     } else if (first == '\'') {
         is_char = true;
@@ -192,95 +192,6 @@ token_t flush_buffer_to_token(char* buffer, int buffer_len) {
 }
 
 #define TOKENISER_BUFFER_SIZE 1024
-int tokenise(const char* data, int data_length, token_t* tokens) {
-    int buffer_index = 0;
-    char buffer[TOKENISER_BUFFER_SIZE];
-    int token_index = 0;
-
-    for (int i = 0; i < data_length; i++) {
-        char c = data[i];
-        switch (c) {
-            case ' ':
-            case '\t':
-            case '\f':
-            case '\v':
-                // Space (0x20, ' '),
-                // Form feed (0x0c, '\f'),
-                // Line feed (0x0a, '\n'),
-                // Carriage return (0x0d, '\r'),
-                // Horizontal tab (0x09, '\t'),
-                // Vertical tab (0x0b, '\v'),
-                // commit buffer
-                if (buffer_index > 0) {
-                    buffer[buffer_index] = '\0';
-                    token_t token = flush_buffer_to_token(buffer, buffer_index);
-                    token.position = i;
-                    tokens[token_index++] = token;
-                    buffer_index = 0;
-                }
-                break;
-
-            case TOKEN_LT:
-                if (data[i+1] == TOKEN_EQ) {
-                    tokens[token_index++] = token_new_mult_char(TOKEN_LTE, i, "<=");
-                    i++;
-                    break;
-                }
-            case TOKEN_GT:
-                if (data[i+1] == TOKEN_EQ) {
-                    tokens[token_index++] = token_new_mult_char(TOKEN_GTE, i, ">=");
-                    i++;
-                    break;
-                }
-            case TOKEN_BANG:
-                if (data[i+1] == TOKEN_EQ) {
-                    tokens[token_index++] = token_new_mult_char(TOKEN_NEQ, i, "!=");
-                    i++;
-                    break;
-                }
-            case TOKEN_EQ:
-                if (data[i+1] == TOKEN_EQ) {
-                    tokens[token_index++] = token_new_mult_char(TOKEN_EQEQ, i, "!=");
-                    i++;
-                    break;
-                }
-            case TOKEN_PLUS:
-            case TOKEN_MINUS:
-            case TOKEN_ASTERISK:
-            case TOKEN_SLASH:
-            case TOKEN_NEW_LINE:
-            case TOKEN_L_BRACE:
-            case TOKEN_R_BRACE:
-            case TOKEN_L_BRACKET:
-            case TOKEN_R_BRACKET:
-            case TOKEN_L_PAREN:
-            case TOKEN_R_PAREN:
-            case TOKEN_SEMICOLON:
-            case TOKEN_COLON:
-            case TOKEN_COMMA:
-            {
-                // commit buffer
-                if (buffer_index > 0) {
-                    buffer[buffer_index] = '\0';
-                    token_t token = flush_buffer_to_token(buffer, buffer_index);
-                    token.position = i;
-                    tokens[token_index++] = token;
-                    buffer_index = 0;
-                }
-
-                tokens[token_index++] = token_new_single_char((token_type_t) c, i, c);
-                break;
-            }
-            default: {
-                buffer[buffer_index++] = c;
-            }
-        }
-    }
-
-    tokens[token_index++] = (token_t) {.type = TOKEN_EOF };
-    return token_index;
-}
-
 
 void tokeniser_flush_buffer(tokeniser_t *t, int token_position) {
     if (t->buffer_index == 0) return;
@@ -299,8 +210,24 @@ vector_t tokenise2(const char* data, int data_length) {
         .tokens = vector_new(512, sizeof(token_t)),
     };
 
+    bool string_building = false;
     for (int i = 0; i < data_length; i++) {
         char c = data[i];
+
+        if (c == '"') {
+            string_building = !string_building;
+            t.buffer[t.buffer_index++] = c;
+            if (t.buffer_index > 1) {
+                tokeniser_flush_buffer(&t, i);
+            }
+            continue;
+        }
+
+        if (string_building) {
+            t.buffer[t.buffer_index++] = c;
+            continue;
+        }
+
         switch (c) {
             case ' ':
             case '\t':

@@ -142,52 +142,61 @@ precedence_t get_precedence(token_type_t token_type) {
 }
 
 
-void parser_register_type(parser_t *parser, char* identifier, char* ctype, size_t size) {
-    type_info_t* type_info = arena_alloc(parser->ctx->arena, sizeof(type_info_t));
-    // printf("\ntype info does not implement size right now...");
-    type_info->size = size;
-    type_info->ctype = arena_strdup(parser->ctx->arena, ctype);
-    hashmap_insert(parser->ctx->types, identifier, type_info);
+void parser_register_primitive_type(parser_t *parser, char* identifier, char* ctype, size_t size) {
+    type_t* type = arena_alloc(parser->ctx->arena, sizeof(type_t));
+    type->kind = TYPE_KIND_PRIMITIVE;
+    type->size = size;
+    type->info.primitive = arena_strdup(parser->ctx->arena, ctype);
+    hashmap_insert(parser->ctx->types, identifier, type);
 }
 
 void parser_debug_type(type_t* t) {
     assert(t != NULL);
-    printf(":::: ");
-    if (t->unknown) {
-        printf("[Unknown Type] \n");
-        return;
+    switch (t->kind) {
+        case TYPE_KIND_PRIMITIVE:
+            printf("[Type] PRIMITIVE `%s` with size %zu\n", t->info.primitive, t->size);
+        break;
+        case TYPE_KIND_POINTER: {
+            printf("[Type] POINTER to ");
+            parser_debug_type(t->info.pointer);
+        }
+        break;
+        case TYPE_KIND_UNKNOWN:
+        printf("[Type] UNKNOWN \n");
+        break;
     }
-    printf("[Type] %s `%s` with size %zu", t->is_ref ? "POINTER" : "VALUE", t->type_info.ctype, t->type_info.size);
-    printf("\n");
 }
 
 type_t parser_parse_type_hint2(parser_t *parser) {
     token_t current = parser_current(parser);
-    type_info_t *type_info = hashmap_get(parser->ctx->types, current.value.raw_str);
+    type_t* type = hashmap_get(parser->ctx->types, current.value.raw_str);
 
-    if (type_info == NULL) {
+    if (type == NULL) {
         if (parser_peek(parser).type == TOKEN_ASTERISK) {
             printf("\nunrecognised type\n");
             exit(1);
         }
         return (type_t) {
-            .unknown = true
+            .kind = TYPE_KIND_UNKNOWN
         };
     }
 
-    token_t type = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
-    bool is_ref = false;
+    token_t type_id = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
+    type_kind_t kind = TYPE_KIND_PRIMITIVE;
 
     if (parser_current(parser).type == TOKEN_ASTERISK) {
         parser_eat(parser);
-        is_ref = true;
+        return (type_t) {
+            .kind = TYPE_KIND_POINTER,
+            .info.pointer = type
+        };
+    } else {
+        return *type;
+        // return (type_t) {
+        //     .kind = TYPE_KIND_PRIMITIVE,
+        //     .info.primitive = current.value.raw_str
+        // };
     }
-
-    return (type_t) {
-        .is_ref = is_ref,
-        .type_info = *type_info,
-        .unknown = false
-    };
 }
 
 expression_t* parser_parse_expression(parser_t *parser, precedence_t precedence);
@@ -215,7 +224,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
         type_t type_info = parser_parse_type_hint2(parser);
         parser_debug_type(&type_info);
 
-        if (type_info.unknown) {
+        if (type_info.kind == TYPE_KIND_UNKNOWN) {
             parser_error_create(parser, parser_current(parser), "Unrecognised type `%s`", parser_current(parser).value.raw_str);
             parser_eat(parser);
         }
@@ -484,7 +493,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             type_t type_info = parser_parse_type_hint2(parser);
             parser_debug_type(&type_info);
 
-            if (type_info.unknown) {
+            if (type_info.kind == TYPE_KIND_UNKNOWN) {
                 parser_error_create(parser, parser_current(parser), "External functional need to define return type");
             }
             token_t fn_identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -553,17 +562,17 @@ program_t parse(parser_t *parser, token_t *tokens) {
     parser->error_idx = 0;
     parser->program = program_create();
 
-    parser_register_type(parser, "u32", "unsigned int", 4);
-    parser_register_type(parser, "i32", "int", 4);
-    parser_register_type(parser, "i64", "long", 8);
-    parser_register_type(parser, "u64", "unsigned long", 8);
-    parser_register_type(parser, "u32", "unsigned int", 4);
-    parser_register_type(parser, "f32", "float", 4);
-    parser_register_type(parser, "f64", "double", 8);
-    parser_register_type(parser, "char", "char", 1);
-    parser_register_type(parser, "byte", "char", 1);
-    parser_register_type(parser, "void", "void", 0);
-    parser_register_type(parser, "any", "void*", 0);
+    parser_register_primitive_type(parser, "u32", "unsigned int", 4);
+    parser_register_primitive_type(parser, "i32", "int", 4);
+    parser_register_primitive_type(parser, "i64", "long", 8);
+    parser_register_primitive_type(parser, "u64", "unsigned long", 8);
+    parser_register_primitive_type(parser, "u32", "unsigned int", 4);
+    parser_register_primitive_type(parser, "f32", "float", 4);
+    parser_register_primitive_type(parser, "f64", "double", 8);
+    parser_register_primitive_type(parser, "char", "char", 1);
+    parser_register_primitive_type(parser, "byte", "char", 1);
+    parser_register_primitive_type(parser, "void", "void", 0);
+    parser_register_primitive_type(parser, "any", "void*", 0);
 
     parser_parse(parser);
 

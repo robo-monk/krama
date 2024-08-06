@@ -12,30 +12,6 @@
 #include <stdio.h>
 
 
-char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
-    if (exp->type == EXPRESSION_TYPE_FUNC_DECL) {
-        char* fn_name = arena_strdup(ctx->arena, exp->data.func_decl.name);
-        for (int i = 0; i<exp->data.func_decl.params.count; i++) {
-            identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&exp->data.func_decl.params, i);
-            assert(!id->type.unknown);
-            fn_name = string_arena_format_overwrite(ctx->arena, fn_name, "%s_%s%s", fn_name, id->type.is_ref ? "ptr_" : "", id->type.type_info.ctype);
-        }
-        return fn_name;
-    } else if (exp->type == EXPRESSION_TYPE_CALL) {
-        char* fn_name = arena_strdup(ctx->arena, exp->data.call.identifier_name);
-        for (int i = 0; i<exp->data.call.arguments.count; i++) {
-            expression_t *arg = (expression_t*) vector_get_ptr(&exp->data.call.arguments, i);
-            assert(exp && !exp->resultType.unknown);
-            assert(arg != NULL);
-            fn_name = string_arena_format(ctx->arena, "%s_%s%s", fn_name, arg->resultType.is_ref ? "ptr_" : "", arg->resultType.type_info.ctype);
-        }
-        return fn_name;
-    }
-    assert(0);
-    // return string_arena_format_overwrite(ctx->arena, fn_name, "%s__%s", fn_name, exp->data.func_decl.type.type_info.ctype);
-}
-
-
 c_program_t c_program_new() {
     return (c_program_t) {
         .headers = vector_new(16, sizeof(char*)),
@@ -46,11 +22,42 @@ c_program_t c_program_new() {
 
 
 
-char* compile_type(CompilerContext *ctx, type_t *type) {
+char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbol) {
     assert(type != NULL);
-    if (type->unknown) return string_arena_format(ctx->arena, "(unknown)");
-    assert(type->type_info.ctype != NULL);
-    return string_arena_format(ctx->arena, "%s%s", type->type_info.ctype, type->is_ref ? "*" : "");
+    if (type->kind == TYPE_KIND_UNKNOWN) return string_arena_format(ctx->arena, "(unknown)");
+    if (type->kind == TYPE_KIND_PRIMITIVE) return string_arena_format(ctx->arena, "%s", type->info.primitive);
+    assert(type->kind == TYPE_KIND_POINTER);
+    char* upper = compile_type_internal(ctx, type->info.pointer, deref_symbol);
+    return string_arena_format_overwrite(ctx->arena, upper, "%s%c", upper, deref_symbol);
+}
+
+char* compile_type(CompilerContext *ctx, type_t *type) {
+    return compile_type_internal(ctx, type, '*');
+}
+
+
+char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
+    if (exp->type == EXPRESSION_TYPE_FUNC_DECL) {
+        char* fn_name = arena_strdup(ctx->arena, exp->data.func_decl.name);
+        for (int i = 0; i<exp->data.func_decl.params.count; i++) {
+            identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&exp->data.func_decl.params, i);
+            assert(id->type.kind != TYPE_KIND_UNKNOWN);
+            char* type = compile_type_internal(ctx, &id->type, '_');
+            fn_name = string_arena_format_overwrite(ctx->arena, type, "%s_%s", fn_name, type);
+        }
+        return fn_name;
+    } else if (exp->type == EXPRESSION_TYPE_CALL) {
+        char* fn_name = arena_strdup(ctx->arena, exp->data.call.identifier_name);
+        for (int i = 0; i<exp->data.call.arguments.count; i++) {
+            expression_t *arg = (expression_t*) vector_get_ptr(&exp->data.call.arguments, i);
+            assert(exp && exp->resultType.kind != TYPE_KIND_UNKNOWN);
+            assert(arg != NULL);
+            char* type = compile_type_internal(ctx, &arg->resultType, '_');
+            fn_name = string_arena_format_overwrite(ctx->arena, type, "%s_%s", fn_name, type);
+        }
+        return fn_name;
+    }
+    assert(0);
 }
 
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s);
@@ -69,7 +76,6 @@ static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, v
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
     assert(args->count == 1);
     expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
-    // printf("\n\n result type is %s \n", ptype_to_ctype(exp->resultType));
     // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
     return string_arena_format_overwrite(ctx->arena, size_expr, "malloc(%s)", size_expr);
@@ -193,9 +199,22 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                     return string_arena_format(ctx->arena, "%lf", e->data.literal.data.f64);
                 case LITERAL_TYPE_CHARACTER:
                     return string_arena_format(ctx->arena, "'%c'", e->data.literal.data.character);
-                case LITERAL_TYPE_STRING:
-                    // return  e->data.literal.data.string;
+                case LITERAL_TYPE_STRING: {
+
                     return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
+                    // return  e->data.literal.data.string;
+                    int len = strlen(e->data.literal.data.string);
+                    assert(len >= 2);
+                    char* str = string_arena_format(ctx->arena, "{");
+                    for (int i = 1; i < len-1; i++) {
+                        str = string_arena_format_overwrite(ctx->arena, str, "%s'%c',", str, e->data.literal.data.string[i]);
+                    }
+                    str = string_arena_format_overwrite(ctx->arena, str, "%s}", str);
+                    printf("\n->%s\n",str);
+                    // assert(0);
+                    // return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
+                    return str;
+                }
             }
         }
         case EXPRESSION_TYPE_IDENTIFIER:
@@ -273,7 +292,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
 char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t *s) {
     switch (s->type) {
         case STATEMENT_TYPE_LET: {
-            char* ctype = s->data.let.identifier.type.unknown ?
+            char* ctype = s->data.let.identifier.type.kind == TYPE_KIND_UNKNOWN ?
                 compile_type(ctx, &s->data.expression.resultType)
                 : compile_type(ctx, &s->data.let.identifier.type);
 

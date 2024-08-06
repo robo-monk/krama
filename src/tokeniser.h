@@ -61,33 +61,30 @@ typedef enum {
     TOKEN_EOF,
 } token_type_t;
 
+// typedef struct {
+//     size_t size;
+//     char* ctype;
+// } type_info_t;
+
+// typedef struct {
+//     bool unknown;
+//     bool is_ref;
+//     type_info_t type_info;
+// } type_t;
+
 typedef enum {
-    PTYPE_I64,
-    PTYPE_I32,
-    PTYPE_I16,
-    PTYPE_U64,
-    PTYPE_U32,
-    PTYPE_U16,
-    PTYPE_U8,
-    PTYPE_F64,
-    PTYPE_F32,
-    PTYPE_F16,
-    PTYPE_CHAR,
-    PTYPE_VOID,
-    PTYPE_BOOL,
-    PTYPE_ANY,
-    PTYPE_UNKNOWN=99,
-} ptype_t;
+    TYPE_KIND_PRIMITIVE,
+    TYPE_KIND_POINTER,
+    TYPE_KIND_UNKNOWN
+} type_kind_t;
 
-typedef struct {
+typedef struct type_t {
+    type_kind_t kind;
     size_t size;
-    char* ctype;
-} type_info_t;
-
-typedef struct {
-    bool unknown;
-    bool is_ref;
-    type_info_t type_info;
+    union {
+        char* primitive;
+        struct type_t* pointer;
+    } info;
 } type_t;
 
 typedef union {
@@ -108,11 +105,8 @@ typedef struct {
     vector_t tokens;
 } tokeniser_t;
 
-int tokenise(const char* data, int data_length, token_t* tokens);
 vector_t tokenise2(const char* data, int data_length);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
-ptype_t str_to_primitive_type(char* buffer);
-const char* primitive_type_to_str(ptype_t t);
 
 #endif
