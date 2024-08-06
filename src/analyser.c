@@ -365,6 +365,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 type_t exp_type = annotate_expression(an, exp, scope);
                 exp->resultType = exp_type;
+                analyser_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, an, "Parameters should have well defined types");
             }
             return get_ctype(an, "any", false);
         }
@@ -374,12 +375,12 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 type_t exp_type = annotate_expression(an, exp, scope);
                 exp->resultType = exp_type;
+                analyser_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, an, "Parameters should have well defined types");
             }
 
             // check for extern functions (skip mangle)
             expression_t* unmangled_entry = scope_get_entry(scope, expression->data.call.identifier_name);
             if (unmangled_entry != NULL && unmangled_entry->type == EXPRESSION_TYPE_EXTERN_FUNC_DECL) {
-                // TODO: check for parameters
                 return unmangled_entry->data.func_decl.type;
             }
 
@@ -391,22 +392,6 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             if (!is_defined) {
                 return (type_t) { .kind = TYPE_KIND_UNKNOWN };
-            }
-
-            for (int i = 0; i < entry->data.func_decl.params.count; i++) {
-                identifier_expression_t *identifier = (identifier_expression_t*) vector_get_ptr(&entry->data.func_decl.params, i);
-                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
-
-                if (!analyser_assert(exp != NULL, an,
-                        "Too few arguments for call '%s'. Missing argument '%s'",
-                        expression->data.call.identifier_name,
-                        identifier->name
-                )) {
-                    continue;
-                }
-                type_t exp_type = annotate_expression(an, exp, scope);
-                type_t any_type = get_ctype(an, "any", exp_type.kind == TYPE_KIND_POINTER);
-                analyser_assert(type_eq(&identifier->type, &exp_type) || type_eq(&identifier->type, &any_type), an, "Argument does not match type");
             }
 
             return entry->data.identifier.type;

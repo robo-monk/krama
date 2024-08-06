@@ -1,5 +1,14 @@
 extern fn void printf();
 
+fn println(char* fmt, char* str) {
+    printf(fmt, str)
+    printf("\n")
+}
+
+fn println(char* str) {
+    println("%s", str)
+}
+
 fn void* new_player(i64 id, char* name) {
     let size = 8 + 8;
     let p = @malloc(size) as void*
@@ -19,6 +28,7 @@ fn name(void* player) {
 fn main() {
     let b = "hello there people";
     let p = new_player(15, "mike");
-    printf("player name is: %s", p:name);
+    printf("player name is: %s, pid is: %ld\n", p:name, p:id);
+    println("=> player name is: %s\n", p:name);
     return 0 as i32
 }

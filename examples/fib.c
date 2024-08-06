@@ -5,6 +5,17 @@
 
 // external void printf(void);
 
+void println_char__char_(char* fmt, char* str)
+{
+  printf(fmt,str);
+  printf("\n");
+};
+
+void println_char_(char* str)
+{
+  println_char__char_("%s",str);
+};
+
 void* new_player_long_char_(long id, char* name)
 {
   long size = 8 + 8;
@@ -28,6 +39,7 @@ int main(void)
 {
   char* b = "hello there people";
   void* p = new_player_long_char_(15,"mike");
-  printf("player name is: %s",name_void_(p));
+  printf("player name is: %s, pid is: %ld\n",name_void_(p),id_void_(p));
+  println_char__char_("=> player name is: %s\n",name_void_(p));
   return ((int) 0);
 };
