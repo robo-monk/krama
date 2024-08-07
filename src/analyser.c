@@ -15,7 +15,7 @@ void debug_type(type_t* t) {
     assert(t != NULL);
     switch (t->kind) {
         case TYPE_KIND_PRIMITIVE:
-            printf("[Type] PRIMITIVE `%s` with size %zu\n", t->info.primitive, t->size);
+            printf("[Type] PRIMITIVE `%s` with size %zu", t->info.primitive, t->size);
         break;
         case TYPE_KIND_POINTER: {
             printf("[Type] POINTER to ");
@@ -23,7 +23,7 @@ void debug_type(type_t* t) {
         }
         break;
         case TYPE_KIND_UNKNOWN:
-        printf("[Type] UNKNOWN \n");
+        printf("[Type] UNKNOWN");
         break;
     }
 }
@@ -210,10 +210,16 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
     case TOKEN_AS: {
         assert(infix->right != NULL);
         analyser_assert(infix->right->type == EXPRESSION_TYPE_LITERAL, an, "RHS of a cast should be a literal type");
-        printf("=-=> %d, %d\n", infix->right->data.literal.kind, LITERAL_KIND_TYPE);
         analyser_assert(infix->right->data.literal.kind == LITERAL_KIND_TYPE, an, "RHS of a cast should be a type. Literal is not type");
         type_t ctype = infix->right->data.literal.data.type;
         analyser_assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "Type is unknown");
+
+        type_t ltype = annotate_expression(an, infix->left, scope);
+        printf("\nCAST { ");
+        debug_type(&ltype);
+        printf(" } to { ");
+        debug_type(&ctype);
+        printf("}\n");
         infix->left->resultType = ctype;
         return ctype;
     }
@@ -267,14 +273,12 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return t;
         }
         case EXPRESSION_TYPE_LITERAL: {
-            printf("...literal \n");
             switch (expression->data.literal.kind) {
             case LITERAL_KIND_I64: return get_ctype(an, "i64", false);
             case LITERAL_KIND_F64: return get_ctype(an, "f64", false);
             case LITERAL_KIND_CHARACTER: return get_ctype(an, "char", false);
             case LITERAL_KIND_TYPE: return expression->data.literal.data.type;
             case LITERAL_KIND_STRING: {
-                    printf("=> literal \n");
                     return get_ctype(an, "char", true);
                 };
             }
@@ -381,6 +385,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             // check for extern functions (skip mangle)
             expression_t* unmangled_entry = scope_get_entry(scope, expression->data.call.identifier_name);
             if (unmangled_entry != NULL && unmangled_entry->type == EXPRESSION_TYPE_EXTERN_FUNC_DECL) {
+                printf("\n skipping mangle for... %s\n", expression->data.call.identifier_name);
                 return unmangled_entry->data.func_decl.type;
             }
 

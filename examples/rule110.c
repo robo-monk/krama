@@ -50,8 +50,7 @@ char* add_char__char_(char* a, char* b)
 {
   long len_a = ((long) strlen(a));
   long len_b = ((long) strlen(b));
-  long total = add_long_long(len_a,add_long_long(len_b,1));
-  char* result = ((char*) malloc(total));
+  char* result = ((char*) malloc(add_long_long(len_a,add_long_long(len_b,1))));
   strcpy(result, a);
   strcat(result, b);
   return result;

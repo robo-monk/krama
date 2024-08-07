@@ -35,8 +35,7 @@ fn lte(i64 a, i64 b) {
 fn add(char* a, char* b) {
     let len_a = @raw_c("strlen(a)") as i64;
     let len_b = @raw_c("strlen(b)") as i64;
-    let total = len_a + len_b + 1;
-    let result = @malloc(total) as char*
+    let result = @malloc(len_a + len_b + 1) as char*
     @raw_c("strcpy(result, a)")
     @raw_c("strcat(result, b)")
     return result
