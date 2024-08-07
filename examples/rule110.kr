@@ -1,0 +1,53 @@
+extern fn void printf();
+
+fn add(i64 a, i64 b) {
+    return @raw_c("a + b") as i64
+}
+
+fn sub(i64 a, i64 b) {
+    return @raw_c("a - b") as i64
+}
+
+fn mul(i64 a, i64 b) {
+    return @raw_c("a * b") as i64
+}
+
+fn div(i64 a, i64 b) {
+    return @raw_c("a / b") as i64
+}
+
+fn gt(i64 a, i64 b) {
+    return @raw_c("a > b") as bool
+}
+
+fn gte(i64 a, i64 b) {
+    return @raw_c("a >= b") as bool
+}
+
+fn lt(i64 a, i64 b) {
+    return @raw_c("a < b") as bool
+}
+
+fn lte(i64 a, i64 b) {
+    return @raw_c("a <= b") as bool
+}
+
+fn add(char* a, char* b) {
+    let len_a = @raw_c("strlen(a)") as i64;
+    let len_b = @raw_c("strlen(b)") as i64;
+    let total = len_a + len_b + 1;
+    let result = @malloc(total) as char*
+    @raw_c("strcpy(result, a)")
+    @raw_c("strcat(result, b)")
+    return result
+}
+
+fn main() {
+    let a = 1 + 2 * 3;
+    let b = a > 1;
+    let bob = "bob"
+    let dylan = "dylan"
+    printf("=> %ld\n", a)
+    printf("name is: %s", bob + dylan)
+    return 0 as i32
+}

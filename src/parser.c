@@ -99,10 +99,14 @@ literal_expression_t parser_parse_literal(parser_t *parser) {
             }
         };
     } else if (first == '"') {
+
+        char* slice = current.value.raw_str+1;
+        slice[strlen(slice) - 1] = '\0';
+
         return (literal_expression_t) {
             .kind = LITERAL_KIND_STRING,
             .data = {
-                .string = arena_strdup(parser->ctx->arena, current.value.raw_str)
+                .string = arena_strdup(parser->ctx->arena, slice)
             }
         };
     }
@@ -148,6 +152,7 @@ void parser_register_primitive_type(parser_t *parser, char* identifier, char* ct
     type->size = size;
     type->info.primitive = arena_strdup(parser->ctx->arena, ctype);
     hashmap_insert(parser->ctx->types, identifier, type);
+
 }
 
 void parser_debug_type(type_t* t) {
@@ -248,6 +253,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->type = EXPRESSION_TYPE_BLOCK;
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
+            parser_optional_eat(parser, TOKEN_NEW_LINE);
 
             while (parser_current(parser).type != TOKEN_R_BRACE) {
                 // parser_debug(parser, "\nbefore block parsing\n");
@@ -379,9 +385,55 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
     return NULL;
 }
 
-expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
+expression_t* parse_to_built_in_op(parser_t *parser, char* opname, precedence_t precedence, expression_t *left) {
+    expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
+    expr->type = EXPRESSION_TYPE_CALL;
+    vector_t args = vector_new(2, sizeof(expression_t*));
+    vector_push_ptr(&args, left);
+    expression_t *right = parser_parse_expression(parser, PRECEDENCE_SUM);
+    vector_push_ptr(&args, right);
 
+    expr->data.call = (call_expression_t) {
+        .identifier_name = opname,
+        .arguments = args
+    };
+    return expr;
+}
+
+expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left) {
     switch (parser_current(parser).type) {
+        case TOKEN_PLUS: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "add", PRECEDENCE_SUM, left);
+        }
+        case TOKEN_MINUS: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "sub", PRECEDENCE_SUM, left);
+        }
+        case TOKEN_ASTERISK: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "mul", PRECEDENCE_PROD, left);
+        }
+        case TOKEN_SLASH: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "div", PRECEDENCE_PROD, left);
+        }
+        case TOKEN_GT: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "gt", PRECEDENCE_LGT, left);
+        }
+        case TOKEN_LT: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "lt", PRECEDENCE_LGT, left);
+        }
+        case TOKEN_GTE: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "gte", PRECEDENCE_EQUALS, left);
+        }
+        case TOKEN_LTE: {
+            parser_eat(parser);
+            return parse_to_built_in_op(parser, "lte", PRECEDENCE_EQUALS, left);
+        }
         case TOKEN_EQ: {
             if (left->type == EXPRESSION_TYPE_IDENTIFIER) {
                 parser_eat_and_expect(parser, TOKEN_EQ);
@@ -389,17 +441,12 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
                 left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);
                 left->type = EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT;
                 return left;
+            } else {
+                parser_eat_and_expect(parser, TOKEN_EQ);
+                return parse_to_built_in_op(parser, "assign", PRECEDENCE_LOWEST, left);
             }
         }
         case TOKEN_AS:
-        case TOKEN_PLUS:
-        case TOKEN_MINUS:
-        case TOKEN_SLASH:
-        case TOKEN_ASTERISK:
-        case TOKEN_GT:
-        case TOKEN_LT:
-        case TOKEN_GTE:
-        case TOKEN_LTE:
         case TOKEN_EQEQ: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_INFIX;
@@ -521,6 +568,22 @@ statement_t* parser_parse_statement(parser_t *parser) {
             s->data.expression = *expr;
             return s;
         }
+        case TOKEN_TYPE: {
+            parser_eat_and_expect(parser, TOKEN_TYPE);
+            token_t id = parser_eat_and_expect(parser, TOKEN_IDENTIFIER); // only fn can be external
+            parser_eat_and_expect(parser, TOKEN_EQ);
+            type_t type_info = parser_parse_type_hint2(parser);
+            assert(type_info.kind != TOKEN_UNKNOWN);
+            // parser_register_primitive_type(parser, id.value.raw_str, type_info, size_t size)
+            type_t* type = arena_alloc(parser->ctx->arena, sizeof(type_t));
+            type->kind = type_info.kind;
+            type->size = type_info.size;
+            type->info = type_info.info;
+
+            hashmap_insert(parser->ctx->types, id.value.raw_str, type);
+            return NULL;
+            // assert(0);
+        }
         default: {
             expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
 
@@ -535,14 +598,16 @@ statement_t* parser_parse_statement(parser_t *parser) {
         }
     }
     parser_debug(parser, "failed at this token. case not covered");
-    exit(0);
+    exit(1);
 }
 
 void parser_parse(parser_t *parser) {
     token_t current;
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
         statement_t *s = parser_parse_statement(parser);
-        vector_push_ptr(&parser->program.statements, s);
+        if (s != NULL) {
+            vector_push_ptr(&parser->program.statements, s);
+        }
         // program_add_statement(&parser->program, s);
     }
 }
@@ -561,7 +626,6 @@ parser_t parser_new(CompilerContext *ctx) {
 //     arena_destroy(parser->ctx->arena);
 // }
 
-
 program_t parse(parser_t *parser, token_t *tokens) {
     parser->tokens = tokens;
     parser->index = 0;
@@ -578,7 +642,9 @@ program_t parse(parser_t *parser, token_t *tokens) {
     parser_register_primitive_type(parser, "char", "char", 1);
     parser_register_primitive_type(parser, "byte", "char", 1);
     parser_register_primitive_type(parser, "void", "void", 0);
-    parser_register_primitive_type(parser, "any", "void*", 0);
+    parser_register_primitive_type(parser, "any", "void*", 8);
+    parser_register_primitive_type(parser, "bool", "bool", 1);
+    // parser_register_primitive_type(parser, "any", "()", -1);
 
     parser_parse(parser);
 

@@ -1,34 +1,52 @@
 extern fn void printf();
 
-fn println(char* fmt, char* str) {
+type string = char*
+type Player = void*
+
+fn println(string fmt, string str) {
     printf(fmt, str)
     printf("\n")
 }
 
-fn println(char* str) {
+fn println(string str) {
     println("%s", str)
 }
 
-fn void* new_player(i64 id, char* name) {
+
+fn Player new_player(i64 id, string name) {
     let size = 8 + 8;
-    let p = @malloc(size) as void*
+    let p = @malloc(size) as Player
     @set(p as i64*, id)
-    @set(p+8 as char**, name)
+    @set(p+8 as string*, name)
     return p
 }
 
-fn id(void* player) {
+fn id(Player player) {
     return *(player as i64*)
 }
 
-fn name(void* player) {
-    return *(player+8 as char**)
+fn set_id(Player p, i64 v) {
+    @set(p as i64*, v)
+    return p
+}
+
+fn name(Player player) {
+    return *(player+8 as string*)
+}
+
+fn set_name(Player p, string v) {
+    @set(p+8 as string*, v)
+    return p
 }
 
 fn main() {
     let b = "hello there people";
-    let p = new_player(15, "mike");
+    let Player p = new_player(15, "mike");
+
+    p:set_id(42):set_name("george")
+
     printf("player name is: %s, pid is: %ld\n", p:name, p:id);
-    println("=> player name is: %s\n", p:name);
+    println("=> player name is: %s", p:name);
+    printf("=> player id is: %ld\n", p:id);
     return 0 as i32
 }

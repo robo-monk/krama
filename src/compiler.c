@@ -20,8 +20,6 @@ c_program_t c_program_new() {
 }
 
 
-
-
 char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbol) {
     assert(type != NULL);
     if (type->kind == TYPE_KIND_UNKNOWN) return string_arena_format(ctx->arena, "(unknown)");
@@ -69,8 +67,14 @@ void register_macro_handler(CompilerContext *ctx, char* id, macro_compile_callba
     hashmap_insert(ctx->macros, id, cb);
 }
 
-static char* cast_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
-    assert(0);
+static char* raw_c_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
+    assert(args->count == 1);
+    expression_t *exp = (expression_t*) vector_get_ptr(args, 0);
+    assert(exp->type == EXPRESSION_TYPE_LITERAL);
+    assert(exp->data.literal.kind == LITERAL_KIND_STRING);
+    assert(exp->data.literal.data.string != NULL);
+    return string_arena_format(ctx->arena, "%s", exp->data.literal.data.string);
+
 }
 
 static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -79,6 +83,7 @@ static char* malloc_compile_callback(CompilerContext *ctx, c_program_t *program,
     // assert(exp->resultType == PTYPE_I64);
     char* size_expr = compile_expression(ctx, program, exp);
     return string_arena_format_overwrite(ctx->arena, size_expr, "malloc(%s)", size_expr);
+
 }
 
 static char* set_compile_callback(CompilerContext *ctx, c_program_t *program, vector_t *args) {
@@ -200,7 +205,7 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
                     return string_arena_format(ctx->arena, "'%c'", e->data.literal.data.character);
                 case LITERAL_KIND_STRING: {
 
-                    return string_arena_format(ctx->arena, "%s", e->data.literal.data.string);
+                    return string_arena_format(ctx->arena, "\"%s\"", e->data.literal.data.string);
                     // return  e->data.literal.data.string;
                     // int len = strlen(e->data.literal.data.string);
                     // assert(len >= 2);
@@ -323,24 +328,17 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
 }
 
 void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
-    // Arena arena = arena_new(1024*1024);
-    // hashmap_t *macros = hashmap_create(NULL);
 
-    // CompilerContext ctx = (CompilerContext) {
-    //     .arena = &arena,
-    //     .macros = macros,
-    //     .types = parser->ctx.types
-    // };
-
-    register_macro_handler(ctx, "@cast", cast_compile_callback);
     register_macro_handler(ctx, "@malloc", malloc_compile_callback);
     register_macro_handler(ctx, "@free", free_compile_callback);
     register_macro_handler(ctx, "@set", set_compile_callback);
     register_macro_handler(ctx, "@get", get_compile_callback);
+    register_macro_handler(ctx, "@raw_c", raw_c_compile_callback);
 
     c_program_t cprogram = c_program_new();
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdio.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdlib.h>"));
+    vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <string.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdbool.h>"));
 
     for (int i = 0; i < program->statements.count; i++) {
@@ -368,7 +366,6 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
     }
 
     printf("\n---\n\n");
-    // printf("[Compiler Stats] Compiler Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", arena.offset, arena.capacity, 100*arena.offset/arena.capacity);
 
     vector_free(&cprogram.impls);
     vector_free(&cprogram.headers);

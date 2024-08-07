@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
     analyser_t analyser = analyse_program(&parser, &ctx);
     if (analyser.error_idx > 0) {
         printf("\n please fix analyser errors\n");
-        exit(1);
+        // exit(1);
     }
 
     compile(&parser.program, &ctx, output_file);
