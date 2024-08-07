@@ -11,22 +11,7 @@
 #include <assert.h>
 
 
-void debug_type(type_t* t) {
-    assert(t != NULL);
-    switch (t->kind) {
-        case TYPE_KIND_PRIMITIVE:
-            printf("[Type] PRIMITIVE `%s` with size %zu", t->info.primitive, t->size);
-        break;
-        case TYPE_KIND_POINTER: {
-            printf("[Type] POINTER to ");
-            debug_type(t->info.pointer);
-        }
-        break;
-        case TYPE_KIND_UNKNOWN:
-        printf("[Type] UNKNOWN");
-        break;
-    }
-}
+
 
 void scope_define_entry(scope_t *scope, char* name, expression_t* exp) {
     hashmap_insert(scope->table, name, exp);
@@ -127,6 +112,10 @@ char* type_get_primitive(type_t *t) {
 bool type_eq(type_t* a, type_t* b) {
     assert(a->kind != TYPE_KIND_UNKNOWN);
     assert(b->kind != TYPE_KIND_UNKNOWN);
+
+    assert(a->kind != TYPE_KIND_GENERIC);
+    assert(b->kind != TYPE_KIND_GENERIC);
+
 
     if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
         return type_eq(a->info.pointer, b->info.pointer);
@@ -259,10 +248,15 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
     //     return expression->resultType;
     // }
     assert(expression != NULL);
+    printf("\n---> annotating & analysering.. \n");
+    debug_expression(expression, 0);
+    printf("\n");
+
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
             // type_t ltype = annotate_expression(an, expression->data.prefix.right, scope);
             type_t ltype = get_prefix_ptype_result(an, &expression->data.prefix, scope);
+
             expression->resultType = ltype;
             return ltype;
         }
@@ -321,13 +315,18 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
 
             for (int i = 0; i<expression->data.func_decl.params.count; i++) {
-                identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
+                identifier_expression_t *argument = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
+
                 expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
                 idexp->type = EXPRESSION_TYPE_IDENTIFIER;
-                idexp->data.identifier = *id;
-                scope_define_entry(&sub_scope, id->name, idexp);
-            }
+                idexp->data.identifier = *argument;
 
+                printf("type is:: \n");
+                debug_type(&argument->type);
+                printf("---\n");
+
+                scope_define_entry(&sub_scope, argument->name, idexp);
+            }
 
             type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
             if (type_hint.kind == TYPE_KIND_UNKNOWN) {
@@ -339,6 +338,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             scope_define_entry(scope, expression->data.func_decl.name, expression);
             analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
+            analyser_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an, "Generics are not supported.");
+
             analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
             return type_hint;
         }
@@ -388,7 +389,6 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 printf("\n skipping mangle for... %s\n", expression->data.call.identifier_name);
                 return unmangled_entry->data.func_decl.type;
             }
-
 
             expression->data.call.identifier_name = an->ctx->fn_mangle(an->ctx, expression);
             expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
@@ -458,9 +458,13 @@ analyser_t analyse_program(parser_t *parser, CompilerContext *ctx) {
     };
 
     for (int i = 0; i < parser->program.statements.count; i++) {
+        printf("\n(%d) Analysing => ", i);
         statement_t *s = vector_get_ptr(&parser->program.statements, i);
         s->data.expression.resultType = annotate_statement(&a, s, &global_scope);
+        printf("\n(%d) Done => ", i);
     }
+
+    printf("\nDone\n");
 
 
     if (a.error_idx > 0) {

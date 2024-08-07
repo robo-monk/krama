@@ -70,6 +70,27 @@ void add_tabs(int count) {
 
 void statement_debug(statement_t *s, int ident);
 
+void debug_type(type_t* t) {
+    assert(t != NULL);
+    switch (t->kind) {
+        case TYPE_KIND_PRIMITIVE:
+            printf("[Type] PRIMITIVE `%s` with size %zu", t->info.primitive, t->size);
+        break;
+        case TYPE_KIND_POINTER: {
+            printf("[Type] POINTER to ");
+            debug_type(t->info.pointer);
+        }
+        break;
+        case TYPE_KIND_GENERIC:
+            printf("[Type] GENERIC `%s`", t->info.generic);
+            break;
+        case TYPE_KIND_UNKNOWN:
+            printf("[Type] UNKNOWN");
+            break;
+        default:
+            printf("[ ERROR ]");
+    }
+}
 void debug_expression(expression_t *expression, int ident) {
     add_tabs(ident);
     if (expression == NULL) {
@@ -102,7 +123,8 @@ void debug_expression(expression_t *expression, int ident) {
         printf("expr LITERAL (%ld)", expression->data.literal.data.i64);
         break;
     case EXPRESSION_TYPE_IDENTIFIER:
-        printf("expr IDENTIFIER (%s)", expression->data.identifier.name);;
+        printf("expr IDENTIFIER (%s) type: ", expression->data.identifier.name);
+        debug_type(&expression->data.identifier.type);
         break;
     case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT:
         printf("expr IDENTIFIER ASSIGNMENT (%s) =", expression->data.identifier.name);

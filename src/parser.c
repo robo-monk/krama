@@ -167,23 +167,36 @@ void parser_debug_type(type_t* t) {
         }
         break;
         case TYPE_KIND_UNKNOWN:
-        printf("[Type] UNKNOWN \n");
+            printf("[Type] UNKNOWN \n");
+        break;
+        case TYPE_KIND_GENERIC:
+            printf("[Type] GENERIC \n");
         break;
     }
 }
 
 type_t parser_parse_type_hint2(parser_t *parser) {
     token_t type_id = parser_current(parser);
-    type_t* type = hashmap_get(parser->ctx->types, type_id.value.raw_str);
 
-    if (type == NULL) {
-        if (parser_peek(parser).type == TOKEN_ASTERISK) {
-            printf("\nunrecognised type\n");
-            exit(1);
+
+
+    type_t* type;
+    if (type_id.value.raw_str[0] == '@') {
+        type = arena_alloc(parser->ctx->arena, sizeof(type_t));
+        type->kind = TYPE_KIND_GENERIC;
+        type->info.generic = arena_strdup(parser->ctx->arena, type_id.value.raw_str);
+    } else {
+        type = hashmap_get(parser->ctx->types, type_id.value.raw_str);
+        if (type == NULL) {
+            if (parser_peek(parser).type == TOKEN_ASTERISK) {
+                printf("\nunrecognised type\n");
+                exit(1);
+            }
+
+            return (type_t) {
+                .kind = TYPE_KIND_UNKNOWN
+            };
         }
-        return (type_t) {
-            .kind = TYPE_KIND_UNKNOWN
-        };
     }
 
     parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -195,6 +208,7 @@ type_t parser_parse_type_hint2(parser_t *parser) {
         upper->info.pointer = type;
         type = upper;
     }
+
     return *type;
 }
 
@@ -327,7 +341,6 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
 
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
             expr->data.identifier.name = identifier_name;
-            printf("=========> %s\n", expr->data.identifier.name);
             return expr;
         }
         case TOKEN_FN: {
@@ -435,7 +448,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
             return parse_to_built_in_op(parser, "lte", PRECEDENCE_EQUALS, left);
         }
         case TOKEN_EQ: {
-            if (left->type == EXPRESSION_TYPE_IDENTIFIER) {
+            if (false && left->type == EXPRESSION_TYPE_IDENTIFIER) {
                 parser_eat_and_expect(parser, TOKEN_EQ);
                 assert(left->type == EXPRESSION_TYPE_IDENTIFIER);
                 left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);

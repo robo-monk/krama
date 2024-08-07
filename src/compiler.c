@@ -22,11 +22,30 @@ c_program_t c_program_new() {
 
 char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbol) {
     assert(type != NULL);
-    if (type->kind == TYPE_KIND_UNKNOWN) return string_arena_format(ctx->arena, "(unknown)");
-    if (type->kind == TYPE_KIND_PRIMITIVE) return string_arena_format(ctx->arena, "%s", type->info.primitive);
-    assert(type->kind == TYPE_KIND_POINTER);
-    char* upper = compile_type_internal(ctx, type->info.pointer, deref_symbol);
-    return string_arena_format_overwrite(ctx->arena, upper, "%s%c", upper, deref_symbol);
+    switch (type->kind) {
+    case TYPE_KIND_UNKNOWN: {
+        assert(0);
+        return string_arena_format(ctx->arena, "(unknown)");
+    }
+    case TYPE_KIND_PRIMITIVE: {
+        return string_arena_format(ctx->arena, "%s", type->info.primitive);
+    }
+    case TYPE_KIND_POINTER: {
+        char* upper = compile_type_internal(ctx, type->info.pointer, deref_symbol);
+        return string_arena_format_overwrite(ctx->arena, upper, "%s%c", upper, deref_symbol);
+    }
+    case TYPE_KIND_GENERIC: {
+        assert(type->info.generic[0] == '@');
+        // return type->info.generic;
+        return string_arena_format(ctx->arena, "g%s", type->info.generic+1);
+        // assert(type->info.pointer != NULL);
+        // printf("Generics cannot be compiled!\n");
+        // assert(0);
+        // return compile_type_internal(ctx, type->info.pointer, deref_symbol);
+    }
+    }
+    printf("\nunreachable got type kind %d\n", type->kind);
+    assert(0);
 }
 
 char* compile_type(CompilerContext *ctx, type_t *type) {
@@ -39,7 +58,15 @@ char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
         char* fn_name = arena_strdup(ctx->arena, exp->data.func_decl.name);
         for (int i = 0; i<exp->data.func_decl.params.count; i++) {
             identifier_expression_t *id = (identifier_expression_t*) vector_get_ptr(&exp->data.func_decl.params, i);
+            assert(id != NULL);
             assert(id->type.kind != TYPE_KIND_UNKNOWN);
+            expression_t *expr = malloc(sizeof(expression_t));
+            expr->type = EXPRESSION_TYPE_IDENTIFIER;
+            expr->data.identifier = *id;
+            printf(":::: ID expr is:::: ");
+            debug_expression(expr, 0);
+            printf("\n :: type is :: %d\n", id->type.kind);
+            // printf("id expr is:: ", )
             char* type = compile_type_internal(ctx, &id->type, '_');
             fn_name = string_arena_format_overwrite(ctx->arena, type, "%s_%s", fn_name, type);
         }

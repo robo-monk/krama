@@ -61,20 +61,10 @@ typedef enum {
     TOKEN_EOF,
 } token_type_t;
 
-// typedef struct {
-//     size_t size;
-//     char* ctype;
-// } type_info_t;
-
-// typedef struct {
-//     bool unknown;
-//     bool is_ref;
-//     type_info_t type_info;
-// } type_t;
-
 typedef enum {
     TYPE_KIND_PRIMITIVE,
     TYPE_KIND_POINTER,
+    TYPE_KIND_GENERIC,
     TYPE_KIND_UNKNOWN
 } type_kind_t;
 
@@ -83,6 +73,7 @@ typedef struct type_t {
     size_t size;
     union {
         char* primitive;
+        char* generic;
         struct type_t* pointer;
     } info;
 } type_t;

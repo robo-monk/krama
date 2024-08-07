@@ -148,5 +148,6 @@ void program_add_statement(program_t *program, statement_t *statement);
 block_expression_t block_expression_new(void);
 int block_add_statement(block_expression_t *block, statement_t *statement);
 
+void debug_type(type_t* t);
 void statement_debug(statement_t *s, int ident);
 #endif
