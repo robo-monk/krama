@@ -129,6 +129,7 @@ int main(int argc, char *argv[]) {
     CompilerContext ctx = (CompilerContext) {
         .arena = &arena,
         .macros = macros,
+        .fn_declerations = vector_new(1024, sizeof(expression_t*)),
         .types = types,
         .fn_mangle = fn_expr_name_mangle
     };

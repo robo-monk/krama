@@ -19,7 +19,27 @@ c_program_t c_program_new() {
     };
 }
 
-
+char* compile_generic_type(CompilerContext *ctx, type_t *type, char deref_symbol, int order) {
+    assert(type != NULL);
+    switch (type->kind) {
+    case TYPE_KIND_PRIMITIVE: {
+        return string_arena_format(ctx->arena, "g%s", order);
+    }
+    case TYPE_KIND_POINTER: {
+        char* upper = compile_generic_type(ctx, type->info.pointer, deref_symbol, order);
+        return string_arena_format_overwrite(ctx->arena, upper, "%s%c", upper, deref_symbol);
+    }
+    case TYPE_KIND_UNKNOWN:
+    case TYPE_KIND_GENERIC: {
+        printf("Cannot escape generic\n");
+        assert(0);
+        // assert(type->info.generic[0] == '@');
+        // return string_arena_format(ctx->arena, "g%s", type->info.generic+1);
+    }
+    }
+    printf("\nunreachable got type kind %d\n", type->kind);
+    assert(0);
+}
 char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbol) {
     assert(type != NULL);
     switch (type->kind) {
@@ -36,12 +56,7 @@ char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbo
     }
     case TYPE_KIND_GENERIC: {
         assert(type->info.generic[0] == '@');
-        // return type->info.generic;
         return string_arena_format(ctx->arena, "g%s", type->info.generic+1);
-        // assert(type->info.pointer != NULL);
-        // printf("Generics cannot be compiled!\n");
-        // assert(0);
-        // return compile_type_internal(ctx, type->info.pointer, deref_symbol);
     }
     }
     printf("\nunreachable got type kind %d\n", type->kind);
@@ -51,7 +66,6 @@ char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbo
 char* compile_type(CompilerContext *ctx, type_t *type) {
     return compile_type_internal(ctx, type, '*');
 }
-
 
 char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
     if (exp->type == EXPRESSION_TYPE_FUNC_DECL) {
@@ -368,11 +382,16 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <string.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdbool.h>"));
 
-    for (int i = 0; i < program->statements.count; i++) {
+    for (int i = 0; i < ctx->fn_declerations.count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
-        char* stmt = compile_statement(ctx, &cprogram, (statement_t*) vector_get_ptr(&program->statements, i));
+        printf("declearing function %d\n", i);
+        char* stmt = compile_expression(ctx, &cprogram, (expression_t*) vector_get_ptr(&ctx->fn_declerations, i));
         vector_push_ptr(&cprogram.impls, stmt);
     }
+    // for (int i = 0; i < program->statements.count; i++) {
+    //     char* stmt = compile_statement(ctx, &cprogram, (statement_t*) vector_get_ptr(&program->statements, i));
+    //     vector_push_ptr(&cprogram.impls, stmt);
+    // }
 
 
     printf("\n---- %s ---- \n", file_out);

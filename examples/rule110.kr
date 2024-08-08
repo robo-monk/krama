@@ -1,1 +1,8 @@
-fn assign(@T* a, @T b) {}
+fn add(@T a, @T b) {
+    return @raw_c("a+b");
+}
+
+fn main() {
+    let b = add(0, 5)
+    let c = add('b', 'a');
+}

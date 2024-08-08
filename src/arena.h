@@ -35,6 +35,7 @@ vector_t vector_new_arena(Arena *arena, size_t initial_cap, size_t element_size)
 vector_t vector_new(size_t initial_cap, size_t element_size);
 
 void vector_push_ptr(vector_t *v, const void* ptr);
+void vector_set_ptr(vector_t *v, size_t i, const void* e);
 void* vector_get_ptr(vector_t *v, size_t i);
 
 void* vector_get(vector_t *v, size_t i);
@@ -110,11 +111,12 @@ char* string_arena_format(Arena *arena, const char* fmt, ...) {
 
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
+    assert(overwrite_ptr != NULL);
+    assert(overwrite_ptr == arena->last_ptr);
+
     // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
     // printf("\nfmt: [%s]\n", fmt);
 
-    assert(overwrite_ptr != NULL);
-    assert(overwrite_ptr == arena->last_ptr);
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
 
@@ -228,6 +230,10 @@ void vector_push_ptr(vector_t *v, const void* ptr) {
     (((size_t*) v->data))[v->count++] = (size_t) ptr;
 }
 
+void vector_set_ptr(vector_t *v, size_t i, const void* ptr) {
+    assert(i >= 0);
+    (((size_t*) v->data))[i] = (size_t) ptr;
+}
 void* vector_get_ptr(vector_t *v, size_t i) {
     assert(v->element_size == sizeof(void*));
     return *(void**) vector_get(v, i);

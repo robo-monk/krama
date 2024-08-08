@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "arena.h"
 
 #define HASHMAP_INITIAL_CAPACITY 4096
 
@@ -20,6 +21,7 @@ typedef struct {
     size_t count;
     hash_entry_t** entries;
     size_t entry_size;
+    vector_t *keys;
     hashmap_entry_free_func free_func;
 } hashmap_t;
 
@@ -36,6 +38,7 @@ void* hashmap_get(hashmap_t *map, char* key);
 
 hashmap_t* hashmap_create(hashmap_entry_free_func free_func) {
     hashmap_t *map = (hashmap_t*) malloc(sizeof(hashmap_t));
+    vector_t keys = vector_new(1028, sizeof(size_t));
     if (!map) {
         printf("\nMemory allocation failed wtf?\n");
         exit(1);
@@ -44,6 +47,8 @@ hashmap_t* hashmap_create(hashmap_entry_free_func free_func) {
     map->count = 0;
     map->entries = (hash_entry_t**) calloc(map->capacity, sizeof(hash_entry_t));
     map->free_func = free_func;
+    map->keys = malloc(sizeof(vector_t));
+    memcpy(map->keys, &keys, sizeof(vector_t));
     return map;
 }
 
@@ -97,6 +102,7 @@ void hashmap_insert(hashmap_t *map, char* key, void* value) {
     entry->key = key;
     entry->val = value;
     map->entries[idx] = entry;
+    vector_push_ptr(map->keys, (void*) idx);
     map->count++;
 }
 

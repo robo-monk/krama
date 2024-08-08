@@ -109,6 +109,36 @@ char* type_get_primitive(type_t *t) {
     }
 }
 
+bool type_generic_eq(type_t* a, type_t* b) {
+    assert(a->kind != TYPE_KIND_UNKNOWN);
+    assert(b->kind != TYPE_KIND_UNKNOWN);
+
+    // assert(a->kind != TYPE_KIND_GENERIC); // cannot only match against generic type
+    // assert(b->kind != TYPE_KIND_GENERIC);
+
+
+    if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
+        return type_generic_eq(a->info.pointer, b->info.pointer);
+    }
+
+    if (a->kind == TYPE_KIND_GENERIC && b->kind == TYPE_KIND_PRIMITIVE) {
+        return true;
+        // return strcmp(a->info.primitive, a->info.primitive) == 0;
+    }
+
+    if (b->kind == TYPE_KIND_GENERIC && a->kind == TYPE_KIND_PRIMITIVE) {
+        return true;
+        // return strcmp(a->info.primitive, a->info.primitive) == 0;
+    }
+
+
+    if (a->kind == TYPE_KIND_PRIMITIVE && b->kind == TYPE_KIND_PRIMITIVE) {
+        return strcmp(a->info.primitive, a->info.primitive) == 0;
+    }
+
+    return false;
+}
+
 bool type_eq(type_t* a, type_t* b) {
     assert(a->kind != TYPE_KIND_UNKNOWN);
     assert(b->kind != TYPE_KIND_UNKNOWN);
@@ -243,6 +273,121 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
     return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
+
+expression_t* get_func_variation(scope_t *scope, call_expression_t* call) {
+    while (scope != NULL && scope->table != NULL) {
+        vector_t *entry = hashmap_get(scope->table, call->identifier_name);
+        if (entry != NULL) {
+            for (int i = 0; i < entry->count; i++) {
+                expression_t *fn_decl = vector_get_ptr(entry, i);
+                assert(fn_decl != NULL);
+                printf("\n debug => %d\n", fn_decl->type);
+                debug_expression(fn_decl, 0);
+                printf("\n debug =>\n");
+                assert(fn_decl->type == EXPRESSION_TYPE_FUNC_DECL);
+                printf("\n %s :: %s \n", fn_decl->data.func_decl.name , call->identifier_name);
+                assert(strcmp(fn_decl->data.func_decl.name, call->identifier_name) == 0);
+
+                if (fn_decl->data.func_decl.params.count != call->arguments.count) continue;
+
+                bool match = false;
+                for (int i = 0; i < call->arguments.count; i++) {
+                    expression_t *arg = vector_get_ptr(&call->arguments, i);
+                    identifier_expression_t *param = vector_get_ptr(&fn_decl->data.func_decl.params, i);
+                    // assert(arg->resultType.kind != TYPE_KIND_UNKNOWN);
+                    if (!type_generic_eq(&arg->resultType, &param->type)) {
+                        debug_type(&arg->resultType);
+                        debug_type(&param->type);
+                        printf("\n::: %d no match \n", i);
+                        match = false;
+                        break;
+                    } else {
+                        printf("\n::: %d match \n", i);
+                        match = true;
+                    }
+                }
+
+                if (match) {
+                    return fn_decl;
+                }
+            }
+        };
+        scope = scope->upper;
+    };
+    return NULL;
+}
+
+vector_t* get_func_variations(scope_t *scope, char* identifier) {
+    while (scope != NULL && scope->table != NULL) {
+        vector_t *variations = hashmap_get(scope->table, identifier);
+        if (variations != NULL) {
+            return variations;
+        };
+        scope = scope->upper;
+    };
+    return NULL;
+}
+
+vector_t *add_func_variation(analyser_t *an, expression_t *expression, scope_t *scope) {
+    assert(expression->type == EXPRESSION_TYPE_FUNC_DECL);
+    // vector_t *variations = hashmap_get(scope->table, expression->data.func_decl.name);
+    vector_t *variations = get_func_variations(scope, expression->data.func_decl.name);
+
+    if (variations == NULL) {
+        printf("\n:: Initialise func declerations for '%s'\n", expression->data.func_decl.name);
+        variations = arena_alloc(an->ctx->arena, sizeof(vector_t));
+        vector_t variations_stack = vector_new(4, sizeof(expression_t*));
+        memmove(variations, &variations_stack, sizeof(vector_t));
+    }
+    printf("\nRegistering varation for '%s'\n", expression->data.func_decl.name);
+
+    vector_push_ptr(variations, expression);
+    hashmap_insert(scope->table, expression->data.func_decl.name, (vector_t*) variations);
+    assert(expression->data.func_decl.value != NULL);
+    return variations;
+}
+
+type_t annotate_func_decl(analyser_t *an, expression_t *expression, scope_t *scope) {
+    // expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
+
+    // analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
+    vector_t* variations = add_func_variation(an, expression, scope);
+    assert(variations != NULL);
+
+    type_t type_hint = expression->data.func_decl.type;
+    scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
+
+    for (int i = 0; i<expression->data.func_decl.params.count; i++) {
+        identifier_expression_t *argument = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
+
+        expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
+        idexp->type = EXPRESSION_TYPE_IDENTIFIER;
+        idexp->data.identifier = *argument;
+
+        printf("type is:: \n");
+        debug_type(&argument->type);
+        printf("---\n");
+
+        scope_define_entry(&sub_scope, argument->name, idexp);
+    }
+
+    type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
+    if (type_hint.kind == TYPE_KIND_UNKNOWN) {
+        type_hint = inferred_type;
+    }
+
+    expression->data.func_decl.type = type_hint;
+    // expression->data.func_decl.name = an->ctx->fn_mangle(an->ctx, expression);
+
+    // scope_define_entry(scope, expression->data.func_decl.name, expression);
+    // vector_push_ptr(variations, expression);
+
+    analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
+    analyser_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an, "Generics are not supported.");
+    analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
+    return type_hint;
+}
+
 type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope) {
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
@@ -306,42 +451,43 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return expression->data.func_decl.type;
         }
         case EXPRESSION_TYPE_FUNC_DECL: {
-            expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
-            analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
+            return annotate_func_decl(an, expression, scope);
+            // expression_t* entry = scope_get_entry(scope, expression->data.func_decl.name);
+            // analyser_assert(entry == NULL, an, "Function '%s' has already been declared\n", expression->data.func_decl.name);
 
-            assert(expression->data.func_decl.value != NULL);
+            // assert(expression->data.func_decl.value != NULL);
 
-            type_t type_hint = expression->data.func_decl.type;
-            scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
+            // type_t type_hint = expression->data.func_decl.type;
+            // scope_t sub_scope = scope_create_sub(an->ctx->arena, scope);
 
-            for (int i = 0; i<expression->data.func_decl.params.count; i++) {
-                identifier_expression_t *argument = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
+            // for (int i = 0; i<expression->data.func_decl.params.count; i++) {
+            //     identifier_expression_t *argument = (identifier_expression_t*) vector_get_ptr(&expression->data.func_decl.params, i);
 
-                expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
-                idexp->type = EXPRESSION_TYPE_IDENTIFIER;
-                idexp->data.identifier = *argument;
+            //     expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
+            //     idexp->type = EXPRESSION_TYPE_IDENTIFIER;
+            //     idexp->data.identifier = *argument;
 
-                printf("type is:: \n");
-                debug_type(&argument->type);
-                printf("---\n");
+            //     printf("type is:: \n");
+            //     debug_type(&argument->type);
+            //     printf("---\n");
 
-                scope_define_entry(&sub_scope, argument->name, idexp);
-            }
+            //     scope_define_entry(&sub_scope, argument->name, idexp);
+            // }
 
-            type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
-            if (type_hint.kind == TYPE_KIND_UNKNOWN) {
-                type_hint = inferred_type;
-            }
+            // type_t inferred_type = annotate_expression(an, expression->data.func_decl.value, &sub_scope);
+            // if (type_hint.kind == TYPE_KIND_UNKNOWN) {
+            //     type_hint = inferred_type;
+            // }
 
-            expression->data.func_decl.type = type_hint;
-            expression->data.func_decl.name = an->ctx->fn_mangle(an->ctx, expression);
+            // expression->data.func_decl.type = type_hint;
+            // expression->data.func_decl.name = an->ctx->fn_mangle(an->ctx, expression);
 
-            scope_define_entry(scope, expression->data.func_decl.name, expression);
-            analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
-            analyser_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an, "Generics are not supported.");
+            // scope_define_entry(scope, expression->data.func_decl.name, expression);
+            // analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
+            // analyser_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an, "Generics are not supported.");
 
-            analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
-            return type_hint;
+            // analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
+            // return type_hint;
         }
         case EXPRESSION_TYPE_BLOCK: {
             type_t type = annotate_block(an, &expression->data.block, scope);
@@ -383,23 +529,34 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 analyser_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, an, "Parameters should have well defined types");
             }
 
-            // check for extern functions (skip mangle)
-            expression_t* unmangled_entry = scope_get_entry(scope, expression->data.call.identifier_name);
-            if (unmangled_entry != NULL && unmangled_entry->type == EXPRESSION_TYPE_EXTERN_FUNC_DECL) {
-                printf("\n skipping mangle for... %s\n", expression->data.call.identifier_name);
-                return unmangled_entry->data.func_decl.type;
+            printf("\nGetting varation for '%s'\n", expression->data.call.identifier_name);
+            expression_t *fn_variation = get_func_variation(scope, &expression->data.call);
+
+            assert(fn_variation != NULL);
+            assert(fn_variation->type == EXPRESSION_TYPE_FUNC_DECL);
+
+            // generate implementation for the types
+            expression_t *generated = arena_alloc(an->ctx->arena, sizeof(expression_t));
+            memcpy(generated, fn_variation, sizeof(expression_t));
+
+            vector_t new_parms = vector_new(8, sizeof(identifier_expression_t*));
+            for (int i = 0; i < expression->data.call.arguments.count; i++) {
+                expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
+                identifier_expression_t *param = vector_get_ptr(&fn_variation->data.func_decl.params, i);
+                identifier_expression_t *generated_param = arena_alloc(an->ctx->arena, sizeof(identifier_expression_t));
+                memcpy(generated_param, param, sizeof(identifier_expression_t));
+                generated_param->type = exp->resultType;
+                printf("\n :: (%d ) ::> ", i);
+                debug_type(&generated_param->type);
+                printf("\n ---- \n");
+                // vector_set_ptr(&generated->data.func_decl.params, i, generated_param);
+                vector_push_ptr(&new_parms, generated_param);
             }
+            generated->data.func_decl.params = new_parms;
 
-            expression->data.call.identifier_name = an->ctx->fn_mangle(an->ctx, expression);
-            expression_t* entry = scope_get_entry(scope, expression->data.call.identifier_name);
-
-            bool is_defined = analyser_assert(entry != NULL, an, "Function signature '%s' is not defined\n", expression->data.func_decl.name);
-
-            if (!is_defined) {
-                return (type_t) { .kind = TYPE_KIND_UNKNOWN };
-            }
-
-            return entry->data.identifier.type;
+            // add_func_variation(an, generated, scope);
+            vector_push_ptr(&an->ctx->fn_declerations, generated);
+            return fn_variation->data.func_decl.type;
         }
         break;
     }

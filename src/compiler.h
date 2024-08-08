@@ -13,6 +13,7 @@ struct CompilerContext {
     hashmap_t* macros;
     hashmap_t* types;
     fn_name_mangler fn_mangle;
+    vector_t fn_declerations;
 };
 
 typedef struct c_program_t {
@@ -21,6 +22,7 @@ typedef struct c_program_t {
 } c_program_t;
 
 char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp);
+char* fn_generic_name_mangle(CompilerContext *ctx, expression_t *exp);
 void compile(program_t *program, CompilerContext *ctx, const char* file_out);
 // void compile(program_t program, const char* file_out);
 #endif

@@ -4,5 +4,12 @@
 #include <stdbool.h>
 
 
-void assign_gT__gT(gT* a, gT b)
-{};
+void* add(long a, long b)
+{
+  return a+b;
+}
+
+void* add(char a, char b)
+{
+  return a+b;
+}
