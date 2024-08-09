@@ -150,7 +150,7 @@ token_type_t get_buffer_token_type(char* buffer) {
 
 token_t flush_buffer_to_token(char* buffer, int buffer_len) {
     const char first = buffer[0];
-    printf("\nCOMMITING BIUFFER:::: (%s) as....", buffer);
+    // printf("\nCOMMITING BIUFFER:::: (%s) as....", buffer);
 
     bool is_str = false;
     bool is_char = false;

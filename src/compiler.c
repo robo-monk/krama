@@ -77,10 +77,6 @@ char* fn_expr_name_mangle(CompilerContext *ctx, expression_t *exp) {
             expression_t *expr = malloc(sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_IDENTIFIER;
             expr->data.identifier = *id;
-            printf(":::: ID expr is:::: ");
-            debug_expression(expr, 0);
-            printf("\n :: type is :: %d\n", id->type.kind);
-            // printf("id expr is:: ", )
             char* type = compile_type_internal(ctx, &id->type, '_');
             fn_name = string_arena_format_overwrite(ctx->arena, type, "%s_%s", fn_name, type);
         }

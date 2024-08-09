@@ -124,11 +124,12 @@ bool type_eq(type_t* a, type_t* b) {
     assert(b->kind != TYPE_KIND_UNKNOWN);
 
     if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
+        assert(0);
         return type_eq(a->info.pointer, b->info.pointer);
     }
 
     if (a->kind == TYPE_KIND_PRIMITIVE && b->kind == TYPE_KIND_PRIMITIVE) {
-        return strcmp(a->info.primitive, a->info.primitive) == 0;
+        return strcmp(a->info.primitive, b->info.primitive) == 0;
     }
 
     return false;
@@ -253,26 +254,22 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
 typedef bool (*type_eq_fn_t)(type_t* a, type_t* b);
 bool compare_args_and_param_types(vector_t *args, vector_t *params, type_eq_fn_t type_eq_cb) {
     if (params->count != args->count) return false;
-    bool match = false;
     for (int i = 0; i < args->count; i++) {
         expression_t *arg = vector_get_ptr(args, i);
         identifier_expression_t *param = vector_get_ptr(params, i);
+        printf("=> (%d) :::::::\n", i);
+        debug_type(&arg->resultType);
+        printf("\n....\n");
+        debug_type(&param->type);
+        printf("\n---------\n\n");
         if (!type_eq_cb(&arg->resultType, &param->type)) {
-            debug_type(&arg->resultType);
-            debug_type(&param->type);
-            printf("\n::: %d no match \n", i);
-            match = false;
-            break;
-        } else {
-            printf("\n::: %d match \n", i);
-            match = true;
+            return false;
         }
     }
-    return match;
+    return true;
 }
 
 expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression_t* call, type_eq_fn_t type_eq_fn) {
-
     while (scope != NULL && scope->table != NULL) {
         vector_t *entry = hashmap_get(scope->table, call->identifier_name);
         if (entry != NULL) {
@@ -281,7 +278,6 @@ expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression
                 assert(fn_decl != NULL);
                 assert(fn_decl->type == EXPRESSION_TYPE_FUNC_DECL);
                 assert(strcmp(fn_decl->data.func_decl.name, call->identifier_name) == 0);
-                // bool match = generic_compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params);
                 bool match = compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params, type_eq_fn);
                 if (match) {
                     return fn_decl;
@@ -369,8 +365,8 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
     // }
     assert(expression != NULL);
     printf("\n---> annotating & analysering.. \n");
-    debug_expression(expression, 0);
-    printf("\n");
+    // debug_expression(expression, 0);
+    // printf("\n");
 
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
@@ -479,6 +475,13 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 fn_variation = get_func_variation(an, scope, &expression->data.call, type_generic_eq);
             }
             bool exists = analyser_assert(fn_variation != NULL, an, "There's no matching signature for call `%s`", expression->data.call.identifier_name);
+
+            printf("Where looking for :: \n"),
+            debug_expression(expression, 1);
+            printf("\n found \n");
+            debug_expression(fn_variation, 1);
+            printf("\n\n");
+
             if (!exists) return (type_t) {
                 .kind = TYPE_KIND_UNKNOWN
             };

@@ -1,28 +1,18 @@
-fn hello() {
-    return 45;
-}
-
-fn hello(i64 a) {
-    return a
-}
-
-fn hello(char a) {
-    return a
-}
-
 fn add(@T add_1, @T add_2) {
-    return @raw_c("a+b");
+    @raw_c("// not implemented")
 }
 
 fn add(char add_1, char add_2) {
-    return @raw_c("assert(0)");
+    let ch = 'a'
 }
 
+fn add(i64 add_1, i64 add_2) {
+    let num = 5
+}
 
 fn main() {
-    let b = 0 + 5
     let c = add(0, 5)
     let a = 'a' + 'b'
-    let should_be_char = hello('a')
-    let should_be_i64 = hello(5)
+
+    let bing = 'a' + 4
 }
