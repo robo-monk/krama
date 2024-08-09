@@ -76,9 +76,6 @@ bool parser_optional_eat(parser_t *parser, token_type_t token_type) {
 
 token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
-    // printf("\n-- Expecting:: %s ", token_type_to_string(token_type));
-    // parser_debug(parser, "GOT ");
-    // printf("\n -- \n");
     if (current.type != token_type) {
         printf("\n(!) Expected token `%s` but got `%s`\n", token_type_to_string(token_type), token_type_to_string(current.type));
         parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
@@ -175,7 +172,7 @@ void parser_debug_type(type_t* t) {
     }
 }
 
-type_t parser_parse_type_hint2(parser_t *parser) {
+type_t parser_parse_type_hint(parser_t *parser) {
     token_t type_id = parser_current(parser);
 
 
@@ -234,7 +231,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
     vector_t args = vector_new(8, sizeof(expression_t*));
     do {
         if (parser_current(parser).type != TOKEN_IDENTIFIER) break;
-        type_t type_info = parser_parse_type_hint2(parser);
+        type_t type_info = parser_parse_type_hint(parser);
         parser_debug_type(&type_info);
 
         if (type_info.kind == TYPE_KIND_UNKNOWN) {
@@ -310,7 +307,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             char* identifier_name = arena_strdup(parser->ctx->arena, parser_current(parser).value.raw_str);
 
             if (hashmap_get(parser->ctx->types, identifier_name) != NULL) {
-                type_t type = parser_parse_type_hint2(parser);
+                type_t type = parser_parse_type_hint(parser);
                 printf("\n\n ---");
                 parser_debug_type(&type);
                 printf("\n\n ---");
@@ -347,7 +344,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat(parser);
 
-            type_t type_info = parser_parse_type_hint2(parser);
+            type_t type_info = parser_parse_type_hint(parser);
             parser_debug_type(&type_info);
 
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -535,7 +532,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
         case TOKEN_LET: {
             parser_eat_and_expect(parser, TOKEN_LET);
 
-            type_t type_info = parser_parse_type_hint2(parser);
+            type_t type_info = parser_parse_type_hint(parser);
             parser_debug_type(&type_info);
 
             token_t identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
@@ -556,7 +553,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             parser_eat_and_expect(parser, TOKEN_EXTERN);
             parser_eat_and_expect(parser, TOKEN_FN); // only fn can be external
 
-            type_t type_info = parser_parse_type_hint2(parser);
+            type_t type_info = parser_parse_type_hint(parser);
             parser_debug_type(&type_info);
 
             if (type_info.kind == TYPE_KIND_UNKNOWN) {
@@ -585,7 +582,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             parser_eat_and_expect(parser, TOKEN_TYPE);
             token_t id = parser_eat_and_expect(parser, TOKEN_IDENTIFIER); // only fn can be external
             parser_eat_and_expect(parser, TOKEN_EQ);
-            type_t type_info = parser_parse_type_hint2(parser);
+            type_t type_info = parser_parse_type_hint(parser);
             assert(type_info.kind != TOKEN_UNKNOWN);
             // parser_register_primitive_type(parser, id.value.raw_str, type_info, size_t size)
             type_t* type = arena_alloc(parser->ctx->arena, sizeof(type_t));
@@ -633,11 +630,6 @@ parser_t parser_new(CompilerContext *ctx) {
         .ctx = ctx
     };
 }
-
-// void parser_destroy(parser_t *parser) {
-//     printf("[Parser Stats] Arena contained %ld bytes out of total %ld bytes (%ld%%)\n", parser->ctx->arena.offset, parser->ctx->arena.capacity, 100*parser->ctx->arena.offset/parser->ctx->arena.capacity);
-//     arena_destroy(parser->ctx->arena);
-// }
 
 program_t parse(parser_t *parser, token_t *tokens) {
     parser->tokens = tokens;

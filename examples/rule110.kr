@@ -2,11 +2,11 @@ fn hello() {
     return 45;
 }
 
-fn hello(char a) {
+fn hello(i64 a) {
     return a
 }
 
-fn hello(i64 a) {
+fn hello(char a) {
     return a
 }
 

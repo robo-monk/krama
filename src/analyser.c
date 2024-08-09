@@ -10,9 +10,6 @@
 #include <string.h>
 #include <assert.h>
 
-
-
-
 void scope_define_entry(scope_t *scope, char* name, expression_t* exp) {
     hashmap_insert(scope->table, name, exp);
 }
@@ -98,24 +95,9 @@ bool analyser_assert(bool predicate, analyser_t *analyser, const char *format, .
     return false;
 }
 
-char* type_get_primitive(type_t *t) {
-    if (t->kind == TYPE_KIND_PRIMITIVE) {
-        return t->info.primitive;
-    } else if (t->kind == TYPE_KIND_POINTER) {
-        return type_get_primitive(t->info.pointer);
-    } else {
-        assert(0);
-        return "(unknown)";
-    }
-}
-
 bool type_generic_eq(type_t* a, type_t* b) {
     assert(a->kind != TYPE_KIND_UNKNOWN);
     assert(b->kind != TYPE_KIND_UNKNOWN);
-
-    // assert(a->kind != TYPE_KIND_GENERIC); // cannot only match against generic type
-    // assert(b->kind != TYPE_KIND_GENERIC);
-
 
     if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
         return type_generic_eq(a->info.pointer, b->info.pointer);
@@ -123,12 +105,10 @@ bool type_generic_eq(type_t* a, type_t* b) {
 
     if (a->kind == TYPE_KIND_GENERIC && b->kind == TYPE_KIND_PRIMITIVE) {
         return true;
-        // return strcmp(a->info.primitive, a->info.primitive) == 0;
     }
 
     if (b->kind == TYPE_KIND_GENERIC && a->kind == TYPE_KIND_PRIMITIVE) {
         return true;
-        // return strcmp(a->info.primitive, a->info.primitive) == 0;
     }
 
 
@@ -142,10 +122,6 @@ bool type_generic_eq(type_t* a, type_t* b) {
 bool type_eq(type_t* a, type_t* b) {
     assert(a->kind != TYPE_KIND_UNKNOWN);
     assert(b->kind != TYPE_KIND_UNKNOWN);
-
-    if (a->kind == TYPE_KIND_GENERIC || b->kind == TYPE_KIND_GENERIC) {
-        return false;
-    }
 
     if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
         return type_eq(a->info.pointer, b->info.pointer);
@@ -274,13 +250,14 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
 }
 
 
-bool generic_compare_args_and_param_types(vector_t *args, vector_t *params) {
+typedef bool (*type_eq_fn_t)(type_t* a, type_t* b);
+bool compare_args_and_param_types(vector_t *args, vector_t *params, type_eq_fn_t type_eq_cb) {
     if (params->count != args->count) return false;
     bool match = false;
     for (int i = 0; i < args->count; i++) {
         expression_t *arg = vector_get_ptr(args, i);
         identifier_expression_t *param = vector_get_ptr(params, i);
-        if (!type_generic_eq(&arg->resultType, &param->type)) {
+        if (!type_eq_cb(&arg->resultType, &param->type)) {
             debug_type(&arg->resultType);
             debug_type(&param->type);
             printf("\n::: %d no match \n", i);
@@ -294,27 +271,7 @@ bool generic_compare_args_and_param_types(vector_t *args, vector_t *params) {
     return match;
 }
 
-bool compare_args_and_param_types(vector_t *args, vector_t *params) {
-    if (params->count != args->count) return false;
-    bool match = false;
-    for (int i = 0; i < args->count; i++) {
-        expression_t *arg = vector_get_ptr(args, i);
-        identifier_expression_t *param = vector_get_ptr(params, i);
-        if (!type_eq(&arg->resultType, &param->type)) {
-            debug_type(&arg->resultType);
-            debug_type(&param->type);
-            printf("\n::: %d no match \n", i);
-            match = false;
-            break;
-        } else {
-            printf("\n::: %d match \n", i);
-            match = true;
-        }
-    }
-    return match;
-}
-
-expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression_t* call) {
+expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression_t* call, type_eq_fn_t type_eq_fn) {
 
     while (scope != NULL && scope->table != NULL) {
         vector_t *entry = hashmap_get(scope->table, call->identifier_name);
@@ -324,7 +281,8 @@ expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression
                 assert(fn_decl != NULL);
                 assert(fn_decl->type == EXPRESSION_TYPE_FUNC_DECL);
                 assert(strcmp(fn_decl->data.func_decl.name, call->identifier_name) == 0);
-                bool match = generic_compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params);
+                // bool match = generic_compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params);
+                bool match = compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params, type_eq_fn);
                 if (match) {
                     return fn_decl;
                 }
@@ -515,7 +473,11 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             }
 
             printf("\nGetting varation for '%s'\n", expression->data.call.identifier_name);
-            expression_t *fn_variation = get_func_variation(an, scope, &expression->data.call);
+            expression_t *fn_variation = get_func_variation(an, scope, &expression->data.call, type_eq);
+            if (fn_variation == NULL) {
+                printf("\nGetting generic varation for '%s'\n", expression->data.call.identifier_name);
+                fn_variation = get_func_variation(an, scope, &expression->data.call, type_generic_eq);
+            }
             bool exists = analyser_assert(fn_variation != NULL, an, "There's no matching signature for call `%s`", expression->data.call.identifier_name);
             if (!exists) return (type_t) {
                 .kind = TYPE_KIND_UNKNOWN
@@ -538,9 +500,11 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 }
 
                 assert(type_eq(&generated_param->type, &exp->resultType));
-                printf("\n :: (%d ) ::> ", i);
-                debug_type(&generated_param->type);
-                printf("\n ---- \n");
+
+                // printf("\n :: (%d ) ::> ", i);
+                // debug_type(&generated_param->type);
+                // printf("\n ---- \n");
+
                 // vector_set_ptr(&generated->data.func_decl.params, i, generated_param);
                 vector_push_ptr(&new_parms, generated_param);
             }
