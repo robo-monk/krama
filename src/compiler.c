@@ -382,10 +382,11 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <string.h>"));
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdbool.h>"));
 
-    for (int i = 0; i < ctx->fn_declerations.count; i++) {
+    for (int i = 0; i < ctx->fn_declerations->keys->count; i++) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
         printf("declearing function %d\n", i);
-        char* stmt = compile_expression(ctx, &cprogram, (expression_t*) vector_get_ptr(&ctx->fn_declerations, i));
+        char* key = vector_get_ptr(ctx->fn_declerations->keys, i);
+        char* stmt = compile_expression(ctx, &cprogram, (expression_t*) hashmap_get(ctx->fn_declerations, key));
         vector_push_ptr(&cprogram.impls, stmt);
     }
     // for (int i = 0; i < program->statements.count; i++) {

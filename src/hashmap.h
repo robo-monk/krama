@@ -92,20 +92,6 @@ unsigned int hashmap_hash_string(char *key) {
 //     map->entries[idx] = entry;
 //     map->count++;
 // }
-
-void hashmap_insert(hashmap_t *map, char* key, void* value) {
-    assert(map != NULL);
-    unsigned int idx = hashmap_hash_string(key) % map->capacity;
-    // printf("\nINS idx is %d\n", idx);
-    hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
-    entry->next = map->entries[idx];
-    entry->key = key;
-    entry->val = value;
-    map->entries[idx] = entry;
-    vector_push_ptr(map->keys, (void*) idx);
-    map->count++;
-}
-
 void* hashmap_get(hashmap_t *map, char* key) {
     assert(map != NULL);
     assert(key != NULL);
@@ -119,6 +105,26 @@ void* hashmap_get(hashmap_t *map, char* key) {
     if (entry == NULL) return NULL;
     return entry->val;
 }
+
+void hashmap_insert(hashmap_t *map, char* key, void* value) {
+    assert(map != NULL);
+    void* existing = hashmap_get(map, key);
+    unsigned int idx = hashmap_hash_string(key) % map->capacity;
+    // printf("\nINS idx is %d\n", idx);
+    hash_entry_t* entry = (hash_entry_t*) malloc(sizeof(hash_entry_t));
+    entry->next = map->entries[idx];
+    entry->key = key;
+    entry->val = value;
+    map->entries[idx] = entry;
+
+    if (!existing) {
+        // vector_push_ptr(map->keys, (void*) idx);
+        vector_push_ptr(map->keys, strdup(key));
+        map->count++;
+    }
+}
+
+
 
 #endif // HASHMAP_IMPLEMENTATION
 

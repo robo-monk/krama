@@ -4,12 +4,12 @@
 #include <stdbool.h>
 
 
-void* add(long a, long b)
+void* add_long_long(long add_1, long add_2)
 {
   return a+b;
 }
 
-void* add(char a, char b)
+void* add_char_char(char add_1, char add_2)
 {
   return a+b;
 }

@@ -13,7 +13,7 @@ struct CompilerContext {
     hashmap_t* macros;
     hashmap_t* types;
     fn_name_mangler fn_mangle;
-    vector_t fn_declerations;
+    hashmap_t* fn_declerations;
 };
 
 typedef struct c_program_t {

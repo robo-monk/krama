@@ -1,8 +1,13 @@
-fn add(@T a, @T b) {
+fn hello() {
+    return 0
+}
+
+fn add(@T add_1, @T add_2) {
     return @raw_c("a+b");
 }
 
 fn main() {
     let b = add(0, 5)
-    let c = add('b', 'a');
+    let c = add(0, 5)
+    let a = add('a', 'b')
 }
