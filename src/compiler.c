@@ -197,6 +197,26 @@ char* compile_comma_seperated_params(CompilerContext *ctx, c_program_t *program,
     return args;
 }
 
+char* compile_func_decl(CompilerContext *ctx, c_program_t *program, expression_t *e) {
+    assert(e->type == EXPRESSION_TYPE_FUNC_DECL);
+    char* return_type = compile_type(ctx, &e->data.func_decl.type);
+    char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
+    if (e->data.func_decl.value != NULL) {
+        char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
+        return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
+            return_type,
+            e->data.func_decl.name,
+            params,
+            fn_body);
+    } else {
+        // return "\0";
+        return string_arena_format(ctx->arena, "// external %s %s(%s)",
+            return_type,
+            e->data.func_decl.name,
+            params);
+    }
+}
+
 char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_t *e){
 
     if (e == NULL) {
@@ -273,22 +293,25 @@ char* compile_expression(CompilerContext *ctx, c_program_t *program, expression_
         }
         case EXPRESSION_TYPE_EXTERN_FUNC_DECL:
         case EXPRESSION_TYPE_FUNC_DECL:{
-            char* return_type = compile_type(ctx, &e->data.func_decl.type);
-            char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
-            if (e->data.func_decl.value != NULL) {
-                char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
-                return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
-                    return_type,
-                    e->data.func_decl.name,
-                    params,
-                    fn_body);
-            } else {
-                // return "\0";
-                return string_arena_format(ctx->arena, "// external %s %s(%s)",
-                    return_type,
-                    e->data.func_decl.name,
-                    params);
-            }
+            return NULL;
+            // return "";
+            // break;
+            // char* return_type = compile_type(ctx, &e->data.func_decl.type);
+            // char *params = compile_comma_seperated_params(ctx, program, &e->data.func_decl.params);
+            // if (e->data.func_decl.value != NULL) {
+            //     char* fn_body = compile_expression(ctx ,program, e->data.func_decl.value);
+            //     return string_arena_format_overwrite(ctx->arena, fn_body, "%s %s(%s)\n%s",
+            //         return_type,
+            //         e->data.func_decl.name,
+            //         params,
+            //         fn_body);
+            // } else {
+            //     // return "\0";
+            //     return string_arena_format(ctx->arena, "// external %s %s(%s)",
+            //         return_type,
+            //         e->data.func_decl.name,
+            //         params);
+            // }
         }
         case EXPRESSION_TYPE_BLOCK: {
             char* block = NULL;
@@ -358,6 +381,7 @@ char* compile_statement(CompilerContext *ctx, c_program_t *program, statement_t 
             return string_arena_format(ctx->arena, " [Not implemented defer stmt] ");
         case STATEMENT_TYPE_EXPRESSION: {
             char* exp = compile_expression(ctx, program, &s->data.expression);
+            if (exp == NULL) return NULL;
             return string_arena_format_overwrite(
                     ctx->arena,
                     exp,
@@ -386,14 +410,16 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
         // statement_t **s = (statement_t**) vector_get(&program.statements, i);
         printf("declearing function %d\n", i);
         char* key = vector_get_ptr(ctx->fn_declerations->keys, i);
-        char* stmt = compile_expression(ctx, &cprogram, (expression_t*) hashmap_get(ctx->fn_declerations, key));
+        char* stmt = compile_func_decl(ctx, &cprogram, (expression_t*) hashmap_get(ctx->fn_declerations, key));
         vector_push_ptr(&cprogram.impls, stmt);
     }
-    // for (int i = 0; i < program->statements.count; i++) {
-    //     char* stmt = compile_statement(ctx, &cprogram, (statement_t*) vector_get_ptr(&program->statements, i));
-    //     vector_push_ptr(&cprogram.impls, stmt);
-    // }
 
+    for (int i = 0; i < program->statements.count; i++) {
+        char* stmt = compile_statement(ctx, &cprogram, (statement_t*) vector_get_ptr(&program->statements, i));
+        if (stmt != NULL) {
+            vector_push_ptr(&cprogram.impls, stmt);
+        }
+    }
 
     printf("\n---- %s ---- \n", file_out);
     FILE *file_ptr = fopen(file_out, "w");

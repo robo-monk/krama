@@ -111,11 +111,11 @@ char* string_arena_format(Arena *arena, const char* fmt, ...) {
 
 
 char* string_arena_format_overwrite(Arena *arena, const char* overwrite_ptr, const char* fmt, ...) {
-    assert(overwrite_ptr != NULL);
-    assert(overwrite_ptr == arena->last_ptr);
-
     // printf("\noverwrite ptr: [%s]\n",overwrite_ptr);
     // printf("\nfmt: [%s]\n", fmt);
+
+    assert(overwrite_ptr != NULL);
+    assert(overwrite_ptr == arena->last_ptr);
 
     size_t last_bytes = ((arena->data+arena->offset) - arena->last_ptr);
     arena->offset -= last_bytes; // go back
@@ -179,7 +179,7 @@ void vector_set(vector_t *v, size_t i, const void* e) {
 void vector_push(vector_t *v, const void* e) {
     if (v->capacity == v->count) {
         v->capacity *= 2;
-        v->data = realloc(v->data, v->capacity);
+        v->data = realloc(v->data, v->capacity*v->element_size);
     }
     void* p = (char*) v->data + v->element_size*(v->count++);
     memcpy(p, e, v->element_size);
@@ -206,7 +206,7 @@ void vector_insert_ptr(vector_t *v, const size_t i, const void* ptr) {
 
     if (v->capacity == v->count) {
         v->capacity *= 2;
-        v->data = realloc(v->data, v->capacity);
+        v->data = realloc(v->data, v->capacity*v->element_size);
     }
 
     // assert(v->count == 0);
@@ -224,7 +224,7 @@ void vector_push_ptr(vector_t *v, const void* ptr) {
 
     if (v->capacity == v->count) {
         v->capacity *= 2;
-        v->data = realloc(v->data, v->capacity);
+        v->data = realloc(v->data, v->capacity*v->element_size);
     }
 
     (((size_t*) v->data))[v->count++] = (size_t) ptr;

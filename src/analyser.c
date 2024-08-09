@@ -322,11 +322,7 @@ expression_t* get_func_variation(analyser_t *an, scope_t *scope, call_expression
             for (int i = 0; i < entry->count; i++) {
                 expression_t *fn_decl = vector_get_ptr(entry, i);
                 assert(fn_decl != NULL);
-                printf("\n debug => %d\n", fn_decl->type);
-                debug_expression(fn_decl, 0);
-                printf("\n debug =>\n");
                 assert(fn_decl->type == EXPRESSION_TYPE_FUNC_DECL);
-                printf("\n %s :: %s \n", fn_decl->data.func_decl.name , call->identifier_name);
                 assert(strcmp(fn_decl->data.func_decl.name, call->identifier_name) == 0);
                 bool match = generic_compare_args_and_param_types(&call->arguments, &fn_decl->data.func_decl.params);
                 if (match) {
@@ -360,11 +356,10 @@ vector_t *add_func_variation(analyser_t *an, expression_t *expression, scope_t *
         variations = arena_alloc(an->ctx->arena, sizeof(vector_t));
         vector_t variations_stack = vector_new(4, sizeof(expression_t*));
         memmove(variations, &variations_stack, sizeof(vector_t));
+        hashmap_insert(scope->table, expression->data.func_decl.name, (vector_t*) variations);
     }
     printf("\nRegistering varation for '%s'\n", expression->data.func_decl.name);
-
     vector_push_ptr(variations, expression);
-    hashmap_insert(scope->table, expression->data.func_decl.name, (vector_t*) variations);
     assert(expression->data.func_decl.value != NULL);
     return variations;
 }
@@ -473,7 +468,11 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             return expression->data.func_decl.type;
         }
         case EXPRESSION_TYPE_FUNC_DECL: {
-            return annotate_func_decl(an, expression, scope);
+            type_t t = annotate_func_decl(an, expression, scope);
+            if (strcmp(expression->data.func_decl.name, "main") == 0) {
+                hashmap_insert(an->ctx->fn_declerations, expression->data.func_decl.name, expression);
+            }
+            return t;
         }
         case EXPRESSION_TYPE_BLOCK: {
             type_t type = annotate_block(an, &expression->data.block, scope);
@@ -517,7 +516,10 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             printf("\nGetting varation for '%s'\n", expression->data.call.identifier_name);
             expression_t *fn_variation = get_func_variation(an, scope, &expression->data.call);
-            analyser_assert(fn_variation != NULL, an, "There's no matching signature for call `%s`", expression->data.call.identifier_name);
+            bool exists = analyser_assert(fn_variation != NULL, an, "There's no matching signature for call `%s`", expression->data.call.identifier_name);
+            if (!exists) return (type_t) {
+                .kind = TYPE_KIND_UNKNOWN
+            };
             assert(fn_variation->type == EXPRESSION_TYPE_FUNC_DECL);
 
             // generate implementation for the types
@@ -529,15 +531,13 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
                 identifier_expression_t *param = vector_get_ptr(&fn_variation->data.func_decl.params, i);
 
-                printf("==> `%s` type is (%d) \n", param->name, param->type.kind);
-                debug_type(&param->type);
-                printf("\n");
-                assert(param->type.kind == TYPE_KIND_GENERIC);
-                if (param->type.kind != TYPE_KIND_GENERIC) continue;
-
                 identifier_expression_t *generated_param = arena_alloc(an->ctx->arena, sizeof(identifier_expression_t));
                 memcpy(generated_param, param, sizeof(identifier_expression_t));
-                generated_param->type = exp->resultType;
+                if (param->type.kind == TYPE_KIND_GENERIC) {
+                    generated_param->type = exp->resultType;
+                }
+
+                assert(type_eq(&generated_param->type, &exp->resultType));
                 printf("\n :: (%d ) ::> ", i);
                 debug_type(&generated_param->type);
                 printf("\n ---- \n");
@@ -551,6 +551,7 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             generated->data.func_decl.name = mangled_name;
             // vector_push_ptr(&an->ctx->fn_declerations, generated);
             hashmap_insert(an->ctx->fn_declerations, mangled_name, generated);
+            expression->data.call.identifier_name = mangled_name;
             return fn_variation->data.func_decl.type;
         }
         break;
