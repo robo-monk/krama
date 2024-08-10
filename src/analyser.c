@@ -210,8 +210,11 @@ type_t unwrap_expression_to_type(analyser_t *an, expression_t *typed, scope_t *s
         // type_t *type = scope_get_entry(an, scope, typed->data.identifier.name);
         printf("\nGET deftype '%s' \n", typed->data.identifier.name);
         expression_t *type_exp = scope_get_entry(scope, typed->data.identifier.name);
+        printf("\n=> type is (%d)\n", type_exp->type);
+        debug_expression(type_exp, 2);
+        printf("---");
         bool valid = analyser_assert(type_exp != NULL, an, "aliased type is NULL")
-                    && analyser_assert(type_exp->type != EXPRESSION_TYPE_LITERAL, an, "aliased type is NULL");
+                    && analyser_assert(type_exp->type == EXPRESSION_TYPE_LITERAL, an, "aliased type is not a type literal");
 
         if (valid) {
             return unwrap_expression_to_type(an, type_exp, scope);
@@ -439,19 +442,22 @@ expression_t *generate_fn_implementation_for_args(analyser_t *an, expression_t* 
         if (param->type.kind == TYPE_KIND_GENERIC) {
             // assert(0);
             generated_param->type = exp->resultType;
-            expression_t type_def = (expression_t) {
-                .type = EXPRESSION_TYPE_LITERAL,
-                .data.literal = {
-                    .kind = LITERAL_KIND_TYPE,
-                    .data.type = exp->resultType
-                }
-            };
+            // expression_t type_def = (expression_t) {
+            //     .type = EXPRESSION_TYPE_LITERAL,
+            //     .data.literal = {
+            //         .kind = LITERAL_KIND_TYPE,
+            //         .data.type = exp->resultType
+            //     }
+            // };
 
-            expression_t *type_def_ref = arena_alloc(an->ctx->arena, sizeof(expression_t));
-            memcpy(type_def_ref, &type_def, sizeof(expression_t));
+            expression_t *type_def = arena_alloc(an->ctx->arena, sizeof(expression_t));
+            type_def->type = EXPRESSION_TYPE_LITERAL;
+            type_def->data.literal.kind = LITERAL_KIND_TYPE;
+            type_def->data.literal.data.type = exp->resultType;
+            // memcpy(type_def_ref, &type_def, sizeof(expression_t));
 
             printf("\ndeftype '%s' as ...\n", param->type.info.generic);
-            debug_type(&type_def_ref->data.literal.data.type);
+            debug_type(&type_def->data.literal.data.type);
             printf("---\n");
             expression_t *existing = scope_get_entry(&subscope, param->type.info.generic);
             if (existing != NULL) {
@@ -462,7 +468,7 @@ expression_t *generate_fn_implementation_for_args(analyser_t *an, expression_t* 
                 assert(type_eq(&type, &param->type));
             }
 
-            scope_define_entry(&subscope, param->type.info.generic, type_def_ref);
+            scope_define_entry(&subscope, param->type.info.generic, type_def);
             // type_t* type = arena_alloc(an->ctx->arena, sizeof(type_t));
             // type->kind = TYPE_KIND_PRIMITIVE;
             // type->size = 8;
@@ -622,15 +628,11 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             expression_t *generated = generate_fn_implementation_for_args(an, fn_variation, &expression->data.call.arguments, scope);
 
             char* mangled_name = an->ctx->fn_mangle(an->ctx, generated);
-            printf("\n:: mangled name: => %s", mangled_name);
+            // printf("\n:: mangled name: => %s", mangled_name);
             generated->data.func_decl.name = mangled_name;
-            // analyse_func_decl(an, generated, scope);
-
             hashmap_insert(an->ctx->fn_declerations, mangled_name, generated);
             expression->data.call.identifier_name = mangled_name;
-
             return generated->data.func_decl.type;
-            // return fn_variation->data.func_decl.type;
         }
         break;
     }

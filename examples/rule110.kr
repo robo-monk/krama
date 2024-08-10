@@ -1,5 +1,6 @@
 fn add(@T gen1, @B gen2) {
-    return gen2
+    let @T b = gen2
+    return gen2 as @T
 }
 
 fn main() {
