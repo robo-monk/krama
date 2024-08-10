@@ -4,12 +4,12 @@
 #include <stdbool.h>
 
 
-void add_char_long(char gen1, long gen2)
+long add_char_long(char gen1, long gen2)
 {
-  return (((unknown)) gen2);
+  return gen2;
 }
 
 void main(void)
 {
-  (unknown) bing = add_char_long('a',4);
+  long bing = add_char_long('a',4);
 }

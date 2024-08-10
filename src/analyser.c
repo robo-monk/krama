@@ -417,8 +417,6 @@ expression_t* analyse_func_decl(analyser_t *an, expression_t *expression, scope_
 }
 
 expression_t *generate_fn_implementation_for_args(analyser_t *an, expression_t* fn_variation, vector_t *arguments, scope_t* scope) {
-
-
     scope_t subscope = scope_create_sub(an->ctx->arena, scope);
 
     expression_t *generated = arena_alloc(an->ctx->arena, sizeof(expression_t));
@@ -626,12 +624,13 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             char* mangled_name = an->ctx->fn_mangle(an->ctx, generated);
             printf("\n:: mangled name: => %s", mangled_name);
             generated->data.func_decl.name = mangled_name;
-            analyse_func_decl(an, generated, scope);
+            // analyse_func_decl(an, generated, scope);
 
             hashmap_insert(an->ctx->fn_declerations, mangled_name, generated);
             expression->data.call.identifier_name = mangled_name;
 
-            return fn_variation->data.func_decl.type;
+            return generated->data.func_decl.type;
+            // return fn_variation->data.func_decl.type;
         }
         break;
     }
