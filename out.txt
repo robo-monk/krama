@@ -1,0 +1,438 @@
+Compiling...
+IDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordNUMIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "printf(fmt, s)"
+STRINGIDENTIFIER / kewyordbuffer is: "printf("\n")"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "%s"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "gen1 + gen2"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "strlen(a)"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "strlen(b)"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordNUMIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "strcpy(result, a)"
+STRINGIDENTIFIER / kewyordbuffer is: "strcat(result, b)"
+STRINGIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordIDENTIFIER / kewyordNUMIDENTIFIER / kewyordIDENTIFIER / kewyordNUMNUMIDENTIFIER / kewyordIDENTIFIER / kewyordbuffer is: "hello"
+STRINGbuffer is: " "
+STRINGbuffer is: "world"
+STRINGIDENTIFIER / kewyordNUMIDENTIFIER / kewyordIDENTIFIER / kewyordToken FN
+Token IDENTIFIER `malloc`
+Token (
+Token IDENTIFIER `i64`
+Token IDENTIFIER `size`
+Token )
+Token {
+Token NEW_LINE
+Token RETURN
+Token LITERAL `0`
+Token AS
+Token IDENTIFIER `char`
+Token *
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token NEW_LINE
+Token FN
+Token IDENTIFIER `println`
+Token (
+Token IDENTIFIER `char`
+Token *
+Token IDENTIFIER `fmt`
+Token ,
+Token IDENTIFIER `char`
+Token *
+Token IDENTIFIER `s`
+Token )
+Token {
+Token NEW_LINE
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"printf(fmt, s)"`
+Token )
+Token ;
+Token NEW_LINE
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"printf("\n")"`
+Token )
+Token ;
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token NEW_LINE
+Token FN
+Token IDENTIFIER `println`
+Token (
+Token IDENTIFIER `char`
+Token *
+Token IDENTIFIER `s`
+Token )
+Token {
+Token NEW_LINE
+Token IDENTIFIER `println`
+Token (
+Token LITERAL `"%s"`
+Token ,
+Token IDENTIFIER `s`
+Token )
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token NEW_LINE
+Token NEW_LINE
+Token FN
+Token IDENTIFIER `add`
+Token (
+Token IDENTIFIER `@T`
+Token IDENTIFIER `gen1`
+Token ,
+Token IDENTIFIER `@T`
+Token IDENTIFIER `gen2`
+Token )
+Token {
+Token NEW_LINE
+Token RETURN
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"gen1 + gen2"`
+Token )
+Token AS
+Token IDENTIFIER `@T`
+Token ;
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token NEW_LINE
+Token FN
+Token IDENTIFIER `add`
+Token (
+Token IDENTIFIER `char`
+Token *
+Token IDENTIFIER `a`
+Token ,
+Token IDENTIFIER `char`
+Token *
+Token IDENTIFIER `b`
+Token )
+Token {
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `len_a`
+Token =
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"strlen(a)"`
+Token )
+Token AS
+Token IDENTIFIER `i64`
+Token ;
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `len_b`
+Token =
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"strlen(b)"`
+Token )
+Token AS
+Token IDENTIFIER `i64`
+Token ;
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `result`
+Token =
+Token IDENTIFIER `malloc`
+Token (
+Token LITERAL `50`
+Token )
+Token AS
+Token IDENTIFIER `char`
+Token *
+Token NEW_LINE
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"strcpy(result, a)"`
+Token )
+Token NEW_LINE
+Token IDENTIFIER `@raw_c`
+Token (
+Token LITERAL `"strcat(result, b)"`
+Token )
+Token NEW_LINE
+Token RETURN
+Token IDENTIFIER `result`
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token NEW_LINE
+Token NEW_LINE
+Token FN
+Token IDENTIFIER `main`
+Token (
+Token )
+Token {
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `bing`
+Token =
+Token IDENTIFIER `malloc`
+Token (
+Token LITERAL `5`
+Token )
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `bong`
+Token =
+Token LITERAL `5`
+Token +
+Token LITERAL `4`
+Token NEW_LINE
+Token LET
+Token IDENTIFIER `hello_world`
+Token =
+Token LITERAL `"hello"`
+Token +
+Token LITERAL `" "`
+Token +
+Token LITERAL `"world"`
+Token NEW_LINE
+Token RETURN
+Token LITERAL `0`
+Token AS
+Token IDENTIFIER `i32`
+Token NEW_LINE
+Token }
+Token NEW_LINE
+Token EOF
+[Type] UNKNOWN 
+[Type] PRIMITIVE `long` with size 8
+
+
+ ---[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+
+ ---[Type] UNKNOWN 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+[Type] UNKNOWN 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+[DEBUG] Parser: here
+ Token IDENTIFIER `s`
+
+[Type] UNKNOWN 
+[Type] GENERIC 
+[Type] GENERIC 
+[Type] UNKNOWN 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+[Type] UNKNOWN 
+
+
+ ---[Type] PRIMITIVE `long` with size 8
+
+
+ ---[Type] UNKNOWN 
+
+
+ ---[Type] PRIMITIVE `long` with size 8
+
+
+ ---[Type] UNKNOWN 
+
+
+ ---[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+
+ ---[Type] UNKNOWN 
+[Type] UNKNOWN 
+[Type] UNKNOWN 
+[Type] UNKNOWN 
+
+
+ ---[Type] PRIMITIVE `int` with size 4
+
+
+ ---
+STATEMENT #0
+
+not implemented
+
+
+STATEMENT #1
+
+not implemented
+
+
+STATEMENT #2
+
+not implemented
+
+
+STATEMENT #3
+
+not implemented
+
+
+STATEMENT #4
+
+not implemented
+
+
+STATEMENT #5
+
+not implemented
+
+
+
+
+Analyzing..
+
+(0) Analysing => 
+:: Initialise func declerations for 'malloc'
+
+Registering varation for 'malloc'
+
+(0) Done => 
+(1) Analysing => 
+:: Initialise func declerations for 'println'
+
+Registering varation for 'println'
+
+(1) Done => 
+(2) Analysing => 
+Registering varation for 'println'
+
+(2) Done => 
+(3) Analysing => 
+:: Initialise func declerations for 'add'
+
+Registering varation for 'add'
+
+(3) Done => 
+(4) Analysing => 
+Registering varation for 'add'
+
+(4) Done => 
+(5) Analysing => 
+:: Initialise func declerations for 'main'
+
+Registering varation for 'main'
+
+Analysing CALL to 'malloc'
+
+Using explicit variation for 'malloc'
+
+reannoting function block value
+[Analyser] CAST { [Type] PRIMITIVE `long` with size 8 } to { [Type] POINTER to [Type] PRIMITIVE `char` with size 1}
+
+ inferred type is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+ type hint is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+Inferred return type for this is:::: 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+
+
+::Registering as malloc_long
+
+[Analyser]: Inferring 'bing' Let decl : [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+Analysing CALL to 'add'
+
+Getting generic varation for 'add'
+
+deftype '@T' as ...
+[Type] PRIMITIVE `long` with size 8---
+
+deftype '@T' as ...
+[Type] PRIMITIVE `long` with size 8---
+
+ existing type is:: [Type] PRIMITIVE `long` with size 8
+---
+ overwrite type is:: [Type] PRIMITIVE `long` with size 8
+---
+reannoting function block value
+
+GET deftype '@T' 
+
+=> type is (2)
+⎹    ⎹    expr LITERAL (-4702111237675155456)---[Analyser] CAST { [Type] PRIMITIVE `void*` with size 8 } to { [Type] PRIMITIVE `long` with size 8}
+
+ inferred type is:: [Type] PRIMITIVE `long` with size 8
+ type hint is:: [Type] PRIMITIVE `long` with size 8
+
+Inferred return type for this is:::: 
+[Type] PRIMITIVE `long` with size 8
+
+
+
+::Registering as add_long_long
+
+[Analyser]: Inferring 'bong' Let decl : [Type] PRIMITIVE `long` with size 8
+
+Analysing CALL to 'add'
+
+Analysing CALL to 'add'
+
+Using explicit variation for 'add'
+
+reannoting function block value
+[Analyser] CAST { [Type] PRIMITIVE `void*` with size 8 } to { [Type] PRIMITIVE `long` with size 8}
+
+[Analyser]: Inferring 'len_a' Let decl : [Type] PRIMITIVE `long` with size 8
+[Analyser] CAST { [Type] PRIMITIVE `void*` with size 8 } to { [Type] PRIMITIVE `long` with size 8}
+
+[Analyser]: Inferring 'len_b' Let decl : [Type] PRIMITIVE `long` with size 8
+
+Analysing CALL to 'malloc'
+
+Using explicit variation for 'malloc'
+
+reannoting function block value
+[Analyser] CAST { [Type] PRIMITIVE `long` with size 8 } to { [Type] POINTER to [Type] PRIMITIVE `char` with size 1}
+
+ inferred type is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+ type hint is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+Inferred return type for this is:::: 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+
+
+::Registering as malloc_long
+[Analyser] CAST { [Type] POINTER to [Type] PRIMITIVE `char` with size 1 } to { [Type] POINTER to [Type] PRIMITIVE `char` with size 1}
+
+[Analyser]: Inferring 'result' Let decl : [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+ inferred type is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+ type hint is:: [Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+Inferred return type for this is:::: 
+[Type] POINTER to [Type] PRIMITIVE `char` with size 1
+
+
+
+::Registering as add_char__char_
+
+Using explicit variation for 'add'
+
+reannoting function block value
+[Analyser] CAST { [Type] PRIMITIVE `void*` with size 8 } to { [Type] PRIMITIVE `long` with size 8}
+
+[Analyser]: Inferring 'len_a' Let decl : [Type] PRIMITIVE `long` with size 8
+[Analyser] CAST { [Type] PRIMITIVE `void*` with size 8 } to { [Type] PRIMITIVE `long` with size 8}
+
+[Analyser]: Inferring 'len_b' Let decl : [Type] PRIMITIVE `long` with size 8
+
+Analysing CALL to 'malloc_long'
+
+Getting generic varation for 'malloc_long'
+
+(!) ANALYSER ERROR: There's no matching signature for call `malloc_long`
+Available binding are..
+(0) malloc with 1 variatiosn
+    * malloc
+(1) println with 2 variatiosn
+    * println
+    * println
+(2) add with 2 variatiosn
+    * add
+    * add
+(3) main with 1 variatiosn
+    * main
