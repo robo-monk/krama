@@ -1,18 +1,7 @@
-fn add(@T add_1, @T add_2) {
-    @raw_c("// not implemented")
-}
-
-fn add(char add_1, char add_2) {
-    let ch = 'a'
-}
-
-fn add(i64 add_1, i64 add_2) {
-    let num = 5
+fn add(@T gen1, @B gen2) {
+    return gen2
 }
 
 fn main() {
-    let c = add(0, 5)
-    let a = 'a' + 'b'
-
     let bing = 'a' + 4
 }

@@ -149,7 +149,6 @@ void parser_register_primitive_type(parser_t *parser, char* identifier, char* ct
     type->size = size;
     type->info.primitive = arena_strdup(parser->ctx->arena, ctype);
     hashmap_insert(parser->ctx->types, identifier, type);
-
 }
 
 void parser_debug_type(type_t* t) {
@@ -174,8 +173,6 @@ void parser_debug_type(type_t* t) {
 
 type_t parser_parse_type_hint(parser_t *parser) {
     token_t type_id = parser_current(parser);
-
-
 
     type_t* type;
     if (type_id.value.raw_str[0] == '@') {
@@ -649,7 +646,6 @@ program_t parse(parser_t *parser, token_t *tokens) {
     parser_register_primitive_type(parser, "void", "void", 0);
     parser_register_primitive_type(parser, "any", "void*", 8);
     parser_register_primitive_type(parser, "bool", "bool", 1);
-    // parser_register_primitive_type(parser, "any", "()", -1);
 
     parser_parse(parser);
 

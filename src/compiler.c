@@ -44,7 +44,7 @@ char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbo
     assert(type != NULL);
     switch (type->kind) {
     case TYPE_KIND_UNKNOWN: {
-        assert(0);
+        // assert(0);
         return string_arena_format(ctx->arena, "(unknown)");
     }
     case TYPE_KIND_PRIMITIVE: {
@@ -59,11 +59,13 @@ char* compile_type_internal(CompilerContext *ctx, type_t *type, char deref_symbo
         return string_arena_format(ctx->arena, "g%s", type->info.generic+1);
     }
     }
-    printf("\nunreachable got type kind %d\n", type->kind);
+    printf("\n::-::-> 62 unreachable got type kind %d\n", type->kind);
     assert(0);
+    return string_arena_format(ctx->arena, "---");
 }
 
 char* compile_type(CompilerContext *ctx, type_t *type) {
+    assert(type != NULL);
     return compile_type_internal(ctx, type, '*');
 }
 
@@ -403,7 +405,6 @@ void compile(program_t *program, CompilerContext *ctx, const char* file_out) {
     vector_push_ptr(&cprogram.headers, string_arena_format(ctx->arena, "#include <stdbool.h>"));
 
     for (int i = 0; i < ctx->fn_declerations->keys->count; i++) {
-        // statement_t **s = (statement_t**) vector_get(&program.statements, i);
         printf("declearing function %d\n", i);
         char* key = vector_get_ptr(ctx->fn_declerations->keys, i);
         char* stmt = compile_func_decl(ctx, &cprogram, (expression_t*) hashmap_get(ctx->fn_declerations, key));
