@@ -125,7 +125,6 @@ bool type_eq(type_t* a, type_t* b) {
     assert(b->kind != TYPE_KIND_UNKNOWN);
 
     if (a->kind == TYPE_KIND_POINTER && b->kind == TYPE_KIND_POINTER) {
-        assert(0);
         return type_eq(a->info.pointer, b->info.pointer);
     }
 
@@ -465,7 +464,12 @@ expression_t *generate_fn_implementation_for_args(analyser_t *an, expression_t* 
                 printf("\n existing type is:: ");
                 debug_type(&type);
                 printf("\n---");
-                assert(type_eq(&type, &param->type));
+                printf("\n overwrite type is:: ");
+                debug_type(&exp->resultType);
+
+                printf("\n---");
+
+                assert(type_eq(&type, &exp->resultType));
             }
 
             scope_define_entry(&subscope, param->type.info.generic, type_def);

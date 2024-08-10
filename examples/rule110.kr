@@ -1,8 +1,29 @@
-fn add(@T gen1, @B gen2) {
-    let @T b = gen2
-    return gen2 as @T
+fn println(char* fmt, char* s) {
+    @raw_c("printf(fmt, s)");
+    @raw_c("printf(\"\n\")");
+}
+
+
+fn println(char* s) {
+    println("%s", s)
+}
+
+fn add(@T gen1, @T gen2) {
+    return @raw_c("gen1 + gen2") as @T;
+}
+
+fn add(char* a, char* b) {
+    let len_a = @raw_c("strlen(a)") as i64;
+    let len_b = @raw_c("strlen(b)") as i64;
+    let result = @malloc(len_a + len_b + 1) as char*
+    @raw_c("strcpy(result, a)")
+    @raw_c("strcat(result, b)")
+    return result
 }
 
 fn main() {
-    let bing = 'a' + 4
+    let bing = 5 + 4
+    let hello_world = "hello" + " " + "world"
+    println(hello_world);
+    return 0 as i32
 }

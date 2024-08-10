@@ -215,6 +215,11 @@ vector_t tokenise2(const char* data, int data_length) {
         char c = data[i];
 
         if (c == '"') {
+            if (i-1 > 0 && data[i-1] == '\\' && t.buffer_index > 0) {
+                t.buffer[t.buffer_index-1] = '"';
+                continue;
+            }
+
             string_building = !string_building;
             t.buffer[t.buffer_index++] = c;
             if (t.buffer_index > 1) {
