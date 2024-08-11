@@ -47,7 +47,6 @@ void println_char_(char* s)
 
 int main(void)
 {
-  char hah = 5;
   void* bing = malloc_long(5);
   char* String = "";
   char* foo = new_char__long(String,12);

@@ -556,7 +556,7 @@ type_t annotate_expression(analyser_t *anl, expression_t *expression, scope_t *s
                         printf("    * %s\n", exp->data.func_decl.name);
                     }
                 }
-                assert(0);
+                // assert(0);
                 return (type_t) {
                     .kind = TYPE_KIND_UNKNOWN
                 };

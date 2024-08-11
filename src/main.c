@@ -112,7 +112,8 @@ int main(int argc, char *argv[]) {
 
     // TODO use dynamic array here
     // token_t* tokens = malloc(MAX_TOKENS * sizeof(token_t));
-    vector_t tokens = tokenise2(result.buffer, result.length);
+    tokeniser_t tokeniser = tokenise2(result.buffer, result.length);
+    vector_t tokens = tokeniser.tokens;
     for (int i = 0; i < tokens.count; i ++) {
         token_t *t = vector_get(&tokens, i);
         token_debug(*t);
@@ -147,9 +148,30 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < ctx.messages.count; i++) {
         CompilationMessage *msg = vector_get(&ctx.messages, i);
         switch(msg->kind) {
-            case CompilationErrorKind_ERROR:
-                printf("ERROR: %s\n", msg->message);
+            case CompilationErrorKind_ERROR: {
+
+
+                int starting_index = msg->token.position;
+                int previous_lines_count = 1;
+                while (starting_index > 0 && tokeniser.text[starting_index] != '\n') {
+                    starting_index--;
+                }
+
+                int ending_index = msg->token.position;
+                while (ending_index < tokeniser.position && tokeniser.text[ending_index] != '\n') {
+                    ending_index++;
+                }
+
+                printf("%d |  ", msg->token.line_no);
+                for (int i = starting_index+1; i < ending_index; i++) {
+                    printf("%c", tokeniser.text[i]);
+                }
+
+                printf("\n");
+
+                printf("ERROR %s\n\n", msg->message);
                 break;
+            }
             case CompilationErrorKind_WARN:
                 printf("WARN: ");
                 break;

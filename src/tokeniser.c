@@ -40,30 +40,22 @@ const token_type_t tokeniser_keyword_token_types[] = {
 static_assert(ARRAY_SIZE(tokeniser_keywords) == ARRAY_SIZE(tokeniser_keyword_token_types),
     "keywords and keyword token types should have the same size");
 
-token_t token_new_mult_char(token_type_t type, int position, char* raw) {
+token_t token_new_mult_char(token_type_t type, tokeniser_t *t, char* raw) {
     return (token_t) {
         .type = type,
-        .position = position,
+        .position = t->position,
+        .line_no = t->line_no,
         .value = (token_value_t) {
             .raw_str = raw
         }
     };
 }
 
-token_t token_new_from_buffer(token_type_t type, int position, char* buffer, size_t buffer_length) {
+token_t token_new_single_char(token_type_t type, tokeniser_t *t, char raw) {
     return (token_t) {
         .type = type,
-        .position = position,
-        .value = (token_value_t) {
-            .raw_str = strdup(buffer)
-        }
-    };
-}
-
-token_t token_new_single_char(token_type_t type, int position, char raw) {
-    return (token_t) {
-        .type = type,
-        .position = position,
+        .position = t->position,
+        .line_no = t->line_no,
         .value = (token_value_t) {
             .raw_char = raw
         }
@@ -193,29 +185,33 @@ token_t flush_buffer_to_token(char* buffer, int buffer_len) {
 
 #define TOKENISER_BUFFER_SIZE 1024
 
-void tokeniser_flush_buffer(tokeniser_t *t, int token_position) {
+void tokeniser_flush_buffer(tokeniser_t *t) {
     if (t->buffer_index == 0) return;
 
     t->buffer[t->buffer_index] = '\0';
     token_t token = flush_buffer_to_token(t->buffer, t->buffer_index);
-    token.position = token_position;
+    token.position = t->position;
+    token.line_no = t->line_no;
     vector_push(&t->tokens, &token);
     t->buffer_index = 0;
 }
 
-vector_t tokenise2(const char* data, int data_length) {
+tokeniser_t tokenise2(const char* data, int data_length) {
     tokeniser_t t = (tokeniser_t) {
+        .text = data,
         .buffer = malloc(TOKENISER_BUFFER_SIZE*sizeof(char)),
         .buffer_index = 0,
         .tokens = vector_new(512, sizeof(token_t)),
+        .line_no = 1,
+        .position = 0
     };
 
     bool string_building = false;
-    for (int i = 0; i < data_length; i++) {
-        char c = data[i];
+    for (t.position = 0; t.position < data_length; t.position++) {
+        char c = data[t.position];
 
         if (c == '"') {
-            if (i-1 > 0 && data[i-1] == '\\' && t.buffer_index > 0) {
+            if (t.position-1 > 0 && data[t.position-1] == '\\' && t.buffer_index > 0) {
                 t.buffer[t.buffer_index-1] = '"';
                 continue;
             }
@@ -223,7 +219,7 @@ vector_t tokenise2(const char* data, int data_length) {
             string_building = !string_building;
             t.buffer[t.buffer_index++] = c;
             if (t.buffer_index > 1) {
-                tokeniser_flush_buffer(&t, i);
+                tokeniser_flush_buffer(&t);
             }
             continue;
         }
@@ -245,41 +241,40 @@ vector_t tokenise2(const char* data, int data_length) {
                 // Horizontal tab (0x09, '\t'),
                 // Vertical tab (0x0b, '\v'),
                 // commit buffer
-                tokeniser_flush_buffer(&t, i);
+                tokeniser_flush_buffer(&t);
                 break;
             case TOKEN_LT:
-                if (data[i+1] == TOKEN_EQ) {
-                    token_t new_t = token_new_mult_char(TOKEN_LTE, i, "<=");
+                if (data[t.position+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_LTE, &t, "<=");
                     vector_push(&t.tokens, &new_t);
-                    i++;
+                    t.position++;
                     break;
                 }
             case TOKEN_GT:
-                if (data[i+1] == TOKEN_EQ) {
-                    token_t new_t = token_new_mult_char(TOKEN_GTE, i, ">=");
+                if (data[t.position+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_GTE, &t, ">=");
                     vector_push(&t.tokens, &new_t);
-                    i++;
+                    t.position++;
                     break;
                 }
             case TOKEN_BANG:
-                if (data[i+1] == TOKEN_EQ) {
-                    token_t new_t = token_new_mult_char(TOKEN_NEQ, i, "!=");
+                if (data[t.position+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_NEQ, &t, "!=");
                     vector_push(&t.tokens, &new_t);
-                    i++;
+                    t.position++;
                     break;
                 }
             case TOKEN_EQ:
-                if (data[i+1] == TOKEN_EQ) {
-                    token_t new_t = token_new_mult_char(TOKEN_EQEQ, i, "!=");
+                if (data[t.position+1] == TOKEN_EQ) {
+                    token_t new_t = token_new_mult_char(TOKEN_EQEQ, &t, "!=");
                     vector_push(&t.tokens, &new_t);
-                    i++;
+                    t.position++;
                     break;
                 }
             case TOKEN_PLUS:
             case TOKEN_MINUS:
             case TOKEN_ASTERISK:
             case TOKEN_SLASH:
-            case TOKEN_NEW_LINE:
             case TOKEN_L_BRACE:
             case TOKEN_R_BRACE:
             case TOKEN_L_BRACKET:
@@ -291,8 +286,17 @@ vector_t tokenise2(const char* data, int data_length) {
             case TOKEN_COMMA:
             {
                 // commit buffer
-                tokeniser_flush_buffer(&t, i);
-                token_t new_t = token_new_single_char((token_type_t) c, i, c);
+                tokeniser_flush_buffer(&t);
+                token_t new_t = token_new_single_char((token_type_t) c, &t, c);
+                vector_push(&t.tokens, &new_t);
+                break;
+            }
+            case TOKEN_NEW_LINE:
+            {
+                t.line_no += 1;
+                // commit buffer
+                tokeniser_flush_buffer(&t);
+                token_t new_t = token_new_single_char((token_type_t) c, &t, c);
                 vector_push(&t.tokens, &new_t);
                 break;
             }
@@ -302,9 +306,9 @@ vector_t tokenise2(const char* data, int data_length) {
         }
     }
 
-    token_t eof = (token_t){.type = TOKEN_EOF};
+    token_t eof = (token_t){.type = TOKEN_EOF, .line_no = t.line_no, .position = t.position};
 
     vector_push(&t.tokens, &eof);
-    free(t.buffer);
-    return t.tokens;
+    // free(t.buffer);
+    return t;
 }

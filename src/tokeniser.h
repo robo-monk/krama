@@ -86,17 +86,21 @@ typedef union {
 typedef struct {
     token_type_t type;
     int position;
+    int line_no;
     token_value_t value;
 } token_t;
 
 typedef struct {
     char* buffer;
+    char* text;
     size_t buffer_index;
     size_t index;
+    size_t line_no;
+    size_t position;
     vector_t tokens;
 } tokeniser_t;
 
-vector_t tokenise2(const char* data, int data_length);
+tokeniser_t tokenise2(const char* data, int data_length);
 void token_debug(token_t token);
 const char* token_type_to_string(token_type_t type);
 

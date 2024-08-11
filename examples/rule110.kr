@@ -33,7 +33,6 @@ fn add(char* a, char* b) {
 }
 
 fn main() {
-    let char hah = 5
     let bing = malloc(5)
     let String = ""
     let foo = String:new(12)
