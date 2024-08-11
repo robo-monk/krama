@@ -94,6 +94,7 @@ typedef struct {
 
 struct expression {
     expression_type_t type;
+    token_t token;
     type_t resultType;
     union {
         infix_expression_t infix;
@@ -130,6 +131,7 @@ typedef struct {
 
 typedef struct statement {
     statement_type_t type;
+    token_t token;
     union {
         let_statement_t let;
         defer_statement_t defer;

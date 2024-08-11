@@ -1,5 +1,13 @@
 fn malloc(i64 size) {
-    return 0 as char*
+    return @malloc(size) as any
+}
+
+fn new(char* _, i64 size) {
+    return malloc(size) as char*
+}
+
+fn free(char* s) {
+    @raw_c("free(s)")
 }
 
 fn println(char* fmt, char* s) {
@@ -10,7 +18,6 @@ fn println(char* fmt, char* s) {
 fn println(char* s) {
     println("%s", s)
 }
-
 
 fn add(@T gen1, @T gen2) {
     return @raw_c("gen1 + gen2") as @T;
@@ -25,10 +32,16 @@ fn add(char* a, char* b) {
     return result
 }
 
-
 fn main() {
+    let char hah = 5
     let bing = malloc(5)
+    let String = ""
+    let foo = String:new(12)
+    foo:free
+
+
     let bong = 5 + 4
     let hello_world = "hello" + " " + "world"
+    hello_world:println
     return 0 as i32
 }

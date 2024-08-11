@@ -35,66 +35,6 @@ void analyser_error_print(analyser_error_t *error) {
     fprintf(stderr, "\nANALYSER ERROR: %s\n", error->message);
 }
 
-void analyser_error_create(analyser_t *analyser, const char *format, ...) {
-    if (analyser->error_idx >= ANALYSER_MAX_ERROR_COUNT) {
-        for (int i = 0; i < analyser->error_idx; i++) {
-            analyser_error_print(analyser->errors[i]);
-        }
-
-        fprintf(stderr, "\nToo many analysis errors.\n");
-        exit(1);
-    }
-    va_list args;
-    va_start(args, format);
-
-    analyser_error_t *error = arena_alloc(analyser->ctx->arena, sizeof(analyser_error_t));
-
-    // Allocate memory for the message
-    int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(analyser->ctx->arena, msg_len);
-
-    // Format the message
-    vsnprintf(error->message, msg_len, format, args);
-    va_end(args);
-
-    // error->token = token;
-    analyser->errors[analyser->error_idx++] = error;
-
-    printf("\n(!) ANALYSER ERROR: %s\n", error->message);
-}
-
-bool analyser_assert(bool predicate, analyser_t *analyser, const char *format, ...) {
-    if (predicate == true) return true;
-
-    if (analyser->error_idx >= ANALYSER_MAX_ERROR_COUNT) {
-
-        for (int i = 0; i < analyser->error_idx; i++) {
-            analyser_error_print(analyser->errors[i]);
-        }
-
-        fprintf(stderr, "\nToo many analysis errors.\n");
-        exit(1);
-    }
-    va_list args;
-    va_start(args, format);
-
-    analyser_error_t *error = arena_alloc(analyser->ctx->arena, sizeof(analyser_error_t));
-
-    // Allocate memory for the message
-    int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(analyser->ctx->arena, msg_len);
-
-    // Format the message
-    vsnprintf(error->message, msg_len, format, args);
-    va_end(args);
-
-    // error->token = token;
-    analyser->errors[analyser->error_idx++] = error;
-
-    printf("\n(!) ANALYSER ERROR: %s\n", error->message);
-    return false;
-}
-
 bool type_generic_eq(type_t* a, type_t* b) {
     assert(a->kind != TYPE_KIND_UNKNOWN);
     assert(b->kind != TYPE_KIND_UNKNOWN);
@@ -148,7 +88,7 @@ type_t annotate_block(analyser_t *an, block_expression_t *block, scope_t *scope)
         ) {
 
             if (current_type.kind != TYPE_KIND_UNKNOWN) {
-                analyser_assert(type_eq(&current_type, &type), an, "There are paths in this block evaluating to different types...");
+                compiler_error_assert(type_eq(&current_type, &type), an->ctx, block->statements[i].token, "There are paths in this block evaluating to different types...");
             }
             current_type = type;
         }
@@ -175,8 +115,8 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
     switch (prefix->operand.type) {
     case TOKEN_ASTERISK:{
         type_t rtype = annotate_expression(an, prefix->right, scope);
-        analyser_assert(rtype.kind == TYPE_KIND_POINTER, an, "Cannnot dereference a non pointer");
-        analyser_assert(rtype.info.pointer != NULL, an, "Pointer to invalid type");
+        compiler_error_assert(rtype.kind == TYPE_KIND_POINTER, an->ctx, prefix->right->token, "Cannnot dereference a non pointer");
+        compiler_error_assert(rtype.info.pointer != NULL, an->ctx, prefix->right->token, "Pointer to invalid type");
         prefix->right->resultType = *rtype.info.pointer;
         return prefix->right->resultType;
     }
@@ -193,26 +133,21 @@ type_t get_prefix_ptype_result(analyser_t *an, prefix_expression_t *prefix, scop
     default:
         break;
     }
-    analyser_assert(0, an, "Invalid prefix operation");
+    assert(0);
     return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
 // type can be either a literal or an "alias" aka identifier pointing to another type
 type_t unwrap_expression_to_type(analyser_t *an, expression_t *typed, scope_t *scope) {
     if (typed->type == EXPRESSION_TYPE_LITERAL) {
-        bool valid = analyser_assert(typed->data.literal.kind == LITERAL_KIND_TYPE, an, "type is a literal that does not contain valid type information");
+        bool valid = compiler_error_assert(typed->data.literal.kind == LITERAL_KIND_TYPE, an->ctx, typed->token, "type is a literal that does not contain valid type information");
         if (valid) {
             return typed->data.literal.data.type;
         }
     } else if (typed->type == EXPRESSION_TYPE_IDENTIFIER) {
-        // type_t *type = scope_get_entry(an, scope, typed->data.identifier.name);
-        printf("\nGET deftype '%s' \n", typed->data.identifier.name);
         expression_t *type_exp = scope_get_entry(scope, typed->data.identifier.name);
-        printf("\n=> type is (%d)\n", type_exp->type);
-        debug_expression(type_exp, 2);
-        printf("---");
-        bool valid = analyser_assert(type_exp != NULL, an, "aliased type is NULL")
-                    && analyser_assert(type_exp->type == EXPRESSION_TYPE_LITERAL, an, "aliased type is not a type literal");
+        bool valid = compiler_error_assert(type_exp != NULL, an->ctx, typed->token, "aliased type is NULL")
+                    && compiler_error_assert(type_exp->type == EXPRESSION_TYPE_LITERAL, an->ctx, typed->token, "aliased type is not a type literal");
 
         if (valid) {
             return unwrap_expression_to_type(an, type_exp, scope);
@@ -229,7 +164,7 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
     case TOKEN_AS: {
         assert(infix->right != NULL);
         type_t ctype = unwrap_expression_to_type(an, infix->right, scope);
-        analyser_assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "Type is unknown");
+        compiler_error_assert(ctype.kind != TYPE_KIND_UNKNOWN, an->ctx, infix->right->token, "Type is unknown");
         // assert(ctype.kind != TYPE_KIND_UNKNOWN, an, "Type is unknown");
 
         type_t ltype = annotate_expression(an, infix->left, scope);
@@ -252,7 +187,7 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
         type_t ltype = annotate_expression(an, infix->left, scope);
         type_t rtype = annotate_expression(an, infix->right, scope);
 
-        analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
+        compiler_error_assert(type_eq(&ltype, &rtype), an->ctx, infix->right->token, "Infix operations must be inbetween same types");
         return get_ctype(an, "bool", false);
     }
     case TOKEN_PLUS:
@@ -262,13 +197,13 @@ type_t get_infix_ptype_result(analyser_t *an, infix_expression_t *infix, scope_t
         // TODO: is_op_defined_for_args(...)
         type_t ltype = annotate_expression(an, infix->left, scope);
         type_t rtype = annotate_expression(an, infix->right, scope);
-        analyser_assert(type_eq(&ltype, &rtype), an, "Infix operations must be inbetween same types");
+        compiler_error_assert(type_eq(&ltype, &rtype), an->ctx, infix->right->token, "Infix operations must be inbetween same types");
         return ltype;
     }
     default:
         break;
     }
-    analyser_assert(0, an, "Invalid infix operation");
+    assert(0);
     return (type_t) { .kind = TYPE_KIND_UNKNOWN };
 }
 
@@ -366,15 +301,15 @@ expression_t* analyse_func_decl(analyser_t *an, expression_t *expression, scope_
     }
 
     expression->data.func_decl.type = type_hint;
-    analyser_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an, "Cannot infer the return type of function. Please add a type hint.");
-    analyser_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an, "Generics are not supported.");
+    compiler_error_assert(!(inferred_type.kind == TYPE_KIND_UNKNOWN && type_hint.kind == TYPE_KIND_UNKNOWN), an->ctx, expression->token, "Cannot infer the return type of function. Please add a type hint.");
+    compiler_error_assert(!(inferred_type.kind == TYPE_KIND_GENERIC && type_hint.kind == TYPE_KIND_GENERIC), an->ctx, expression->token, "Generics are not supported.");
 
     printf("\n inferred type is:: ");
     debug_type(&inferred_type);
     printf("\n type hint is:: ");
     debug_type(&type_hint);
 
-    analyser_assert(type_eq(&inferred_type, &type_hint), an, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
+    compiler_error_assert(type_eq(&inferred_type, &type_hint), an->ctx, expression->token, "Function '%s' does not return expected type in all paths", expression->data.func_decl.name);
     return expression;
 }
 
@@ -400,7 +335,7 @@ expression_t *generate_fn_implementation_for_args(analyser_t *an, const expressi
         identifier_expression_t *param = (identifier_expression_t*) vector_get_ptr((vector_t *) &fn_variation->data.func_decl.params, i);
         expression_t *exp = (expression_t*) vector_get_ptr(arguments, i);
 
-        assert(param != NULL);
+        // assert(param != NULL);
         assert(param->type.kind != TYPE_KIND_UNKNOWN);
         // printf("\nparam -> %s::(%d)\n", param->name, param->type.kind);
         assert(param->type.kind >= 0 && param->type.kind < 15);
@@ -470,7 +405,7 @@ expression_t *generate_fn_implementation_for_args(analyser_t *an, const expressi
 
 
 
-type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *scope) {
+type_t annotate_expression(analyser_t *anl, expression_t *expression, scope_t *scope) {
     // if (expression->resultType != PTYPE_UNKNOWN) {
     //     return expression->resultType;
     // }
@@ -482,25 +417,25 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
     switch (expression->type) {
         case EXPRESSION_TYPE_PREFIX: {
             // type_t ltype = annotate_expression(an, expression->data.prefix.right, scope);
-            type_t ltype = get_prefix_ptype_result(an, &expression->data.prefix, scope);
+            type_t ltype = get_prefix_ptype_result(anl, &expression->data.prefix, scope);
 
             expression->resultType = ltype;
             return ltype;
         }
         case EXPRESSION_TYPE_INFIX: {
-            type_t t = get_infix_ptype_result(an, &expression->data.infix, scope);
+            type_t t = get_infix_ptype_result(anl, &expression->data.infix, scope);
 
             expression->resultType = t;
             return t;
         }
         case EXPRESSION_TYPE_LITERAL: {
             switch (expression->data.literal.kind) {
-            case LITERAL_KIND_I64: return get_ctype(an, "i64", false);
-            case LITERAL_KIND_F64: return get_ctype(an, "f64", false);
-            case LITERAL_KIND_CHARACTER: return get_ctype(an, "char", false);
+            case LITERAL_KIND_I64: return get_ctype(anl, "i64", false);
+            case LITERAL_KIND_F64: return get_ctype(anl, "f64", false);
+            case LITERAL_KIND_CHARACTER: return get_ctype(anl, "char", false);
             case LITERAL_KIND_TYPE: return expression->data.literal.data.type;
             case LITERAL_KIND_STRING: {
-                    return get_ctype(an, "char", true);
+                    return get_ctype(anl, "char", true);
                 };
             }
             printf("\n unsupported literal?\n");
@@ -508,21 +443,21 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         }
         case EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT: {
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
-            bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' is not declared\n", expression->data.identifier.name);
+            bool is_defined = compiler_error_assert(entry != NULL, anl->ctx, expression->token, "Identifier '%s' is not declared\n", expression->data.identifier.name);
             if (!is_defined) return (type_t) { .kind = TYPE_KIND_UNKNOWN };
-            bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            bool is_identifier = compiler_error_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, anl->ctx, entry->token, "'%s' is not an identifier", expression->data.identifier.name);
             if (!is_identifier) {
                 printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
             }
-            type_t ass_type = annotate_expression(an, expression->data.identifier.value, scope);
-            analyser_assert(type_eq(&entry->data.identifier.type, &ass_type), an, "Assigment expression does not match identifier type!");
+            type_t ass_type = annotate_expression(anl, expression->data.identifier.value, scope);
+            compiler_error_assert(type_eq(&entry->data.identifier.type, &ass_type), anl->ctx, entry->token, "Assigment expression does not match identifier type!");
             return ass_type;
         }
         case EXPRESSION_TYPE_IDENTIFIER: {
             expression_t* entry = scope_get_entry(scope, expression->data.identifier.name);
-            bool is_defined = analyser_assert(entry != NULL, an, "Identifier '%s' has not been declared\n", expression->data.identifier.name);
+            bool is_defined = compiler_error_assert(entry != NULL, anl->ctx, entry->token, "Identifier '%s' has not been declared\n", expression->data.identifier.name);
             if (!is_defined) return (type_t) { .kind = TYPE_KIND_UNKNOWN };
-            bool is_identifier = analyser_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, an, "'%s' is not an identifier", expression->data.identifier.name);
+            bool is_identifier = compiler_error_assert(entry->type == EXPRESSION_TYPE_IDENTIFIER, anl->ctx, entry->token, "'%s' is not an identifier", expression->data.identifier.name);
             if (!is_identifier) {
                 printf("\n it is... %d not .. %d\n",entry->type, EXPRESSION_TYPE_IDENTIFIER);
             }
@@ -535,29 +470,29 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         case EXPRESSION_TYPE_FUNC_DECL: {
             // type_t t = annotate_func_decl(an, expression, scope);
             // type_t t = analyse_func_decl(an, expression, scope);
-            add_func_variation(an, expression, scope);
+            add_func_variation(anl, expression, scope);
             if (strcmp(expression->data.func_decl.name, "main") == 0) {
-                analyse_func_decl(an, expression, scope);
-                hashmap_insert(an->ctx->fn_declerations, expression->data.func_decl.name, expression);
+                analyse_func_decl(anl, expression, scope);
+                hashmap_insert(anl->ctx->fn_declerations, expression->data.func_decl.name, expression);
             }
             return (type_t) { .kind = TYPE_KIND_UNKNOWN };
         }
         case EXPRESSION_TYPE_BLOCK: {
-            type_t type = annotate_block(an, &expression->data.block, scope);
+            type_t type = annotate_block(anl, &expression->data.block, scope);
             return type;
         }
         case EXPRESSION_TYPE_RETURN: {
-            return annotate_expression(an, expression->data.return_exp.expression, scope);
+            return annotate_expression(anl, expression->data.return_exp.expression, scope);
         }
         case EXPRESSION_TYPE_CONDITIONAL: {
-            type_t predicate_type = annotate_expression(an, expression->data.conditional.predicate, scope);
-            type_t bool_type = get_ctype(an, "bool", false);
-            analyser_assert(type_eq(&predicate_type, &bool_type), an, "Conditional predicate should be of the bool type");
+            type_t predicate_type = annotate_expression(anl, expression->data.conditional.predicate, scope);
+            type_t bool_type = get_ctype(anl, "bool", false);
+            compiler_error_assert(type_eq(&predicate_type, &bool_type), anl->ctx, expression->data.conditional.predicate->token, "Conditional predicate should be of the bool type");
 
-            type_t sbranch_type = annotate_expression(an, expression->data.conditional.success_branch, scope);
+            type_t sbranch_type = annotate_expression(anl, expression->data.conditional.success_branch, scope);
             if (expression->data.conditional.fail_branch != NULL) {
-                type_t ebranch_type = annotate_expression(an, expression->data.conditional.fail_branch, scope);
-                analyser_assert(type_eq(&sbranch_type, &ebranch_type), an, "Conditional branches should return the same type");
+                type_t ebranch_type = annotate_expression(anl, expression->data.conditional.fail_branch, scope);
+                compiler_error_assert(type_eq(&sbranch_type, &ebranch_type), anl->ctx, expression->data.conditional.fail_branch->token, "Conditional branches should return the same type");
             }
             return sbranch_type;
         }
@@ -567,11 +502,11 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
         case EXPRESSION_TYPE_STATIC_CALL: {
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
                 expression_t *exp = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
-                type_t exp_type = annotate_expression(an, exp, scope);
+                type_t exp_type = annotate_expression(anl, exp, scope);
                 exp->resultType = exp_type;
-                analyser_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, an, "Parameters should have well defined types");
+                compiler_error_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, anl->ctx, exp->token, "Parameters should have well defined types");
             }
-            return get_ctype(an, "any", false);
+            return get_ctype(anl, "any", false);
         }
         case EXPRESSION_TYPE_CALL: {
             printf("\nAnalysing CALL to '%s'\n", expression->data.call.identifier_name);
@@ -579,30 +514,31 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
             // annotate arguments expressions
             for (int i = 0; i < expression->data.call.arguments.count; i++) {
                 expression_t *arg = (expression_t*) vector_get_ptr(&expression->data.call.arguments, i);
-                type_t exp_type = annotate_expression(an, arg, scope);
+                type_t exp_type = annotate_expression(anl, arg, scope);
                 arg->resultType = exp_type;
-                invalid_args = !analyser_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, an,
+                invalid_args = !compiler_error_assert(exp_type.kind!=TYPE_KIND_UNKNOWN, anl->ctx, arg->token,
                     "Argument '%s' in call '%s' does not have a known type", arg->data.identifier.name, expression->data.call.identifier_name);
                 if (invalid_args) break;
             }
 
             if (invalid_args) break;
 
-            expression_t *decl = hashmap_get(an->ctx->fn_declerations, expression->data.call.identifier_name);
+            expression_t *decl = hashmap_get(anl->ctx->fn_declerations, expression->data.call.identifier_name);
             if (decl != NULL) {
                 assert(decl->type == EXPRESSION_TYPE_FUNC_DECL);
                 return decl->data.func_decl.type;
             }
 
-            const expression_t *fn_variation = get_func_variation(an, scope, &expression->data.call, type_eq);
+            const expression_t *fn_variation = get_func_variation(anl, scope, &expression->data.call, type_eq);
             if (fn_variation == NULL) {
                 printf("\nGetting generic varation for '%s'\n", expression->data.call.identifier_name);
-                fn_variation = get_func_variation(an, scope, &expression->data.call, type_generic_eq);
+                fn_variation = get_func_variation(anl, scope, &expression->data.call, type_generic_eq);
             } else {
                 printf("\nUsing explicit variation for '%s'\n", expression->data.call.identifier_name);
             }
 
-            bool exists = analyser_assert(fn_variation != NULL, an,
+            bool exists = compiler_error_assert(fn_variation != NULL, anl->ctx,
+                expression->token,
                 "There's no matching signature for call `%s`",
                 expression->data.call.identifier_name);
 
@@ -628,14 +564,14 @@ type_t annotate_expression(analyser_t *an, expression_t *expression, scope_t *sc
 
             assert(fn_variation->type == EXPRESSION_TYPE_FUNC_DECL);
 
-            expression_t *generated = generate_fn_implementation_for_args(an, fn_variation, &expression->data.call.arguments, scope);
+            expression_t *generated = generate_fn_implementation_for_args(anl, fn_variation, &expression->data.call.arguments, scope);
 
             // char* mangled_name = an->ctx->fn_mangle(an->ctx, generated);
-            char* mangled_name = fn_expr_name_mangle(an->ctx, generated);
+            char* mangled_name = fn_expr_name_mangle(anl->ctx, generated);
             // char* mangled_name = generated->data.func_decl.name;
             printf("\n::Registering as %s\n", mangled_name);
             generated->data.func_decl.name = mangled_name;
-            hashmap_insert(an->ctx->fn_declerations, mangled_name, generated);
+            hashmap_insert(anl->ctx->fn_declerations, mangled_name, generated);
             // hashmap_insert(an->ctx->fn_declerations, generated->data.func_decl.name, generated);
             expression->data.call.identifier_name = mangled_name;
             return generated->data.func_decl.type;
@@ -651,8 +587,8 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
     case STATEMENT_TYPE_LET: {
 
         expression_t* entry = scope_get_entry(scope, s->data.let.identifier.name);
-        analyser_assert(entry == NULL, an, "Identifier '%s' has already been declared\n", s->data.let.identifier.name);
-        analyser_assert(s->data.let.identifier.value != NULL, an, "Unitialised identifier '%s' is not allowed", s->data.let.identifier.name);
+        compiler_error_assert(entry == NULL, an->ctx, s->token, "Identifier '%s' has already been declared\n", s->data.let.identifier.name);
+        compiler_error_assert(s->data.let.identifier.value != NULL, an->ctx, s->token, "Unitialised identifier '%s' is not allowed", s->data.let.identifier.name);
 
         expression_t *idexp = arena_alloc(an->ctx->arena, sizeof(expression_t));
 
@@ -665,19 +601,21 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
         if (type_hint.kind == TYPE_KIND_UNKNOWN || type_hint.kind == TYPE_KIND_GENERIC) {
             s->data.let.identifier.type = inferred_type;
         } else {
-            analyser_assert(type_eq(&type_hint, &inferred_type), an, "Type mismatch");
+            compiler_error_assert(type_eq(&type_hint, &inferred_type), an->ctx, s->token, "Type mismatch");
+            // compiler_error_assert(inferred_type.kind != TYPE_KIND_UNKNOWN, an->ctx, s->token, "Let decleration does not have a known type");
         }
 
         idexp->type = EXPRESSION_TYPE_IDENTIFIER;
         idexp->data.identifier = s->data.let.identifier;
         scope_define_entry(scope, s->data.let.identifier.name, idexp);
 
-        analyser_assert(inferred_type.kind != TYPE_KIND_UNKNOWN, an, "Let decleration does not have a known type");
+        compiler_error_assert(inferred_type.kind != TYPE_KIND_UNKNOWN, an->ctx, s->token, "Let decleration does not have a known type");
+        // compiler_error_assert(bool predicate, CompilerContext *ctx, token_t token, const char *format, ...)
 
         return inferred_type;
     }
     case STATEMENT_TYPE_DEFER:
-        analyser_error_create(an, "Don't know how to analyse statement");
+        compiler_error_create(an->ctx, s->token, "Don't know how to analyse statement");
         break;
     case STATEMENT_TYPE_EXPRESSION:
         return annotate_expression(an, &s->data.expression, scope);
@@ -687,8 +625,6 @@ type_t annotate_statement(analyser_t *an, statement_t *s, scope_t *scope) {
 
 analyser_t analyser_new(CompilerContext *ctx) {
     return (analyser_t) {
-        .index = 0,
-        .error_idx = 0,
         .ctx = ctx
     };
 }
@@ -696,7 +632,6 @@ analyser_t analyser_new(CompilerContext *ctx) {
 analyser_t analyse_program(parser_t *parser, CompilerContext *ctx) {
     analyser_t a = analyser_new(ctx);
 
-    printf("\nAnalyzing..\n");
     scope_t global_scope = (scope_t) {
         .table = hashmap_create(NULL),
         .upper = NULL
@@ -707,16 +642,6 @@ analyser_t analyse_program(parser_t *parser, CompilerContext *ctx) {
         statement_t *s = vector_get_ptr(&parser->program.statements, i);
         s->data.expression.resultType = annotate_statement(&a, s, &global_scope);
         printf("\n(%d) Done => ", i);
-    }
-
-    printf("\nDone\n");
-
-
-    if (a.error_idx > 0) {
-        printf("\nAnalysis errors:\n");
-        for (int i = 0; i < a.error_idx; i++) {
-            analyser_error_print(a.errors[i]);
-        }
     }
 
     return a;

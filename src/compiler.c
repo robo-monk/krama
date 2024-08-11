@@ -11,6 +11,32 @@
 #include <stdint.h>
 #include <stdio.h>
 
+void compiler_error_create(CompilerContext *ctx, token_t token, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    // parser_error_t *error = arena_alloc(parser->ctx->arena, sizeof(parser_error_t));
+    // Allocate memory for the message
+    int msg_len = vsnprintf(NULL, 0, format, args) + 1;
+    CompilationMessage message = (CompilationMessage) {
+        .message = arena_alloc(ctx->arena, msg_len),
+        .kind = CompilationErrorKind_ERROR,
+        .token = token
+    };
+    // Format the message
+    vsnprintf(message.message, msg_len, format, args);
+    va_end(args);
+    vector_push(&ctx->messages, &message);
+}
+
+bool compiler_error_assert(bool predicate, CompilerContext *ctx, token_t token, const char *format, ...) {
+    if (predicate == true) return true;
+    va_list args;
+    va_start(args, format);
+    compiler_error_create(ctx, token, format, args);
+    va_end(args);
+    return false;
+}
 
 c_program_t c_program_new() {
     return (c_program_t) {

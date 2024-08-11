@@ -8,37 +8,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-void parser_error_print(parser_error_t *error) {
-    fprintf(stderr, "PARSER ERROR: %s\n", error->message);
-}
-
-void parser_error_create(parser_t *parser, token_t token, const char *format, ...) {
-    if (parser->error_idx >= PARSER_MAX_ERROR_COUNT) {
-
-        for (int i = 0; i < parser->error_idx; i++) {
-            parser_error_print(parser->errors[i]);
-        }
-
-        fprintf(stderr, "\nToo many parsing errors.\n");
-        exit(1);
-    }
-    va_list args;
-    va_start(args, format);
-
-    parser_error_t *error = arena_alloc(parser->ctx->arena, sizeof(parser_error_t));
-
-    // Allocate memory for the message
-    int msg_len = vsnprintf(NULL, 0, format, args) + 1;
-    error->message = arena_alloc(parser->ctx->arena, msg_len);
-
-    // Format the message
-    vsnprintf(error->message, msg_len, format, args);
-    va_end(args);
-
-    error->token = token;
-    parser->errors[parser->error_idx++] = error;
-}
-
 token_t parser_peek(parser_t *parser) {
     return parser->tokens[parser->index+1];
 }
@@ -60,7 +29,7 @@ token_t parser_eat(parser_t *parser) {
 token_t parser_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
     if (current.type != token_type) {
-        parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
+        compiler_error_create(parser->ctx, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
     }
     return current;
 }
@@ -78,7 +47,7 @@ token_t parser_eat_and_expect(parser_t *parser, token_type_t token_type) {
     token_t current = parser_current(parser);
     if (current.type != token_type) {
         printf("\n(!) Expected token `%s` but got `%s`\n", token_type_to_string(token_type), token_type_to_string(current.type));
-        parser_error_create(parser, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
+        compiler_error_create(parser->ctx, current, "Expected token `%s` but got `%s`", token_type_to_string(token_type), token_type_to_string(current.type));
         return current;
     }
     parser_eat(parser);
@@ -232,7 +201,7 @@ vector_t parser_parse_comma_seperated_params(parser_t *parser) {
         parser_debug_type(&type_info);
 
         if (type_info.kind == TYPE_KIND_UNKNOWN) {
-            parser_error_create(parser, parser_current(parser), "Unrecognised type `%s`", parser_current(parser).value.raw_str);
+            compiler_error_create(parser->ctx, parser_current(parser), "Unrecognised type `%s`", parser_current(parser).value.raw_str);
             parser_eat(parser);
         }
 
@@ -262,6 +231,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expr->data.block = block_expression_new();
             parser_eat_and_expect(parser, TOKEN_L_BRACE);
             parser_optional_eat(parser, TOKEN_NEW_LINE);
+            expr->token = parser_current(parser);
 
             while (parser_current(parser).type != TOKEN_R_BRACE) {
                 // parser_debug(parser, "\nbefore block parsing\n");
@@ -284,6 +254,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_LITERAL: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_LITERAL;
+            expr->token = parser_current(parser);
             expr->data.literal = parser_parse_literal(parser);
             return expr;
         }
@@ -293,6 +264,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_MINUS: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             expr->type = EXPRESSION_TYPE_PREFIX;
+            expr->token = parser_current(parser);
             expr->data.prefix = (prefix_expression_t) {
                 .operand = parser_eat(parser),
                 .right = parser_parse_expression(parser, PRECEDENCE_PREFIX)
@@ -302,6 +274,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         case TOKEN_IDENTIFIER: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             char* identifier_name = arena_strdup(parser->ctx->arena, parser_current(parser).value.raw_str);
+            expr->token = parser_current(parser);
 
             if (hashmap_get(parser->ctx->types, identifier_name) != NULL) {
                 type_t type = parser_parse_type_hint(parser);
@@ -341,6 +314,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
             parser_eat(parser);
 
+            expr->token = parser_current(parser);
             type_t type_info = parser_parse_type_hint(parser);
             parser_debug_type(&type_info);
 
@@ -364,6 +338,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         }
         case TOKEN_RETURN: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
+            expr->token = parser_current(parser);
             parser_eat_and_expect(parser, TOKEN_RETURN);
             expr->type = EXPRESSION_TYPE_RETURN;
             expr->data.return_exp = (return_expression_t) {
@@ -373,6 +348,7 @@ expression_t* parser_parse_prefix_expression(parser_t *parser) {
         }
         case TOKEN_IF: {
             expression_t *expr = arena_alloc(parser->ctx->arena, sizeof(expression_t));
+            expr->token = parser_current(parser);
             parser_eat_and_expect(parser, TOKEN_IF);
             expr->type = EXPRESSION_TYPE_CONDITIONAL;
             expr->data.conditional.predicate = parser_parse_expression(parser, PRECEDENCE_LOWEST);
@@ -404,6 +380,7 @@ expression_t* parse_to_built_in_op(parser_t *parser, char* opname, precedence_t 
         .identifier_name = opname,
         .arguments = args
     };
+    expr->token = parser_current(parser);
     return expr;
 }
 
@@ -445,6 +422,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
             if (false && left->type == EXPRESSION_TYPE_IDENTIFIER) {
                 parser_eat_and_expect(parser, TOKEN_EQ);
                 assert(left->type == EXPRESSION_TYPE_IDENTIFIER);
+                left->token = parser_current(parser);
                 left->data.identifier.value = parser_parse_expression(parser, PRECEDENCE_LOWEST);
                 left->type = EXPRESSION_TYPE_IDENTIFIER_ASSIGNMENT;
                 return left;
@@ -460,6 +438,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
             token_t operand = parser_eat(parser);
 
             precedence_t precedence = get_precedence(operand.type);
+            expr->token = operand;
             expr->data.infix = (infix_expression_t) {
                 .operand = operand,
                 .right = parser_parse_expression(parser, precedence),
@@ -478,7 +457,7 @@ expression_t* parser_parse_infix_expression(parser_t *parser, expression_t *left
                 right->data.call.identifier_name = name;
                 right->data.call.arguments = vector_new(8, sizeof(expression_t*));
             }
-
+            right->token = parser_current(parser);
             assert(right->type == EXPRESSION_TYPE_CALL);
             vector_insert_ptr(&right->data.call.arguments, 0, left);
             return right;
@@ -554,7 +533,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             parser_debug_type(&type_info);
 
             if (type_info.kind == TYPE_KIND_UNKNOWN) {
-                parser_error_create(parser, parser_current(parser), "External functional need to define return type");
+                compiler_error_create(parser->ctx, parser_current(parser), "External functional need to define return type");
             }
             token_t fn_identifier = parser_eat_and_expect(parser, TOKEN_IDENTIFIER);
 
@@ -595,7 +574,7 @@ statement_t* parser_parse_statement(parser_t *parser) {
             expression_t *exp = parser_parse_expression(parser, PRECEDENCE_LOWEST);
 
             if (exp == NULL) {
-                parser_error_create(parser, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
+                compiler_error_create(parser->ctx, current, "Don't know how to parse this `%s`", token_type_to_string(current.type));
                 break;
             }
 
@@ -613,6 +592,7 @@ void parser_parse(parser_t *parser) {
     while (current = parser_current(parser), current.type != TOKEN_EOF) {
         statement_t *s = parser_parse_statement(parser);
         if (s != NULL) {
+            s->token = current;
             vector_push_ptr(&parser->program.statements, s);
         }
         // program_add_statement(&parser->program, s);
@@ -623,7 +603,6 @@ parser_t parser_new(CompilerContext *ctx) {
     return (parser_t) {
         .index = 0,
         .program = program_create(),
-        .error_idx = 0,
         .ctx = ctx
     };
 }
@@ -631,7 +610,6 @@ parser_t parser_new(CompilerContext *ctx) {
 program_t parse(parser_t *parser, token_t *tokens) {
     parser->tokens = tokens;
     parser->index = 0;
-    parser->error_idx = 0;
     parser->program = program_create();
 
     parser_register_primitive_type(parser, "u32", "unsigned int", 4);
@@ -655,11 +633,5 @@ program_t parse(parser_t *parser, token_t *tokens) {
         printf("\n");
     }
 
-    printf("\n\n");
-    if (parser->error_idx > 0) {
-        for (int i = 0; i < parser->error_idx; i++) {
-            parser_error_print(parser->errors[i]);
-        }
-    }
     return parser->program;
 }

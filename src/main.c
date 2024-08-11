@@ -132,24 +132,32 @@ int main(int argc, char *argv[]) {
         // .fn_declerations = vector_new(1024, sizeof(expression_t*)),
         .fn_declerations = hashmap_create(NULL),
         .types = types,
-        .fn_mangle = fn_expr_name_mangle
+        .fn_mangle = fn_expr_name_mangle,
+        .messages = vector_new(10, sizeof(CompilationMessage))
     };
 
     parser_t parser = parser_new(&ctx);
     parse(&parser, token_array);
 
-    if (parser.error_idx > 0) {
-        printf("\n please fix parser errors\n");
-        exit(1);
-    }
-
     analyser_t analyser = analyse_program(&parser, &ctx);
-    if (analyser.error_idx > 0) {
-        printf("\n please fix analyser errors\n");
-        // exit(1);
-    }
-
     compile(&parser.program, &ctx, output_file);
+
+
+    printf("Done compiling with %d messages\n", ctx.messages.count);
+    for (int i = 0; i < ctx.messages.count; i++) {
+        CompilationMessage *msg = vector_get(&ctx.messages, i);
+        switch(msg->kind) {
+            case CompilationErrorKind_ERROR:
+                printf("ERROR: %s\n", msg->message);
+                break;
+            case CompilationErrorKind_WARN:
+                printf("WARN: ");
+                break;
+            case CompilationErrorKind_INFO:
+                printf("INFO: ");
+                break;
+            }
+    }
 
     // parser_destroy(&parser);
     arena_destroy(&arena);

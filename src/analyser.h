@@ -22,13 +22,8 @@ typedef struct {
     token_t token;
 } analyser_error_t;
 
-#define ANALYSER_MAX_ERROR_COUNT 28
 typedef struct {
-    int index;
-    token_t* tokens;
     program_t program;
-    analyser_error_t* errors[ANALYSER_MAX_ERROR_COUNT];
-    unsigned int error_idx;
     CompilerContext *ctx;
 } analyser_t;
 
